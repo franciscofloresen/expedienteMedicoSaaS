@@ -1,0 +1,67 @@
+# ============================================================
+# MedRecord SaaS — .gitignore
+# ============================================================
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Node ──
+node_modules/
+.next/
+.nuxt/
+.output/
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Terraform ──
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ── Testing ──
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.mypy_cache/
+
+# ── Build artifacts ──
+*.zip
+*.tar.gz
+lambda_package/
+
+# ── Docs ──
+docs/breach_protocol.md

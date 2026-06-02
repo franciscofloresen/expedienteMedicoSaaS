@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análisis de Mercado — Expediente Clínico Digital México 2026</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a2e;
+      --cream: #f5f0e8;
+      --warm: #ede8dc;
+      --accent: #c8553d;
+      --accent2: #2d6a4f;
+      --accent3: #e9c46a;
+      --gold: #b5a26a;
+      --muted: #6b6560;
+      --card: #ffffff;
+      --border: rgba(26, 26, 46, 0.12);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: var(--ink);
+      color: var(--cream);
+      padding: 80px 60px 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200, 85, 61, 0.18) 0%, transparent 70%);
+    }
+
+    .hero::after {
+      content: '⚕';
+      position: absolute;
+      bottom: -30px;
+      right: 60px;
+      font-size: 220px;
+      opacity: 0.04;
+      line-height: 1;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 2px;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 52px;
+      line-height: 1.1;
+      font-weight: 700;
+      margin-bottom: 16px;
+      max-width: 700px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent3);
+    }
+
+    .hero .subtitle {
+      font-size: 17px;
+      color: rgba(245, 240, 232, 0.65);
+      max-width: 560px;
+      font-weight: 300;
+      margin-bottom: 48px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: rgba(245, 240, 232, 0.12);
+      border-top: 1px solid rgba(245, 240, 232, 0.15);
+      padding-top: 40px;
+      margin-top: 8px;
+    }
+
+    .hero-stat {
+      padding: 0 24px 0 0;
+    }
+
+    .hero-stat .val {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--accent3);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .hero-stat .lbl {
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(245, 240, 232, 0.5);
+      line-height: 1.4;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    section {
+      padding: 72px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .section-intro {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 580px;
+      margin-bottom: 48px;
+    }
+
+    /* ── OPORTUNIDAD ── */
+    .opp-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    .big-number-card {
+      background: var(--ink);
+      color: var(--cream);
+      border-radius: 6px;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .big-number-card::before {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: rgba(200, 85, 61, 0.15);
+    }
+
+    .big-number-card .num {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 72px;
+      font-weight: 700;
+      color: var(--accent3);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .big-number-card .unit {
+      font-size: 14px;
+      color: rgba(245, 240, 232, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+
+    .big-number-card p {
+      font-size: 15px;
+      color: rgba(245, 240, 232, 0.75);
+      line-height: 1.7;
+    }
+
+    .opp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .opp-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .opp-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--warm);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .opp-item h4 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .opp-item p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── MERCADO VISUAL ── */
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 40px;
+    }
+
+    .mcard {
+      background: var(--card);
+      padding: 32px 28px;
+    }
+
+    .mcard .mnum {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .mcard .mnum.red {
+      color: var(--accent);
+    }
+
+    .mcard .mnum.green {
+      color: var(--accent2);
+    }
+
+    .mcard .mnum.gold {
+      color: var(--gold);
+    }
+
+    .mcard .mlabel {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .mcard p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* bar chart */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 32px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 70px;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .bar-label {
+      font-size: 13px;
+      text-align: right;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .bar-track {
+      background: var(--warm);
+      border-radius: 3px;
+      height: 28px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: 0.5px;
+      transition: width 1s ease;
+    }
+
+    .bar-val {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* ── COMPETIDORES ── */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .comp-table th {
+      background: var(--ink);
+      color: var(--cream);
+      padding: 14px 18px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .comp-table th:first-child {
+      border-radius: 0;
+    }
+
+    .comp-table td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .comp-table tr:hover td {
+      background: var(--warm);
+    }
+
+    .comp-name {
+      font-family: 'Libre Baskerville', serif;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .comp-type {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 3px;
+      margin-bottom: 3px;
+    }
+
+    .pill.yes {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .pill.no {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .pill.partial {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .price-badge {
+      background: var(--warm);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .rating-dots {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .dot.filled {
+      background: var(--accent);
+    }
+
+    /* our position row */
+    .comp-table tr.ours td {
+      background: linear-gradient(90deg, rgba(45, 106, 79, 0.06), transparent);
+      border-left: 3px solid var(--accent2);
+    }
+
+    /* ── DECRETO 2026 ── */
+    .decree-banner {
+      background: linear-gradient(135deg, #2d6a4f 0%, #1a4035 100%);
+      border-radius: 8px;
+      padding: 48px;
+      color: white;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+      margin-bottom: 40px;
+    }
+
+    .decree-banner h3 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 26px;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .decree-banner p {
+      font-size: 14px;
+      opacity: 0.8;
+      line-height: 1.7;
+    }
+
+    .decree-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .decree-list li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .decree-list li::before {
+      content: '✓';
+      width: 22px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── PROPUESTA DE VALOR ── */
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .vcard {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 32px 28px;
+      background: var(--card);
+      position: relative;
+    }
+
+    .vcard.highlight {
+      border-color: var(--accent2);
+      background: #f0faf5;
+    }
+
+    .vcard .vtag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .vcard h4 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .vcard p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .vcard .badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--accent2);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .pcard {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--card);
+    }
+
+    .pcard.featured {
+      border-color: var(--accent);
+      transform: translateY(-6px);
+      box-shadow: 0 12px 40px rgba(200, 85, 61, 0.15);
+    }
+
+    .pcard-header {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pcard.featured .pcard-header {
+      background: var(--accent);
+      color: white;
+      border-bottom: none;
+    }
+
+    .pcard-name {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+
+    .pcard.featured .pcard-name {
+      opacity: 0.85;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .pcard-price {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 44px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .pcard-period {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pcard.featured .pcard-period {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .pcard-body {
+      padding: 24px 28px 28px;
+    }
+
+    .pcard-feat {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .pcard-feat li {
+      list-style: none;
+      font-size: 13px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: var(--muted);
+    }
+
+    .pcard-feat li::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .pcard-feat li.yes {
+      color: var(--ink);
+    }
+
+    .pcard-btn {
+      display: block;
+      text-align: center;
+      padding: 12px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .pcard-btn.outline {
+      border: 1.5px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .pcard-btn.filled {
+      background: var(--ink);
+      color: var(--cream);
+    }
+
+    /* ── ROADMAP ── */
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    .roadmap::before {
+      content: '';
+      position: absolute;
+      top: 32px;
+      left: 12%;
+      right: 12%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    .rmile {
+      text-align: center;
+      padding: 0 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .rmile-dot {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .rmile-dot.active {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .rmile .rphase {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .rmile h4 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .rmile p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: var(--ink);
+      color: rgba(245, 240, 232, 0.5);
+      padding: 40px 48px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer strong {
+      color: var(--cream);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate {
+      animation: fadeUp 0.7s ease forwards;
+    }
+
+    .delay-1 {
+      animation-delay: 0.1s;
+    }
+
+    .delay-2 {
+      animation-delay: 0.2s;
+    }
+
+    .delay-3 {
+      animation-delay: 0.3s;
+    }
+
+    @media print {
+      .hero {
+        padding: 48px;
+      }
+
+      section {
+        padding: 48px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="container">
+      <div class="hero-tag">Análisis de Mercado · México 2026</div>
+      <h1>El momento de <em>digitalizar</em> tu consultorio es ahora</h1>
+      <p class="subtitle">Panorama completo del mercado de expediente clínico electrónico en México: oportunidad,
+        competencia y por qué existe un hueco real para una solución diseñada para el médico independiente.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="val">98K</div>
+          <div class="lbl">Médicos en el<br>sector privado</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">$43B</div>
+          <div class="lbl">USD mercado global ECE<br>para 2032</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">2026</div>
+          <div class="lbl">Decreto de digitalización<br>obligatoria en vigor</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">~40%</div>
+          <div class="lbl">Establecimientos privados<br>aún sin sistema digital</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPORTUNIDAD -->
+  <section>
+    <div class="container">
+      <div class="section-label">La oportunidad</div>
+      <h2>Un mercado forzado a digitalizarse</h2>
+      <p class="section-intro">El decreto de enero 2026 hace obligatorio el expediente electrónico para <em>todos</em>
+        los prestadores de salud privados. No hay período de gracia. El reloj corre.</p>
+
+      <div class="opp-grid">
+        <div class="big-number-card animate">
+          <div class="num">17K+</div>
+          <div class="unit">consultorios privados</div>
+          <p>El INEGI reporta más de 17,390 consultorios en establecimientos privados. El 70.2% atienden especialidades
+            médicas. La mayor concentración está en Estado de México, CDMX y Jalisco. La gran mayoría opera de forma
+            independiente o en grupos pequeños de 2-3 médicos.</p>
+        </div>
+
+        <div class="opp-list animate delay-1">
+          <div class="opp-item">
+            <div class="opp-icon">⚖️</div>
+            <div>
+              <h4>Obligación legal vigente</h4>
+              <p>El decreto de 2026 obliga a todos los consultorios privados. No cumplir expone al médico a sanciones de
+                la Secretaría de Salud y a riesgo legal ante CONAMED.</p>
+            </div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-icon">💸</div>
+            <div>
+              <h4>Las soluciones actuales son caras o complejas</h4>
+              <p>Los líderes del mercado cobran $499-$800 MXN por usuario al mes, o exigen capacitación e
+                implementación. El médico solo no necesita tanto.</p>
+            </div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-icon">📱</div>
+            <div>
+              <h4>Adopción digital en aceleración</h4>
+              <p>El 60% de hospitales ya tiene algún sistema. Falta el 40% restante, que son principalmente consultorios
+                independientes de pequeño volumen.</p>
+            </div>
+          </div>
+          <div class="opp-item">
+            <div class="opp-icon">🤖</div>
+            <div>
+              <h4>IA como diferenciador emergente</h4>
+              <p>Nuevos actores ya integran transcripción y resúmenes automáticos de consulta. La IA puede reducir el
+                tiempo de llenado del expediente de 8 min a menos de 2 min.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MERCADO EN NÚMEROS -->
+  <section style="background: var(--warm);">
+    <div class="container">
+      <div class="section-label">El mercado en números</div>
+      <h2>¿Dónde están los médicos?</h2>
+      <p class="section-intro">El 52.5% de todos los establecimientos de salud privados se concentra en 7 estados. Estos
+        son tus mercados prioritarios.</p>
+
+      <div class="market-grid">
+        <div class="mcard">
+          <div class="mnum red">2,747</div>
+          <div class="mlabel">Establecimientos privados</div>
+          <p>Reportados por INEGI en 2024. De estos, 1 de cada 10 es de especialidad médica. El resto son consultorios
+            de medicina general, urgencias y obstetricia.</p>
+        </div>
+        <div class="mcard">
+          <div class="mnum green">84%</div>
+          <div class="mlabel">Son especialistas</div>
+          <p>Del total de médicos privados, el 84% son especialistas. Esto significa que cada uno tiene necesidades muy
+            específicas de expediente según su área.</p>
+        </div>
+        <div class="mcard">
+          <div class="mnum gold">1.7B</div>
+          <div class="mlabel">Pesos en gasto salud 2025</div>
+          <p>Proyección de gasto total en salud en México para 2025, impulsado por la expansión del sector privado y el
+            aumento de seguros médicos contratados.</p>
+        </div>
+      </div>
+
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Estado de México</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100%; background:#1a1a2e;">437 establ.</div>
+          </div>
+          <div class="bar-val">15.9%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Ciudad de México</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:56%; background:#c8553d;">244 establ.</div>
+          </div>
+          <div class="bar-val">8.3%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Jalisco</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:47%; background:#2d6a4f;">207 establ.</div>
+          </div>
+          <div class="bar-val">7.5%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Guanajuato</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:41%; background:#b5a26a;">181 establ.</div>
+          </div>
+          <div class="bar-val">6.3%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Michoacán + Veracruz</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:33%; background:#6b6560;">142-140 establ.</div>
+          </div>
+          <div class="bar-val">5.1%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Puebla</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:30%; background:#888;">132 establ.</div>
+          </div>
+          <div class="bar-val">4.7%</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DECRETO 2026 -->
+  <section>
+    <div class="container">
+      <div class="section-label">Marco legal</div>
+      <h2>El decreto que cambia todo</h2>
+      <p class="section-intro">Desde el 15 de enero de 2026, el expediente clínico electrónico es obligatorio para todos
+        los prestadores de salud privados en México. Sin excepciones.</p>
+
+      <div class="decree-banner">
+        <div>
+          <h3>¿Qué implica el Decreto 2026 para tu consultorio?</h3>
+          <p>La Ley General de Salud aplica a todos los proveedores de servicios de salud en México, incluyendo
+            consultorios privados, clínicas y hospitales, independientemente de su tamaño. Para nuevos pacientes, el
+            expediente debe ser digital desde el primer contacto. No existe período de gracia para los artículos
+            principales.</p>
+        </div>
+        <ul class="decree-list">
+          <li>Todos los nuevos expedientes deben ser digitales desde el 15 enero 2026</li>
+          <li>Cumplimiento de NOM-004-SSA3-2012 obligatorio (contenido clínico)</li>
+          <li>Cumplimiento de NOM-024-SSA3-2012 obligatorio (seguridad informática)</li>
+          <li>Conservación mínima 5 años, ciertos expedientes hasta 35 años</li>
+          <li>Cifrado de datos en reposo y tránsito exigido por la norma</li>
+          <li>Firma electrónica del médico en cada nota médica</li>
+          <li>Registro de auditoría de todos los accesos al expediente</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPETIDORES -->
+  <section style="background: var(--warm);">
+    <div class="container">
+      <div class="section-label">Panorama competitivo</div>
+      <h2>¿Quién está en el mercado?</h2>
+      <p class="section-intro">Hay soluciones disponibles, pero ninguna ha resuelto bien el equilibrio entre
+        cumplimiento normativo completo, precio accesible y simplicidad real para el médico independiente.</p>
+
+      <div style="overflow-x:auto; border-radius: 8px; border: 1px solid var(--border);">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Sistema</th>
+              <th>Precio/mes</th>
+              <th>NOM-004</th>
+              <th>NOM-024</th>
+              <th>Fácil de usar</th>
+              <th>Hecho para 1 médico</th>
+              <th>IA incluida</th>
+              <th>Soporte MX</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="comp-name">Nimbo</div>
+                <div class="comp-type">Ecaresoft · Líder mercado</div>
+              </td>
+              <td><span class="price-badge">$499/usuario</span></td>
+              <td><span class="pill yes">✓ Completo</span></td>
+              <td><span class="pill yes">✓ Sí</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+              </td>
+              <td><span class="pill partial">Parcial</span></td>
+              <td><span class="pill no">✗ No</span></td>
+              <td><span class="pill yes">✓ Sí</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="comp-name">Medilink</div>
+                <div class="comp-type">Para clínicas medianas/grandes</div>
+              </td>
+              <td><span class="price-badge">$450 + impl.</span></td>
+              <td><span class="pill yes">✓ Completo</span></td>
+              <td><span class="pill yes">✓ Sí</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+              </td>
+              <td><span class="pill no">✗ No</span></td>
+              <td><span class="pill no">✗ No</span></td>
+              <td><span class="pill yes">✓ Sí</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="comp-name">Luna Salud</div>
+                <div class="comp-type">Nueva generación · IA nativa</div>
+              </td>
+              <td><span class="price-badge">$350 / 3 users</span></td>
+              <td><span class="pill yes">✓ Completo</span></td>
+              <td><span class="pill partial">⚠ Parcial</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot"></div>
+                </div>
+              </td>
+              <td><span class="pill yes">✓ Sí</span></td>
+              <td><span class="pill yes">✓ Incluida</span></td>
+              <td><span class="pill partial">⚠ Tickets</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="comp-name">Mi-Consultorio</div>
+                <div class="comp-type">Para médico individual</div>
+              </td>
+              <td><span class="price-badge">Desde $299</span></td>
+              <td><span class="pill yes">✓ Completo</span></td>
+              <td><span class="pill partial">⚠ Básico</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot"></div>
+                </div>
+              </td>
+              <td><span class="pill yes">✓ Sí</span></td>
+              <td><span class="pill no">✗ No</span></td>
+              <td><span class="pill partial">⚠ Limitado</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="comp-name">Medesk</div>
+                <div class="comp-type">Latinoamérica (no solo MX)</div>
+              </td>
+              <td><span class="price-badge">Por módulo</span></td>
+              <td><span class="pill partial">⚠ Parcial</span></td>
+              <td><span class="pill partial">⚠ Parcial</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+              </td>
+              <td><span class="pill partial">⚠ Parcial</span></td>
+              <td><span class="pill no">✗ No</span></td>
+              <td><span class="pill no">✗ Limitado</span></td>
+            </tr>
+            <tr class="ours">
+              <td>
+                <div class="comp-name">✦ Tu plataforma SaaS</div>
+                <div class="comp-type">Propuesta · Médico independiente MX</div>
+              </td>
+              <td><span class="price-badge" style="background:#d1fae5; border-color:#065f46;">$299-499 MXN</span></td>
+              <td><span class="pill yes">✓ Al pie de letra</span></td>
+              <td><span class="pill yes">✓ AWS nativo</span></td>
+              <td>
+                <div class="rating-dots">
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                  <div class="dot filled"></div>
+                </div>
+              </td>
+              <td><span class="pill yes">✓ Diseñado para él</span></td>
+              <td><span class="pill yes">✓ Hoja de ruta</span></td>
+              <td><span class="pill yes">✓ WhatsApp/chat</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROPUESTA DE VALOR -->
+  <section>
+    <div class="container">
+      <div class="section-label">Propuesta de valor</div>
+      <h2>Por qué tiene sentido construirlo</h2>
+      <p class="section-intro">El hueco en el mercado es claro: cumplimiento normativo completo + precio justo +
+        diseñado específicamente para el médico que trabaja solo o en dúo.</p>
+
+      <div class="value-grid">
+        <div class="vcard highlight">
+          <span class="vtag">Ventaja principal</span>
+          <span class="badge">Diferenciador #1</span>
+          <h4>Cumplimiento NOM total desde el día 1</h4>
+          <p>Mientras los competidores adaptan sistemas genéricos, tu plataforma nace diseñada desde cero con NOM-004 y
+            NOM-024 como columna vertebral. Firma electrónica, cifrado KMS, auditoría inmutable. El médico tiene certeza
+            legal real.</p>
+        </div>
+        <div class="vcard">
+          <span class="vtag">Precio</span>
+          <h4>La opción más económica con cumplimiento completo</h4>
+          <p>A $299-499 MXN/mes (vs $499/usuario de Nimbo), un médico independiente ahorra entre $200 y $500 pesos
+            mensuales con mejores garantías normativas. El ahorro se acumula en $2,400-$6,000 anuales.</p>
+        </div>
+        <div class="vcard">
+          <span class="vtag">Experiencia</span>
+          <h4>Sin curvas de aprendizaje ni implementaciones largas</h4>
+          <p>Los competidores como Medilink requieren sesiones de capacitación pagadas y semanas de implementación. Tu
+            producto debe funcionar el mismo día del registro. Alta en menos de 10 minutos.</p>
+        </div>
+        <div class="vcard highlight">
+          <span class="vtag">Timing</span>
+          <span class="badge">Urgente</span>
+          <h4>El decreto es el mejor vendedor</h4>
+          <p>El decreto de 2026 genera urgencia de mercado sin precedente. El 40% de establecimientos privados aún sin
+            sistema digital equivale a ~1,100 establecimientos que necesitan una solución <em>ya</em>. La presión legal
+            es el motor de adquisición.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING SUGERIDO -->
+  <section style="background: var(--warm);">
+    <div class="container">
+      <div class="section-label">Modelo de negocio</div>
+      <h2>Planes sugeridos para el SaaS</h2>
+      <p class="section-intro">Basado en el análisis de competidores y el perfil del médico independiente mexicano,
+        estos son los precios que maximizan conversión y margen.</p>
+
+      <div class="pricing-grid">
+        <div class="pcard">
+          <div class="pcard-header">
+            <div class="pcard-name">Básico</div>
+            <div class="pcard-price">$299</div>
+            <div class="pcard-period">MXN / mes · 1 médico</div>
+          </div>
+          <div class="pcard-body">
+            <ul class="pcard-feat">
+              <li class="yes">Expediente clínico NOM-004</li>
+              <li class="yes">Hasta 200 pacientes activos</li>
+              <li class="yes">Firma electrónica incluida</li>
+              <li class="yes">Cifrado AES-256 (NOM-024)</li>
+              <li>Sin agenda de citas</li>
+              <li>Sin telemedicina</li>
+            </ul>
+            <button class="pcard-btn outline">Para quien empieza</button>
+          </div>
+        </div>
+
+        <div class="pcard featured">
+          <div class="pcard-header">
+            <div class="pcard-name">Profesional · Más popular</div>
+            <div class="pcard-price">$499</div>
+            <div class="pcard-period">MXN / mes · 1 médico</div>
+          </div>
+          <div class="pcard-body">
+            <ul class="pcard-feat">
+              <li class="yes">Todo lo del plan Básico</li>
+              <li class="yes">Pacientes ilimitados</li>
+              <li class="yes">Agenda de citas + recordatorios</li>
+              <li class="yes">Receta electrónica</li>
+              <li class="yes">Reportes y estadísticas</li>
+              <li class="yes">Soporte prioritario vía WhatsApp</li>
+            </ul>
+            <button class="pcard-btn filled">El más elegido</button>
+          </div>
+        </div>
+
+        <div class="pcard">
+          <div class="pcard-header">
+            <div class="pcard-name">Clínica</div>
+            <div class="pcard-price">$899</div>
+            <div class="pcard-period">MXN / mes · hasta 5 médicos</div>
+          </div>
+          <div class="pcard-body">
+            <ul class="pcard-feat">
+              <li class="yes">Todo lo del plan Profesional</li>
+              <li class="yes">Hasta 5 usuarios médicos</li>
+              <li class="yes">Panel administrativo</li>
+              <li class="yes">Telemedicina integrada</li>
+              <li class="yes">Facturación CFDI</li>
+              <li class="yes">IA: resúmenes automáticos</li>
+            </ul>
+            <button class="pcard-btn outline">Para grupos pequeños</button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="margin-top: 32px; padding: 24px 28px; background: var(--card); border-radius: 6px; border: 1px solid var(--border); display: flex; gap: 48px; align-items: center;">
+        <div>
+          <div class="section-label" style="margin-bottom:4px;">Proyección conservadora</div>
+          <p style="font-size:13px; color: var(--muted);">Con 50 médicos en plan Profesional a $499 MXN/mes: <strong
+              style="color:var(--ink);">$24,950 MXN/mes</strong> de MRR (~$1,300 USD). Infraestructura AWS: ~$66 USD.
+            <strong style="color: var(--accent2);">Margen bruto &gt;90%.</strong>
+          </p>
+        </div>
+        <div style="border-left: 1px solid var(--border); padding-left: 48px; white-space: nowrap;">
+          <div
+            style="font-family: 'Libre Baskerville', serif; font-size: 36px; font-weight:700; color: var(--accent2);">
+            +90%</div>
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);">Margen
+            bruto</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section>
+    <div class="container">
+      <div class="section-label">Plan de lanzamiento</div>
+      <h2>De cero a mercado en 12 semanas</h2>
+      <p class="section-intro">Un roadmap realista para un equipo técnico pequeño. El orden importa: seguridad y
+        cumplimiento normativo primero, funcionalidad después.</p>
+
+      <div class="roadmap">
+        <div class="rmile">
+          <div class="rmile-dot active">🔒</div>
+          <div class="rphase">Semanas 1-3</div>
+          <h4>Infraestructura Segura</h4>
+          <p>AWS + Terraform, KMS, Cognito, VPC, RDS Aurora Serverless. Base legal cumplida desde el día 1.</p>
+        </div>
+        <div class="rmile">
+          <div class="rmile-dot active">🏗️</div>
+          <div class="rphase">Semanas 4-6</div>
+          <h4>Core del Expediente</h4>
+          <p>FastAPI backend, modelos NOM-004, firma electrónica, audit log inmutable.</p>
+        </div>
+        <div class="rmile">
+          <div class="rmile-dot">💻</div>
+          <div class="rphase">Semanas 7-9</div>
+          <h4>Frontend + UX</h4>
+          <p>React/Vite, formularios clínicos, agenda de citas, receta electrónica.</p>
+        </div>
+        <div class="rmile">
+          <div class="rmile-dot">🚀</div>
+          <div class="rphase">Semanas 10-12</div>
+          <h4>Beta + Lanzamiento</h4>
+          <p>Pruebas con 5 médicos piloto, ajustes de UX, onboarding, primer plan de pago.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <strong>Análisis de Mercado · Sistema de Expediente Clínico Electrónico México</strong><br>
+      Elaborado con datos de INEGI 2024, Decreto SSA enero 2026, NOM-004 y NOM-024 · Mayo 2026
+    </div>
+    <div style="text-align: right;">
+      Fuentes: INEGI ESEP 2024 · Decreto Digitalización Salud 2026<br>
+      SaludTotal.mx · La Jornada · Líder Empresarial
+    </div>
+  </div>
+
+</body>
+
+</html>

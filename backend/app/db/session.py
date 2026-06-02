@@ -1,0 +1,77 @@
+"""
+Database Session Management with RLS Tenant Context
+
+Critical: The application database role (medrecord_app) is NOT a superuser.
+Superusers bypass RLS policies. The app MUST connect as a non-superuser role
+for Row-Level Security to be enforced.
+
+On every request:
+1. Acquire connection from RDS Proxy pool
+2. SET LOCAL "app.current_tenant" = tenant_id (scoped to transaction)
+3. All queries within the transaction are filtered by RLS
+4. Connection returned to pool on commit/rollback
+"""
+
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import text
+
+# Lazy initialization — engine is created on first request, not at import time.
+# This avoids calling get_database_url() (which hits Secrets Manager in prod)
+# during module import, which can fail before Lambda env vars are set.
+_engine = None
+_async_session_factory = None
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        from app.core.config import get_database_url
+        _engine = create_async_engine(
+            get_database_url(),
+            echo=False,
+            pool_size=5,       # Lambda: keep small (RDS Proxy handles pooling)
+            max_overflow=5,
+            pool_timeout=30,
+            pool_recycle=300,   # 5 min — match RDS Proxy idle timeout
+            pool_pre_ping=True, # Verify connection before use
+        )
+    return _engine
+
+
+def _get_session_factory():
+    global _async_session_factory
+    if _async_session_factory is None:
+        _async_session_factory = async_sessionmaker(
+            _get_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+    return _async_session_factory
+
+
+async def get_db(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Dependency that provides a database session with RLS tenant context.
+
+    Usage in route handlers:
+        @router.get("/pacientes")
+        async def list_pacientes(request: Request):
+            async for session in get_db(request.state.tenant_id):
+                result = await session.execute(select(Paciente))
+                # RLS automatically filters to current tenant's data
+    """
+    factory = _get_session_factory()
+    async with factory() as session:
+        async with session.begin():
+            # SET LOCAL scopes the variable to the current transaction ONLY
+            # When the transaction commits or rolls back, the setting is cleared
+            # This prevents tenant context leaking between requests
+            await session.execute(
+                text("SET LOCAL \"app.current_tenant\" = :tenant_id"),
+                {"tenant_id": tenant_id},
+            )
+            yield session
+            # Transaction auto-commits on successful exit
+            # Auto-rolls back on exception
