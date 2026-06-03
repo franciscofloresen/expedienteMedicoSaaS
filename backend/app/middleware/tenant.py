@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 
+from app.core.config import settings
 from app.core.security import decode_jwt
 
 # Paths that don't require tenant context
@@ -20,8 +21,15 @@ PUBLIC_PATHS = {"/health", "/docs", "/openapi.json", "/api/v1/auth/login", "/api
 
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        # Skip public paths
-        if request.url.path in PUBLIC_PATHS:
+        # Skip public paths and CORS preflight OPTIONS requests
+        if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
+            return await call_next(request)
+
+        # Dev bypass: allow X-Tenant-ID header in development
+        if settings.environment == "development" and request.headers.get("X-Tenant-ID"):
+            request.state.tenant_id = request.headers.get("X-Tenant-ID")
+            request.state.user_id = "local-dev-user"
+            request.state.user_email = "dev@local.host"
             return await call_next(request)
 
         # Extract Authorization header

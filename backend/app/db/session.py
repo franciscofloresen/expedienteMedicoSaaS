@@ -69,7 +69,7 @@ async def get_db(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
             # When the transaction commits or rolls back, the setting is cleared
             # This prevents tenant context leaking between requests
             await session.execute(
-                text("SET LOCAL \"app.current_tenant\" = :tenant_id"),
+                text("SELECT set_config('app.current_tenant', :tenant_id, true)"),
                 {"tenant_id": tenant_id},
             )
             yield session

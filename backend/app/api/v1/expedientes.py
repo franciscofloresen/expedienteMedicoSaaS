@@ -1,22 +1,101 @@
-"""API v1 — Expedientes CRUD (NOM-004)."""
-from fastapi import APIRouter
+"""API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_db
+from app.models.expediente import Expediente
+from app.models.paciente import Paciente
+from app.models.tenant_key import TenantKey
+from app.services.encryption import encrypt_field, decrypt_field
 
 router = APIRouter()
 
+class ExpedienteCreate(BaseModel):
+    paciente_id: str
+    numero_expediente: str | None = None
+    antecedentes: str | None = Field(None, description="Antecedentes heredofamiliares, personales patológicos, etc.")
 
-@router.get("/")
-async def list_expedientes():
-    """List expedientes for the current tenant."""
-    return {"detail": "TODO — Week 5-6"}
+class ExpedienteUpdate(BaseModel):
+    antecedentes: str | None = None
 
+async def get_tenant_db(request: Request):
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="Missing tenant context")
+    async for session in get_db(tenant_id):
+        yield session
 
-@router.post("/")
-async def create_expediente():
-    """Create expediente with auto-generated folio."""
-    return {"detail": "TODO — Week 5-6"}
+@router.post("/", status_code=201)
+async def create_expediente(
+    data: ExpedienteCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_tenant_db),
+):
+    tenant_id = request.state.tenant_id
 
+    # Verify patient exists and belongs to tenant
+    stmt = select(Paciente).where(Paciente.id == data.paciente_id)
+    result = await db.execute(stmt)
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
-@router.get("/{expediente_id}")
-async def get_expediente(expediente_id: str):
-    """Get expediente with full clinical history."""
-    return {"detail": "TODO — Week 5-6"}
+    # Check if expediente already exists
+    stmt = select(Expediente).where(Expediente.paciente_id == data.paciente_id)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="El paciente ya tiene un expediente activo")
+
+    antecedentes_cifrado = None
+    if data.antecedentes:
+        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
+        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
+        if not tenant_key:
+            raise HTTPException(status_code=500, detail="Tenant encryption key missing")
+        antecedentes_cifrado = encrypt_field(
+            data.antecedentes, tenant_key.encrypted_dek, tenant_id
+        )
+
+    expediente = Expediente(
+        tenant_id=tenant_id,
+        paciente_id=data.paciente_id,
+        folio=data.numero_expediente or f"EXP-{data.paciente_id[:8].upper()}",
+        antecedentes_cifrado=antecedentes_cifrado,
+        creado_por=tenant_id,
+    )
+    db.add(expediente)
+    await db.flush()
+
+    return {"id": str(expediente.id), "numero_expediente": expediente.folio}
+
+@router.get("/paciente/{paciente_id}")
+async def get_expediente_by_paciente(
+    paciente_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_tenant_db),
+):
+    stmt = select(Expediente).where(Expediente.paciente_id == paciente_id)
+    expediente = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not expediente:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+
+    antecedentes = None
+    if expediente.antecedentes_cifrado:
+        tenant_id = request.state.tenant_id
+        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
+        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
+        if tenant_key:
+            antecedentes = decrypt_field(
+                expediente.antecedentes_cifrado, tenant_key.encrypted_dek, tenant_id
+            )
+
+    return {
+        "id": str(expediente.id),
+        "paciente_id": str(expediente.paciente_id),
+        "numero_expediente": expediente.folio,
+        "antecedentes": antecedentes,
+        "creado_en": expediente.creado_en.isoformat()
+    }

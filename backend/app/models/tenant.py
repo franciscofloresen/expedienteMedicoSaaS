@@ -31,4 +31,4 @@ class Tenant(Base):
 
     # Relationships
     tenant_key: Mapped["TenantKey"] = relationship("TenantKey", back_populates="tenant", uselist=False)
-    pacientes: Mapped[List["Paciente"]] = relationship("Paciente", back_populates="tenant")
+    pacientes: Mapped[List["Paciente"]] = relationship("Paciente", foreign_keys="Paciente.tenant_id", back_populates="tenant")
