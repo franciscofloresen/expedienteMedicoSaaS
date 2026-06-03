@@ -46,6 +46,8 @@ class PacienteUpdate(BaseModel):
 
     nombre_completo: str | None = Field(None, min_length=2, max_length=200)
     sexo: str | None = Field(None, pattern="^(M|F|X)$")
+    fecha_nacimiento: date | None = None
+    curp: str | None = Field(None, min_length=18, max_length=18)
     telefono: str | None = None
     email: str | None = None
     aseguradora: str | None = None
