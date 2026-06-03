@@ -18,10 +18,16 @@ export default function Expediente() {
     queryFn: () => expedientesApi.getByPacienteId(id as string)
   });
 
+  const { data: notas = [], isLoading: isLoadingNotas } = useQuery({
+    queryKey: ['notas', expediente?.id],
+    queryFn: () => notasApi.getByExpedienteId(expediente?.id as string),
+    enabled: !!expediente?.id
+  });
+
   const createNotaMutation = useMutation({
     mutationFn: notasApi.create,
     onSuccess: () => {
-      // client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
+      client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSidePanelOpen(false);
       alert("Nota médica creada y firmada en KMS.");
     }
@@ -115,9 +121,48 @@ export default function Expediente() {
         {/* Columna Derecha: Historial de Notas */}
         <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <h3 style={{ marginBottom: '1rem' }}>Historial de Notas Médicas</h3>
-          <div style={{ padding: '3rem', textAlign: 'center', border: '2px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-            <p className="text-muted">El endpoint GET /notas aún no está implementado en el backend, pero puedes crear una nota y verás la respuesta en la consola / base de datos.</p>
-          </div>
+          
+          {isLoadingNotas ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Cargando notas...</div>
+          ) : notas.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', border: '2px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+              <p className="text-muted">No hay notas registradas para este expediente.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {notas.map((nota: any) => (
+                <div key={nota.id} style={{ border: '1px solid var(--border-light)', padding: '1.5rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-app)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <CheckCircle size={18} color={nota.firmada ? "var(--success)" : "var(--text-muted)"} />
+                      <strong>Nota de {nota.tipo_nota}</strong>
+                    </div>
+                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                      {new Date(nota.creado_en).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                    <div>
+                      <strong className="text-muted">Diagnóstico:</strong>
+                      <p>{nota.contenido.diagnosticos?.[0] || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <strong className="text-muted">Signos Vitales:</strong>
+                      <p>FC: {nota.signos_vitales?.frecuencia_cardiaca} | FR: {nota.signos_vitales?.frecuencia_respiratoria} | Temp: {nota.signos_vitales?.temperatura}°C</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <strong className="text-muted">Evolución:</strong>
+                    <p style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', fontSize: '0.95rem' }}>
+                      {nota.contenido.evolucion_y_actualizacion_cuadro || nota.contenido.contenido || JSON.stringify(nota.contenido)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -49,6 +49,10 @@ export const expedientesApi = {
 };
 
 export const notasApi = {
+  getByExpedienteId: async (expedienteId: string) => {
+    const res = await api.get(`/notas/expediente/${expedienteId}`);
+    return res.data;
+  },
   create: async (data: any) => {
     const res = await api.post('/notas/', data);
     return res.data;
