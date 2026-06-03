@@ -178,39 +178,71 @@ async def get_paciente(
     }
 
 
-@router.patch("/{paciente_id}")
+@router.put("/{paciente_id}")
 async def update_paciente(
     paciente_id: str,
-    update_data: PacienteUpdate,
+    paciente_data: PacienteUpdate,
     request: Request,
     db: AsyncSession = Depends(get_tenant_db),
 ):
-    """Update patient data (audit logged, NOM-004 compliant — no hard deletes)."""
+    """Update patient details."""
+    tenant_id = request.state.tenant_id
+
     stmt = select(Paciente).where(Paciente.id == paciente_id)
-    result = await db.execute(stmt)
-    paciente = result.scalar_one_or_none()
+    paciente = (await db.execute(stmt)).scalar_one_or_none()
 
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
-    # Apply only provided (non-None) fields
-    update_dict = update_data.model_dump(exclude_unset=True)
-
-    # Handle encrypted address separately
-    if "domicilio" in update_dict:
-        domicilio_text = update_dict.pop("domicilio")
-        if domicilio_text is not None:
-            tenant_id = request.state.tenant_id
+    update_data = paciente_data.model_dump(exclude_unset=True)
+    
+    # Handle address encryption if updated
+    if "domicilio" in update_data:
+        domicilio_texto = update_data.pop("domicilio")
+        if domicilio_texto:
             stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-            result_key = await db.execute(stmt_key)
-            tenant_key = result_key.scalar_one_or_none()
-            if tenant_key:
-                paciente.domicilio_cifrado = encrypt_field(
-                    domicilio_text, tenant_key.encrypted_dek, tenant_id
-                )
+            tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
+            if not tenant_key:
+                raise HTTPException(status_code=500, detail="Tenant encryption key not configured")
+            update_data["domicilio_cifrado"] = encrypt_field(
+                domicilio_texto, tenant_key.encrypted_dek, tenant_id
+            )
+        else:
+            update_data["domicilio_cifrado"] = None
 
-    for field, value in update_dict.items():
+    for field, value in update_data.items():
         setattr(paciente, field, value)
 
     await db.flush()
-    return {"id": str(paciente.id), "updated": True}
+    return {"status": "ok", "id": str(paciente.id)}
+
+
+@router.delete("/{paciente_id}")
+async def delete_paciente(
+    paciente_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_tenant_db),
+):
+    """
+    Hard delete a patient ONLY IF they have no clinical records.
+    NOM-004 forbids deleting medical records for 5 years.
+    """
+    from app.models.expediente import Expediente
+
+    stmt = select(Paciente).where(Paciente.id == paciente_id)
+    paciente = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+
+    # Check for expedientes
+    stmt_exp = select(Expediente).where(Expediente.paciente_id == paciente_id)
+    if (await db.execute(stmt_exp)).scalar_one_or_none():
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar un paciente que ya cuenta con un Expediente Clínico (NOM-004)."
+        )
+
+    await db.delete(paciente)
+    await db.flush()
+    return {"status": "deleted"}

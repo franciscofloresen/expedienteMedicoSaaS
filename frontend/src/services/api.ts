@@ -29,6 +29,14 @@ export const pacientesApi = {
   create: async (data: any) => {
     const res = await api.post('/pacientes/', data);
     return res.data;
+  },
+  update: async (id: string, data: any) => {
+    const res = await api.put(`/pacientes/${id}`, data);
+    return res.data;
+  },
+  delete: async (id: string) => {
+    const res = await api.delete(`/pacientes/${id}`);
+    return res.data;
   }
 };
 
