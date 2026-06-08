@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import List
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, String, text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, String, text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import BYTEA, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +47,9 @@ class Paciente(Base):
     
     # Encrypted fields
     domicilio_cifrado: Mapped[bytes | None] = mapped_column(BYTEA)
+    
+    # Soft delete (NOM-004 requires 5-year retention)
+    activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     
     # Audit
     creado_por: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"))

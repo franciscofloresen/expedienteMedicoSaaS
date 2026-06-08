@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from app.api.v1 import auth, expedientes, notas, pacientes
+from app.api.v1 import auth, expedientes, notas, pacientes, audit
 from app.core.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
@@ -55,6 +55,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])
 app.include_router(pacientes.router, prefix="/api/v1/pacientes", tags=["Pacientes"])
 app.include_router(expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"])
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 
 
 @app.get("/health")

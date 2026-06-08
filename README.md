@@ -838,11 +838,11 @@ jobs:
 ## 📈 Roadmap
 
 ### Fase 1 — MVP (Semanas 1-10)
-- [ ] Infraestructura AWS: VPC, Aurora, KMS, Cognito, S3, WAF (Sem 1-2)
-- [ ] Schema BD + RLS + envelope encryption (Sem 3-4)
-- [ ] API: Pacientes, Expedientes, Notas + firma ECDSA (Sem 3-6)
+- [x] Infraestructura AWS: VPC, Aurora, KMS, Cognito, S3, WAF (Sem 1-2)
+- [x] Schema BD + RLS + envelope encryption (Sem 3-4)
+- [x] API: Pacientes, Expedientes, Notas + firma ECDSA (Sem 3-6)
 - [ ] API: Consentimientos, aviso de privacidad (Sem 5-6)
-- [ ] Frontend: auth, dashboard, CRUD completo, firma UX (Sem 7-8)
+- [x] Frontend: auth, dashboard, CRUD completo, firma UX (Sem 7-8)
 - [ ] Observabilidad: 5 alarmas + health check + DLQ (Sem 9)
 - [ ] Beta con 3-5 médicos piloto (Sem 10)
 

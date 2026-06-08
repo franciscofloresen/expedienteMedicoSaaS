@@ -1,8 +1,8 @@
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -27,6 +27,36 @@ async def get_tenant_db(request: Request):
         raise HTTPException(status_code=403, detail="Missing tenant context")
     async for session in get_db(tenant_id):
         yield session
+
+@router.get("/")
+async def list_expedientes(
+    request: Request,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_tenant_db),
+):
+    """List all expedientes with basic patient info."""
+    stmt = (
+        select(Expediente, Paciente)
+        .join(Paciente, Expediente.paciente_id == Paciente.id)
+        .order_by(desc(Expediente.creado_en))
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "id": str(exp.id),
+            "folio": exp.folio,
+            "paciente_id": str(exp.paciente_id),
+            "paciente_nombre": pac.nombre_completo,
+            "paciente_curp": pac.curp,
+            "creado_en": exp.creado_en.isoformat() if exp.creado_en else None,
+        }
+        for exp, pac in rows
+    ]
 
 @router.post("/", status_code=201)
 async def create_expediente(
@@ -99,3 +129,31 @@ async def get_expediente_by_paciente(
         "antecedentes": antecedentes,
         "creado_en": expediente.creado_en.isoformat()
     }
+
+@router.put("/{expediente_id}/antecedentes")
+async def update_antecedentes(
+    expediente_id: str,
+    data: ExpedienteUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_tenant_db)
+):
+    tenant_id = request.state.tenant_id
+
+    stmt = select(Expediente).where(Expediente.id == expediente_id)
+    expediente = (await db.execute(stmt)).scalar_one_or_none()
+    
+    if not expediente:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+
+    if data.antecedentes is not None:
+        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
+        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
+        if not tenant_key:
+            raise HTTPException(status_code=500, detail="Tenant encryption key missing")
+        
+        expediente.antecedentes_cifrado = encrypt_field(
+            data.antecedentes, tenant_key.encrypted_dek, tenant_id
+        )
+
+    await db.flush()
+    return {"status": "success"}

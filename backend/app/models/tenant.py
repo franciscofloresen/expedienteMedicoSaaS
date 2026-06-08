@@ -23,6 +23,7 @@ class Tenant(Base):
     especialidad: Mapped[str | None] = mapped_column(String(100))
     rfc: Mapped[str | None] = mapped_column(String(13))
     email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(128))
     plan: Mapped[str] = mapped_column(String(20), server_default="basico")
     activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     creado_en: Mapped[datetime] = mapped_column(

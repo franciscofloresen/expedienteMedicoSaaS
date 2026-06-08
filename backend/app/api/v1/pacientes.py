@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -24,7 +24,7 @@ class PacienteCreate(BaseModel):
     nombre_completo: str = Field(..., min_length=2, max_length=200)
     sexo: str = Field(..., pattern="^(M|F|X)$")
     fecha_nacimiento: date
-    curp: str | None = Field(None, min_length=18, max_length=18)
+    curp: str | None = Field(None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$")
     entidad_nacimiento: str | None = None
     nacionalidad: str | None = None
     ocupacion: str | None = None
@@ -47,7 +47,7 @@ class PacienteUpdate(BaseModel):
     nombre_completo: str | None = Field(None, min_length=2, max_length=200)
     sexo: str | None = Field(None, pattern="^(M|F|X)$")
     fecha_nacimiento: date | None = None
-    curp: str | None = Field(None, min_length=18, max_length=18)
+    curp: str | None = Field(None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$")
     telefono: str | None = None
     email: str | None = None
     aseguradora: str | None = None
@@ -71,12 +71,25 @@ async def get_tenant_db(request: Request):
 @router.get("/")
 async def list_pacientes(
     request: Request,
+    q: str | None = Query(None, min_length=2),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_tenant_db),
 ):
-    """List patients for the current tenant (RLS filtered)."""
-    stmt = select(Paciente).order_by(Paciente.nombre_completo).offset(skip).limit(limit)
+    """List patients for the current tenant (RLS filtered). Supports search by name, curp, phone."""
+    stmt = select(Paciente).where(Paciente.activo == True)
+    
+    if q:
+        search_term = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                Paciente.nombre_completo.ilike(search_term),
+                Paciente.curp.ilike(search_term),
+                Paciente.telefono.ilike(search_term)
+            )
+        )
+        
+    stmt = stmt.order_by(Paciente.nombre_completo).offset(skip).limit(limit)
     result = await db.execute(stmt)
     pacientes = result.scalars().all()
 
@@ -143,7 +156,7 @@ async def get_paciente(
     db: AsyncSession = Depends(get_tenant_db),
 ):
     """Get patient details (decrypts address if present)."""
-    stmt = select(Paciente).where(Paciente.id == paciente_id)
+    stmt = select(Paciente).where(Paciente.id == paciente_id, Paciente.activo == True)
     result = await db.execute(stmt)
     paciente = result.scalar_one_or_none()
 
@@ -190,7 +203,7 @@ async def update_paciente(
     """Update patient details."""
     tenant_id = request.state.tenant_id
 
-    stmt = select(Paciente).where(Paciente.id == paciente_id)
+    stmt = select(Paciente).where(Paciente.id == paciente_id, Paciente.activo == True)
     paciente = (await db.execute(stmt)).scalar_one_or_none()
 
     if not paciente:
@@ -226,25 +239,16 @@ async def delete_paciente(
     db: AsyncSession = Depends(get_tenant_db),
 ):
     """
-    Hard delete a patient ONLY IF they have no clinical records.
-    NOM-004 forbids deleting medical records for 5 years.
+    Soft delete a patient.
+    NOM-004 forbids deleting medical records for 5 years, so we only hide them from the UI.
     """
-    from app.models.expediente import Expediente
-
-    stmt = select(Paciente).where(Paciente.id == paciente_id)
+    stmt = select(Paciente).where(Paciente.id == paciente_id, Paciente.activo == True)
     paciente = (await db.execute(stmt)).scalar_one_or_none()
 
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
-    # Check for expedientes
-    stmt_exp = select(Expediente).where(Expediente.paciente_id == paciente_id)
-    if (await db.execute(stmt_exp)).scalar_one_or_none():
-        raise HTTPException(
-            status_code=400, 
-            detail="No se puede eliminar un paciente que ya cuenta con un Expediente Clínico (NOM-004)."
-        )
-
-    await db.delete(paciente)
+    # Perform soft delete
+    paciente.activo = False
     await db.flush()
     return {"status": "deleted"}

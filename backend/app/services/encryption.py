@@ -70,6 +70,9 @@ def generate_tenant_dek(tenant_id: str) -> dict[str, Any]:
 )
 def _decrypt_dek(encrypted_dek: bytes, tenant_id: str) -> bytes:
     """Decrypt a tenant's DEK using the CMK."""
+    if settings.environment in ("development", "testing"):
+        return encrypted_dek  # En dev/testing usamos la llave en crudo como mock
+
     kms = _get_kms_client()
     response = kms.decrypt(
         CiphertextBlob=encrypted_dek,
