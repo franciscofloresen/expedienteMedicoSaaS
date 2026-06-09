@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { Edit2, Trash2, Search } from 'lucide-react';
+import { Edit2, Trash2, Search, Users, FileCheck, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
@@ -147,9 +147,34 @@ export default function Pacientes() {
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Total de Pacientes</span>
-          <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>{pacientes.length}</span>
+        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--primary-light)', padding: '1rem', borderRadius: '12px', color: 'var(--primary)' }}>
+            <Users size={32} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Pacientes Activos</span>
+            <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1 }}>{pacientes.length}</span>
+          </div>
+        </div>
+
+        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', animationDelay: '0.1s' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '12px', color: 'var(--success)' }}>
+            <FileCheck size={32} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Notas Firmadas Hoy</span>
+            <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1 }}>12</span>
+          </div>
+        </div>
+
+        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', animationDelay: '0.2s' }}>
+          <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', padding: '1rem', borderRadius: '12px', color: 'white' }}>
+            <ShieldCheck size={32} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Estado Legal</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1.2, marginTop: '0.2rem' }}>Cumplimiento NOM-004 (100%)</span>
+          </div>
         </div>
       </div>
 

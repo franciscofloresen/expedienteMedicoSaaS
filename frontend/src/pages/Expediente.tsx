@@ -344,6 +344,27 @@ export default function Expediente() {
                 )}
               </div>
             </div>
+
+            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1rem', marginTop: '1rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <span className="text-muted" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Privacidad y NOM-024</span>
+               </div>
+               <button 
+                 className="btn btn-outline" 
+                 style={{ width: '100%', marginTop: '0.75rem', justifyContent: 'center', fontSize: '0.85rem' }}
+                 onClick={async () => {
+                   try {
+                     await auditApi.registrarConsentimiento(paciente!.id);
+                     showToast("Consentimiento registrado en auditoría", "success");
+                   } catch (e) {
+                     showToast("Error al registrar", "error");
+                   }
+                 }}
+               >
+                 <ShieldCheck size={16} color="var(--primary)" />
+                 Imprimir / Registrar Consentimiento
+               </button>
+            </div>
           </div>
         </div>
 
@@ -374,18 +395,22 @@ export default function Expediente() {
                       backgroundColor: nota.firmada ? '#f8fafc' : 'var(--primary-light)',
                       borderBottom: '1px solid var(--border-light)'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {nota.firmada ? (
-                          <ShieldCheck size={20} color="var(--success)" />
+                          <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.6rem', borderRadius: '50%' }}>
+                            <Lock size={22} color="var(--success)" />
+                          </div>
                         ) : (
-                          <Edit3 size={20} color="var(--primary)" />
+                          <div style={{ background: 'var(--primary-light)', padding: '0.6rem', borderRadius: '50%' }}>
+                            <Edit3 size={22} color="var(--primary)" />
+                          </div>
                         )}
                         <div>
-                          <strong style={{ display: 'block', color: nota.firmada ? 'inherit' : 'var(--primary)' }}>
-                            {nota.firmada ? 'Nota Firmada' : 'Borrador'} — {nota.tipo_nota.toUpperCase()}
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: nota.firmada ? 'var(--success)' : 'var(--primary)', fontSize: '1.05rem', marginBottom: '0.15rem' }}>
+                            {nota.firmada ? 'Documento Firmado Criptográficamente' : 'Borrador'} — {nota.tipo_nota.toUpperCase()}
                           </strong>
-                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            {new Date(nota.creado_en).toLocaleString()}
+                          <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                            {nota.firmada ? `Sellado e inmutable según NOM-024 • ${new Date((nota as any).firmado_en || nota.creado_en).toLocaleString()}` : `Última edición: ${new Date(nota.creado_en).toLocaleString()}`}
                           </span>
                         </div>
                       </div>
