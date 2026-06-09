@@ -1,5 +1,5 @@
 /**
- * Login page — MedRecord SaaS
+ * Login page — [Nombre en Construcción]
  *
  * Uses HTML5 validation attributes + :user-invalid CSS for
  * post-interaction validation feedback (modern best practice).
@@ -51,8 +51,8 @@ export default function Login() {
           <div className="auth-logo">
             <Activity size={32} color="var(--primary)" />
           </div>
-          <h1 className="page-title" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
-            MedRecord
+          <h1 style={{ fontSize: '1.5rem', margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
+            [Nombre en Construcción]
           </h1>
           <p className="text-muted">Expediente Clínico Electrónico</p>
         </div>

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Edit2, Trash2, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { pacientesApi, auditApi } from '../services/api';
+import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
 import Modal from '../components/Modal';
 import { useToast } from '../hooks/useToast';
@@ -30,10 +30,7 @@ export default function Pacientes() {
     queryFn: () => pacientesApi.getAll(debouncedSearch || undefined)
   });
 
-  const { data: auditLogs = [], isLoading: isLoadingAudit } = useQuery({
-    queryKey: ['auditLogs'],
-    queryFn: auditApi.getRecent
-  });
+
 
   const createMutation = useMutation({
     mutationFn: pacientesApi.create,
@@ -154,11 +151,6 @@ export default function Pacientes() {
           <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Total de Pacientes</span>
           <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>{pacientes.length}</span>
         </div>
-        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', animationDelay: '0.1s' }}>
-          <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Eventos de Auditoría (Recientes)</span>
-          <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--success)' }}>{auditLogs.length}</span>
-          <span className="text-muted" style={{ fontSize: '0.8rem' }}>Eventos recientes de bitácora</span>
-        </div>
       </div>
 
       <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', marginTop: '1rem' }} className="animate-fade-in">Pacientes Recientes</h2>
@@ -218,53 +210,6 @@ export default function Pacientes() {
                       <Trash2 size={16} />
                     </button>
                   </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Bitácora Reciente */}
-      <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', marginTop: '2rem' }} className="animate-fade-in">Bitácora Reciente (Auditoría)</h2>
-      
-      <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s', overflowX: 'auto', marginBottom: '2rem' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', fontSize: '0.9rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Fecha/Hora</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Método</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Ruta</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Status</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoadingAudit ? (
-              <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center' }}>Cargando bitácora...</td></tr>
-            ) : auditLogs.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center' }} className="text-muted">No hay eventos recientes.</td></tr>
-            ) : (
-              auditLogs.slice(0, 10).map((log: any) => (
-                <tr key={log.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{new Date(log.timestamp).toLocaleString()}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ 
-                      padding: '0.2rem 0.5rem', 
-                      borderRadius: '4px', 
-                      backgroundColor: log.metodo === 'DELETE' ? 'rgba(255,0,0,0.1)' : 'rgba(0,150,255,0.1)',
-                      color: log.metodo === 'DELETE' ? 'var(--error)' : 'var(--primary)',
-                      fontWeight: 600,
-                      fontSize: '0.8rem'
-                    }}>{log.metodo}</span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace' }}>{log.ruta}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{ color: log.status >= 400 ? 'var(--error)' : 'var(--success)' }}>
-                      {log.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{log.ip_origen}</td>
                 </tr>
               ))
             )}

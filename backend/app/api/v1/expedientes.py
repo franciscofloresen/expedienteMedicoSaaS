@@ -19,21 +19,14 @@ class ExpedienteCreate(BaseModel):
     antecedentes: str | None = Field(None, description="Antecedentes heredofamiliares, personales patológicos, etc.")
 
 class ExpedienteUpdate(BaseModel):
-    antecedentes: str | None = None
-
-async def get_tenant_db(request: Request):
-    tenant_id = getattr(request.state, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail="Missing tenant context")
-    async for session in get_db(tenant_id):
-        yield session
+    antecedentes: str
 
 @router.get("/")
 async def list_expedientes(
     request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """List all expedientes with basic patient info."""
     stmt = (
@@ -62,7 +55,7 @@ async def list_expedientes(
 async def create_expediente(
     data: ExpedienteCreate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     tenant_id = request.state.tenant_id
 
@@ -104,7 +97,7 @@ async def create_expediente(
 async def get_expediente_by_paciente(
     paciente_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     stmt = select(Expediente).where(Expediente.paciente_id == paciente_id)
     expediente = (await db.execute(stmt)).scalar_one_or_none()
@@ -135,7 +128,7 @@ async def update_antecedentes(
     expediente_id: str,
     data: ExpedienteUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db)
+    db: AsyncSession = Depends(get_db)
 ):
     tenant_id = request.state.tenant_id
 

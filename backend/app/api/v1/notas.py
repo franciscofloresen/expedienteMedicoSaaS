@@ -36,19 +36,12 @@ class NotaUpdate(BaseModel):
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
 
-async def get_tenant_db(request: Request):
-    tenant_id = getattr(request.state, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail="Missing tenant context")
-    async for session in get_db(tenant_id):
-        yield session
-
 @router.get("/")
 async def list_notas(
     request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """List all notes across the clinic, with patient info."""
     stmt = (
@@ -83,7 +76,7 @@ async def list_notas(
 async def create_nota(
     data: NotaCreate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Crear una nueva nota médica (borrador).
@@ -136,7 +129,7 @@ async def update_nota(
     nota_id: str,
     data: NotaUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Actualizar una nota médica (solo si es editable / no firmada).
@@ -180,7 +173,7 @@ async def update_nota(
 async def list_notas_by_expediente(
     expediente_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Lista todas las notas de un expediente, ordenadas por fecha."""
     stmt = (
@@ -215,7 +208,7 @@ async def list_notas_by_expediente(
 async def firmar_nota(
     nota_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Firma digitalmente la nota utilizando ECDSA P-256.
@@ -314,7 +307,7 @@ async def firmar_nota(
 async def verificar_firma(
     nota_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Verify the digital signature on a signed medical note.

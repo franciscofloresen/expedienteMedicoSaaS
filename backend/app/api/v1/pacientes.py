@@ -55,16 +55,6 @@ class PacienteUpdate(BaseModel):
     domicilio: str | None = None  # Will be encrypted before storage
 
 
-# ── Helper dependency ──
-
-async def get_tenant_db(request: Request):
-    """FastAPI dependency that yields a DB session with RLS tenant context."""
-    tenant_id = getattr(request.state, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail="Missing tenant context")
-    async for session in get_db(tenant_id):
-        yield session
-
 
 # ── Endpoints ──
 
@@ -74,7 +64,7 @@ async def list_pacientes(
     q: str | None = Query(None, min_length=2),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """List patients for the current tenant (RLS filtered). Supports search by name, curp, phone."""
     stmt = select(Paciente).where(Paciente.activo == True)
@@ -110,7 +100,7 @@ async def list_pacientes(
 async def create_paciente(
     paciente_data: PacienteCreate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a new patient with NOM-004 required fields."""
     tenant_id = request.state.tenant_id
@@ -153,7 +143,7 @@ async def create_paciente(
 async def get_paciente(
     paciente_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get patient details (decrypts address if present)."""
     stmt = select(Paciente).where(Paciente.id == paciente_id, Paciente.activo == True)
@@ -198,7 +188,7 @@ async def update_paciente(
     paciente_id: str,
     paciente_data: PacienteUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Update patient details."""
     tenant_id = request.state.tenant_id
@@ -236,7 +226,7 @@ async def update_paciente(
 async def delete_paciente(
     paciente_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Soft delete a patient.

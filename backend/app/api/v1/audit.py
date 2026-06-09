@@ -7,15 +7,10 @@ from app.models.audit import AuditLog
 
 router = APIRouter()
 
-async def get_tenant_db(request: Request):
-    tenant_id = getattr(request.state, "tenant_id", None)
-    async for session in get_db(tenant_id):
-        yield session
-
 @router.get("/recent")
 async def get_recent_audit_logs(
     request: Request,
-    db: AsyncSession = Depends(get_tenant_db),
+    db: AsyncSession = Depends(get_db),
     limit: int = 20
 ):
     """Obtiene los logs de auditoría más recientes para el tenant actual."""
@@ -54,7 +49,7 @@ class ConsentimientoRequest(BaseModel):
 async def registrar_consentimiento(
     request: Request,
     data: ConsentimientoRequest,
-    db: AsyncSession = Depends(get_tenant_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Endpoint para registrar el consentimiento informado explícito.

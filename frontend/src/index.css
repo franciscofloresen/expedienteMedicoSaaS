@@ -505,9 +505,9 @@ h1, h2, h3, h4 {
     overflow: visible !important;
   }
   
-  /* Reset grids to blocks so they print consecutively instead of parallel */
-  div {
-    page-break-inside: avoid;
+  * {
+    overflow: visible !important;
+    height: auto !important;
   }
   
   .glass-card {
@@ -522,6 +522,10 @@ h1, h2, h3, h4 {
   
   .print-only {
     display: block !important;
+  }
+  
+  .tech-detail-web {
+    display: none !important;
   }
   
   .no-print {

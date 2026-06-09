@@ -1,5 +1,5 @@
 /**
- * Register page — MedRecord SaaS
+ * Register page — [Nombre en Construcción]
  *
  * Collects doctor's professional information to create a tenant.
  * Uses HTML5 validation + autocomplete for best UX.

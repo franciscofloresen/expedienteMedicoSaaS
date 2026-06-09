@@ -16,6 +16,7 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
+from fastapi import Request
 
 # Lazy initialization — engine is created on first request, not at import time.
 # This avoids calling get_database_url() (which hits Secrets Manager in prod)
@@ -51,20 +52,26 @@ def _get_session_factory():
     return _async_session_factory
 
 
-async def get_db(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency that provides a database session with RLS tenant context.
 
     Usage in route handlers:
         @router.get("/pacientes")
-        async def list_pacientes(request: Request):
-            async for session in get_db(request.state.tenant_id):
-                result = await session.execute(select(Paciente))
-                # RLS automatically filters to current tenant's data
+        async def list_pacientes(db: AsyncSession = Depends(get_db)):
+            result = await db.execute(select(Paciente))
+            # RLS automatically filters to current tenant's data
     """
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if not tenant_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Missing tenant context")
+        
     factory = _get_session_factory()
     async with factory() as session:
         async with session.begin():
+            # Demote connection to application role to enforce RLS (superusers bypass RLS)
+            await session.execute(text("SET LOCAL ROLE medrecord_app"))
             # SET LOCAL scopes the variable to the current transaction ONLY
             # When the transaction commits or rolls back, the setting is cleared
             # This prevents tenant context leaking between requests
@@ -73,5 +80,6 @@ async def get_db(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
                 {"tenant_id": tenant_id},
             )
             yield session
+
             # Transaction auto-commits on successful exit
             # Auto-rolls back on exception

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Users, FileText, Settings as SettingsIcon, LogOut, Menu, X } from 'lucide-react';
+import { Activity, Users, FileText, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 
@@ -22,7 +22,7 @@ export default function Layout() {
       <div className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Activity size={24} color="var(--primary)" />
-          <h2 className="page-title" style={{ fontSize: '1.25rem', margin: 0 }}>MedRecord</h2>
+          <h2 className="page-title" style={{ fontSize: '1.25rem', margin: 0 }}>[Nombre en Construcción]</h2>
         </div>
         <button className="btn btn-icon" onClick={toggleMenu} aria-label="Menu">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -37,7 +37,7 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className={`glass-card sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header" style={{ marginBottom: '2.5rem' }}>
-          <h2 className="page-title" style={{ fontSize: '1.5rem', marginBottom: 0 }}>MedRecord</h2>
+          <h2 className="page-title" style={{ fontSize: '1.5rem', marginBottom: 0 }}>[Nombre en Construcción]</h2>
           <span className="text-muted">Expediente Clínico</span>
         </div>
         
@@ -83,6 +83,20 @@ export default function Layout() {
           >
             <Activity size={20} />
             Notas Médicas
+          </NavLink>
+          <NavLink 
+            to="/auditoria" 
+            className={({ isActive }) => `btn btn-outline ${isActive ? 'active-link' : ''}`} 
+            style={({ isActive }) => ({ 
+              justifyContent: 'flex-start', 
+              border: 'none', 
+              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
+              color: isActive ? 'var(--primary)' : 'var(--text-main)' 
+            })}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <ShieldCheck size={20} />
+            Auditoría
           </NavLink>
         </nav>
         

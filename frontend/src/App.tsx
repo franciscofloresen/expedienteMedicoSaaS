@@ -7,6 +7,7 @@ import Pacientes from './pages/Pacientes';
 import Expediente from './pages/Expediente';
 import ExpedientesList from './pages/ExpedientesList';
 import NotasList from './pages/NotasList';
+import Auditoria from './pages/Auditoria';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -32,6 +33,7 @@ function App() {
                   <Route index element={<Pacientes />} />
                   <Route path="expedientes" element={<ExpedientesList />} />
                   <Route path="notas" element={<NotasList />} />
+                  <Route path="auditoria" element={<Auditoria />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="pacientes/:id" element={<Expediente />} />
                 </Route>

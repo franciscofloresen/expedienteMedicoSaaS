@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi, type LoginRequest, type RegisterRequest } from '../services/auth';
 import { AuthContext } from './authContextDef';
 
@@ -26,10 +27,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setUser(authUser);
   }, []);
 
+  const queryClient = useQueryClient();
+
   const logout = useCallback(() => {
     authApi.logout();
+    queryClient.clear();
     setUser(null);
-  }, []);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider

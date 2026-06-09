@@ -1,4 +1,4 @@
-# 🏥 MedRecord SaaS — Expediente Clínico Electrónico para México
+# 🏥 [Nombre en Construcción] SaaS — Expediente Clínico Electrónico para México
 
 > **SaaS de expediente clínico para médicos independientes privados. Cumplimiento total NOM-004-SSA3-2012 y NOM-024-SSA3-2012. LFPDPPP. Infraestructura AWS con Terraform. Well-Architected Framework.**
 
@@ -903,9 +903,9 @@ Este software está diseñado para cumplir con:
 ## 📞 Contacto y Soporte
 
 - **Issues técnicos:** GitHub Issues
-- **Seguridad (vulnerabilidades):** security@medrecord.mx (PGP disponible)
-- **Consultas NOM:** compliance@medrecord.mx
-- **Privacidad (ARCO):** privacidad@medrecord.mx
+- **Seguridad (vulnerabilidades):** security@expedientemedico.mx (PGP disponible)
+- **Consultas NOM:** compliance@expedientemedico.mx
+- **Privacidad (ARCO):** privacidad@expedientemedico.mx
 
 ---
 

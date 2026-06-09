@@ -33,13 +33,6 @@ logger = logging.getLogger("medrecord.auth")
 
 router = APIRouter()
 
-async def get_tenant_db(request: Request):
-    tenant_id = getattr(request.state, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail="Missing tenant context")
-    async for session in get_db(tenant_id):
-        yield session
-
 # ── JWT Configuration ──
 # In production this would be Cognito's RSA keys.
 # In dev, we use a symmetric HS256 key for simplicity.
@@ -232,7 +225,7 @@ async def login(data: LoginRequest):
 
 
 @router.get("/me")
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_tenant_db)):
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Return current user info from the JWT token and database.
     """
