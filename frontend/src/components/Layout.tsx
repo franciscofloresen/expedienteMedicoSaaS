@@ -2,19 +2,12 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Activity, Users, FileText, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useToast } from '../hooks/useToast';
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { showToast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-  
-  const handleNotImplemented = () => {
-    showToast("Esta función está en construcción", "info");
-    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
-  };
 
   return (
     <div className="app-container">

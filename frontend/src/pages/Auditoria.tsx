@@ -31,7 +31,7 @@ const translateAction = (method: string, path: string) => {
 export default function Auditoria() {
   const { data: auditLogs = [], isLoading, error } = useQuery({
     queryKey: ['auditLogs'],
-    queryFn: auditApi.getRecent,
+    queryFn: () => auditApi.getRecent(1000),
     refetchInterval: 30000, // auto-refresh every 30s
   });
 
@@ -91,10 +91,11 @@ export default function Auditoria() {
               ) : auditLogs.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }} className="text-muted">No hay eventos registrados recientemente.</td></tr>
               ) : (
-                auditLogs.map((log: any) => {
+                auditLogs.map((log: any, index: number) => {
                   const translation = translateAction(log.metodo, log.ruta);
+                  const isHiddenInWeb = index >= 50;
                   return (
-                  <tr key={log.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s' }}>
+                  <tr key={log.id} className={isHiddenInWeb ? "print-only" : ""} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s', display: isHiddenInWeb ? 'none' : undefined }}>
                     <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
                       {new Date(log.timestamp).toLocaleString()}
                     </td>

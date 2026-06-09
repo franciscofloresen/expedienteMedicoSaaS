@@ -1,4 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
@@ -55,7 +56,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <RefreshCw size={18} />
               Recargar Sistema
             </button>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div style={{ marginTop: '2rem', textAlign: 'left', padding: '1rem', background: '#f8d7da', color: '#721c24', borderRadius: '8px', fontSize: '0.8rem', overflowX: 'auto' }}>
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>Detalle Técnico (Solo Dev):</p>
                 <pre style={{ margin: 0 }}>{this.state.error.toString()}</pre>

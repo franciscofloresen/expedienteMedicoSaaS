@@ -114,8 +114,8 @@ export const notasApi = {
 };
 
 export const auditApi = {
-  getRecent: async (): Promise<any[]> => {
-    const res = await api.get('/audit/recent');
+  getRecent: async (limit: number = 20): Promise<any[]> => {
+    const res = await api.get('/audit/recent', { params: { limit } });
     return res.data;
   },
   registrarConsentimiento: async (paciente_id: string): Promise<void> => {
