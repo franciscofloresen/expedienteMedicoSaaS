@@ -53,6 +53,10 @@ async def setup_database():
     engine = _get_test_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Grant permissions to medrecord_app role in the test database
+        await conn.execute(text("GRANT USAGE ON SCHEMA public TO medrecord_app"))
+        await conn.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO medrecord_app"))
+        await conn.execute(text("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"))
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -82,6 +86,8 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
         yield ac
+        # Wait a tick for FastAPI BackgroundTasks (like Audit log) to complete before loop closes
+        await asyncio.sleep(0.1)
 
 
 @pytest_asyncio.fixture

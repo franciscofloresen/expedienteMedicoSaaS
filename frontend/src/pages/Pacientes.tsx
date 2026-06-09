@@ -70,13 +70,13 @@ export default function Pacientes() {
     mutationFn: pacientesApi.delete,
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['pacientes'] });
-      showToast('Paciente eliminado correctamente', 'success');
+      showToast('Paciente archivado (NOM-004)', 'success');
       setIsDeleteModalOpen(false);
       setPacienteToDelete(null);
     },
     onError: (error: unknown) => {
       const message = error instanceof AxiosError ? error.response?.data?.detail : undefined;
-      showToast(message || "Error al eliminar el paciente", 'error');
+      showToast(message || "Error al archivar el paciente", 'error');
       setIsDeleteModalOpen(false);
       setPacienteToDelete(null);
     }
@@ -354,27 +354,34 @@ export default function Pacientes() {
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        title="Confirmar eliminación"
+        title="Archivar Expediente"
         footer={
-          <>
-            <button className="btn btn-outline" onClick={() => setIsDeleteModalOpen(false)}>
+          <div style={{ display: 'flex', gap: '1rem', width: '100%', justifyContent: 'flex-end' }}>
+            <button 
+              className="btn btn-secondary"
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setPacienteToDelete(null);
+              }}
+            >
               Cancelar
             </button>
             <button 
-              className="btn btn-primary" 
-              style={{ backgroundColor: 'var(--error)' }} 
+              className="btn btn-primary"
+              style={{ background: 'var(--error)', borderColor: 'var(--error)' }}
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar paciente'}
+              {deleteMutation.isPending ? 'Archivando...' : 'Archivar Expediente'}
             </button>
-          </>
+          </div>
         }
       >
-        <p>¿Estás seguro de que deseas eliminar al paciente <strong>{pacienteToDelete?.nombre_completo}</strong>?</p>
-        <p className="text-muted" style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-          De acuerdo con la NOM-004, los expedientes clínicos deben conservarse por un mínimo de 5 años. 
-          Si el paciente tiene registros clínicos, esta acción solo lo ocultará de tu lista principal.
+        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Archivar Expediente</h3>
+        <p className="text-muted" style={{ marginBottom: '1.5rem', lineHeight: '1.5' }}>
+          Por cumplimiento de la <strong>NOM-004-SSA3-2012</strong>, este expediente clínico no será destruido de la base de datos (debe conservarse por 5 años). En su lugar, se archivará y ocultará de su vista principal de manera segura.
+          <br/><br/>
+          ¿Confirma que desea archivar el expediente de <strong>{pacienteToDelete?.nombre_completo}</strong>?
         </p>
       </Modal>
     </>
