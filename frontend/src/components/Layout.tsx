@@ -42,7 +42,8 @@ export default function Layout() {
         
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <NavLink 
-            to="/" 
+            to="/app" 
+            end
             style={({ isActive }) => ({ 
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               padding: '0.75rem 1rem', borderRadius: '12px',
@@ -62,7 +63,7 @@ export default function Layout() {
             )}
           </NavLink>
           <NavLink 
-            to="/expedientes" 
+            to="/app/expedientes" 
             style={({ isActive }) => ({ 
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               padding: '0.75rem 1rem', borderRadius: '12px',
@@ -82,7 +83,7 @@ export default function Layout() {
             )}
           </NavLink>
           <NavLink 
-            to="/notas" 
+            to="/app/notas" 
             style={({ isActive }) => ({ 
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               padding: '0.75rem 1rem', borderRadius: '12px',
@@ -102,7 +103,7 @@ export default function Layout() {
             )}
           </NavLink>
           <NavLink 
-            to="/auditoria" 
+            to="/app/auditoria" 
             style={({ isActive }) => ({ 
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               padding: '0.75rem 1rem', borderRadius: '12px',
@@ -136,7 +137,7 @@ export default function Layout() {
             </div>
           )}
           <NavLink 
-            to="/settings" 
+            to="/app/settings" 
             className={({ isActive }) => `btn btn-outline ${isActive ? 'active-link' : ''}`} 
             style={({ isActive }) => ({ 
               justifyContent: 'flex-start', 

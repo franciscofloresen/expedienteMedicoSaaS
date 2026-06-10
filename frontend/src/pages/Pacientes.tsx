@@ -210,7 +210,7 @@ export default function Pacientes() {
                   style={{ borderBottom: '1px solid var(--border-light)', transition: 'all 0.2s ease', cursor: 'pointer' }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  onClick={() => navigate(`/pacientes/${p.id}`)}
+                  onClick={() => navigate(`/app/pacientes/${p.id}`)}
                 >
                   <td style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

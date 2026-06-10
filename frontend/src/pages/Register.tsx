@@ -40,7 +40,7 @@ export default function Register() {
         email: formData.get('email') as string,
         password,
       });
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     } catch (err: unknown) {
       if (err instanceof AxiosError) {
         setError(err.response?.data?.detail || 'Error al registrar la cuenta');

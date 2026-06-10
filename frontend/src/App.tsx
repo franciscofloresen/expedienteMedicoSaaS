@@ -12,6 +12,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Landing from './pages/Landing';
+import Privacidad from './pages/Privacidad';
 
 import { ToastProvider } from './contexts/ToastContext';
 
@@ -26,12 +28,14 @@ function App() {
             <BrowserRouter>
               <Routes>
                 {/* Public routes */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/privacidad" element={<Privacidad />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
                 {/* Protected routes — redirect to /login if not authenticated */}
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/" element={<Layout />}>
+                  <Route path="/app" element={<Layout />}>
                     <Route index element={<Pacientes />} />
                     <Route path="expedientes" element={<ExpedientesList />} />
                     <Route path="notas" element={<NotasList />} />
