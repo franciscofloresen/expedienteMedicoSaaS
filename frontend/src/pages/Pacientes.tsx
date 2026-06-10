@@ -205,16 +205,6 @@ export default function Pacientes() {
               </td></tr>
             ) : (
               pacientes.map((p: Paciente) => (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 500 }}>{p.nombre_completo}</td>
-                  <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">{p.curp || 'N/A'}</td>
-                  <td style={{ padding: '1rem' }} className="text-muted">{p.sexo}</td>
-                  <td style={{ padding: '1rem' }}>{p.fecha_nacimiento}</td>
-                  <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
-                    <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} 
-                      onClick={() => navigate(`/pacientes/${p.id}`)}
                 <tr 
                   key={p.id} 
                   style={{ borderBottom: '1px solid var(--border-light)', transition: 'all 0.2s ease', cursor: 'pointer' }}
