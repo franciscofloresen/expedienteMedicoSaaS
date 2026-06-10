@@ -288,9 +288,9 @@ export default function Expediente() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', flex: 1, overflow: 'hidden' }}>
         {/* Columna Izquierda: Datos del Paciente */}
-        <div className="glass-card animate-fade-in" style={{ alignSelf: 'start', overflowY: 'auto', maxHeight: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+        <div className="glass-card animate-fade-in" style={{ alignSelf: 'start', overflowY: 'auto', maxHeight: '100%', padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1.5rem' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(88, 86, 214, 0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 700, color: 'var(--primary)' }}>
               {paciente?.nombre_completo.charAt(0)}
             </div>
             <div>
@@ -369,10 +369,13 @@ export default function Expediente() {
         </div>
 
         {/* Columna Derecha: Historial de Notas */}
-        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <h3 style={{ marginBottom: '1rem', flexShrink: 0 }}>Historial Clínico</h3>
+        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1.5rem 1.5rem 0 1.5rem', background: 'transparent', boxShadow: 'none', border: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <Activity size={24} color="var(--primary)" />
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Historial Clínico</h3>
+          </div>
           
-          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
+          <div style={{ overflowY: 'auto', flex: 1, paddingRight: '1rem', paddingBottom: '1.5rem' }}>
             {isLoadingNotas ? (
               <div style={{ textAlign: 'center', padding: '2rem' }} className="text-muted">Cargando notas...</div>
             ) : notas.length === 0 ? (
@@ -383,16 +386,18 @@ export default function Expediente() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {notas.map((nota: Nota) => (
                   <div key={nota.id} style={{ 
-                    border: nota.firmada ? '1px solid var(--border-light)' : '1px dashed var(--primary)', 
-                    borderRadius: 'var(--radius-md)', 
-                    backgroundColor: 'var(--bg-app)',
-                    overflow: 'hidden'
+                    border: nota.firmada ? '1px solid var(--border-light)' : '1px solid rgba(0, 122, 255, 0.3)', 
+                    borderRadius: '16px', 
+                    backgroundColor: 'var(--bg-card)',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                   }}>
                     {/* Note Header */}
                     <div style={{ 
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                      padding: '1rem 1.5rem', 
-                      backgroundColor: nota.firmada ? '#f8fafc' : 'var(--primary-light)',
+                      padding: '1.25rem 1.5rem', 
+                      backgroundColor: nota.firmada ? '#f8fafc' : 'rgba(0, 122, 255, 0.04)',
                       borderBottom: '1px solid var(--border-light)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

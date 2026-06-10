@@ -132,14 +132,14 @@ export default function Pacientes() {
         <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Pacientes</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               className="form-input" 
               placeholder="Buscar por nombre, CURP..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.5rem', width: '300px' }}
+              style={{ padding: '0.75rem 1rem 0.75rem 2.5rem', width: '320px', borderRadius: '100px', backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', border: '1px solid transparent' }}
             />
           </div>
           <button className="btn btn-primary" onClick={() => setIsFormModalOpen(true)}>Nuevo Paciente</button>
@@ -180,15 +180,15 @@ export default function Pacientes() {
 
       <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', marginTop: '1rem' }} className="animate-fade-in">Pacientes Recientes</h2>
 
-      <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto' }}>
+      <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto', padding: 0 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Nombre del Paciente</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>CURP</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Sexo</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Fecha Nac.</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Acciones</th>
+            <tr style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: 'rgba(0,0,0,0.02)' }}>
+              <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre del Paciente</th>
+              <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CURP</th>
+              <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sexo</th>
+              <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha Nac.</th>
+              <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -215,25 +215,46 @@ export default function Pacientes() {
                       className="btn btn-outline" 
                       style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} 
                       onClick={() => navigate(`/pacientes/${p.id}`)}
-                    >
-                      Expediente
-                    </button>
-                    <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderColor: 'transparent', color: 'var(--text-muted)' }} 
-                      onClick={() => openEditModal(p)}
-                      title="Editar Paciente"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button 
-                      className="btn btn-outline" 
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', borderColor: 'transparent', color: 'var(--error)' }} 
-                      onClick={() => confirmDelete(p)}
-                      title="Eliminar Paciente"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                <tr 
+                  key={p.id} 
+                  style={{ borderBottom: '1px solid var(--border-light)', transition: 'all 0.2s ease', cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onClick={() => navigate(`/pacientes/${p.id}`)}
+                >
+                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0, 122, 255, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.1rem' }}>
+                        {p.nombre_completo.charAt(0)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.nombre_completo}</div>
+                        {p.email && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.email}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-main)', fontWeight: 500 }}>{p.curp || '-'}</td>
+                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.sexo}</td>
+                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.fecha_nacimiento}</td>
+                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button 
+                        className="btn btn-outline" 
+                        style={{ padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-light)' }} 
+                        onClick={(e) => { e.stopPropagation(); openEditModal(p); }} 
+                        title="Editar"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        className="btn btn-outline" 
+                        style={{ padding: '0.5rem', borderRadius: '10px', border: '1px solid var(--border-light)', color: 'var(--error)' }} 
+                        onClick={(e) => { e.stopPropagation(); confirmDelete(p); }} 
+                        title="Archivar"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

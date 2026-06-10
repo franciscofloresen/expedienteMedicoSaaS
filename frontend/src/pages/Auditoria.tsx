@@ -75,12 +75,12 @@ export default function Auditoria() {
         <div className="table-responsive">
           <table className="table">
             <thead>
-              <tr>
-                <th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={16} /> Fecha / Hora</div></th>
-                <th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Activity size={16} /> Acción Realizada</div></th>
-                <th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={16} /> Detalle Técnico</div></th>
-                <th>Estado</th>
-                <th><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Globe size={16} /> Origen IP</div></th>
+              <tr style={{ backgroundColor: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-light)' }}>
+                <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar size={16} /> Fecha / Hora</div></th>
+                <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Activity size={16} /> Acción Realizada</div></th>
+                <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Server size={16} /> Detalle Técnico</div></th>
+                <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estado</th>
+                <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}><div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Globe size={16} /> Origen IP</div></th>
               </tr>
             </thead>
             <tbody>
@@ -95,13 +95,24 @@ export default function Auditoria() {
                   const translation = translateAction(log.metodo, log.ruta);
                   const isHiddenInWeb = index >= 50;
                   return (
-                  <tr key={log.id} className={isHiddenInWeb ? "print-only" : ""} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s', display: isHiddenInWeb ? 'none' : undefined }}>
-                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                  <tr 
+                    key={log.id} 
+                    className={isHiddenInWeb ? "print-only" : ""} 
+                    style={{ 
+                      borderBottom: '1px solid var(--border-light)', 
+                      transition: 'background-color 0.2s', 
+                      display: isHiddenInWeb ? 'none' : undefined,
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
                       {new Date(log.timestamp).toLocaleString()}
                     </td>
-                    <td style={{ padding: '1rem' }}>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
                       <span style={{ 
-                        padding: '0.3rem 0.8rem', 
+                        padding: '0.4rem 0.8rem', 
                         borderRadius: '20px', 
                         backgroundColor: translation.bg,
                         color: translation.color,
@@ -110,7 +121,7 @@ export default function Auditoria() {
                         border: `1px solid ${translation.color.replace('var(', '').replace(')', '') === 'orange' ? 'rgba(255,165,0,0.3)' : translation.color.includes('var') ? `var(--${translation.color.split('--')[1].split(')')[0]}-light)` : 'rgba(0,0,0,0.1)'}`
                       }}>{translation.text}</span>
                     </td>
-                    <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                       <div className="tech-detail-web" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }} title={`${log.metodo} ${log.ruta}`}>
                         {log.metodo} {log.ruta.split('?')[0]}
                       </div>
@@ -119,10 +130,10 @@ export default function Auditoria() {
                         <div><strong>Ruta:</strong> {log.metodo} {log.ruta}</div>
                       </div>
                     </td>
-                    <td style={{ padding: '1rem' }}>
+                    <td style={{ padding: '1.25rem 1.5rem' }}>
                       <span style={{ 
                         color: log.status >= 400 ? 'var(--error)' : 'var(--success)',
-                        fontWeight: 'bold',
+                        fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem'
@@ -132,12 +143,13 @@ export default function Auditoria() {
                           width: 8, 
                           height: 8, 
                           borderRadius: '50%', 
-                          background: log.status >= 400 ? 'var(--error)' : 'var(--success)' 
+                          background: log.status >= 400 ? 'var(--error)' : 'var(--success)',
+                          boxShadow: log.status >= 400 ? '0 0 8px rgba(255, 59, 48, 0.4)' : '0 0 8px rgba(52, 199, 89, 0.4)'
                         }}></span>
                         {log.status}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                       {log.ip_origen}
                     </td>
                   </tr>
