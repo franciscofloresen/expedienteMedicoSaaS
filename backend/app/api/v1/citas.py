@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +26,7 @@ async def read_citas(
         stmt = stmt.where(Cita.fecha_inicio >= start_date)
     if end_date:
         stmt = stmt.where(Cita.fecha_inicio <= end_date)
-        
+
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -44,7 +44,7 @@ async def create_cita(
     db.add(cita)
     await db.flush()
     await db.refresh(cita)
-    
+
     logger.info(f"Cita creada: {cita.id} para tenant {tenant_id}")
     return cita
 
@@ -58,18 +58,18 @@ async def update_cita(
     stmt = select(Cita).where(Cita.id == cita_id)
     result = await db.execute(stmt)
     cita = result.scalar_one_or_none()
-    
+
     if not cita:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
-        
+
     update_data = cita_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(cita, field, value)
-        
+
     cita.modificado_en = datetime.now(timezone.utc)
     await db.flush()
     await db.refresh(cita)
-    
+
     logger.info(f"Cita actualizada: {cita.id}")
     return cita
 
@@ -82,10 +82,10 @@ async def delete_cita(
     stmt = select(Cita).where(Cita.id == cita_id)
     result = await db.execute(stmt)
     cita = result.scalar_one_or_none()
-    
+
     if not cita:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
-        
+
     await db.delete(cita)
     await db.flush()
     logger.info(f"Cita eliminada: {cita_id}")

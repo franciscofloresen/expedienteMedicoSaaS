@@ -2,23 +2,25 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.paciente import Paciente
 from app.models.tenant_key import TenantKey
-from app.services.encryption import encrypt_field, decrypt_field
+from app.services.encryption import decrypt_field, encrypt_field
 
 router = APIRouter()
 
 class ExpedienteCreate(BaseModel):
     paciente_id: str
     numero_expediente: str | None = None
-    antecedentes: str | None = Field(None, description="Antecedentes heredofamiliares, personales patológicos, etc.")
+    antecedentes: str | None = Field(
+        None, description="Antecedentes heredofamiliares, personales patológicos, etc."
+    )
 
 class ExpedienteUpdate(BaseModel):
     antecedentes: str
@@ -136,7 +138,7 @@ async def update_antecedentes(
 
     stmt = select(Expediente).where(Expediente.id == expediente_id)
     expediente = (await db.execute(stmt)).scalar_one_or_none()
-    
+
     if not expediente:
         raise HTTPException(status_code=404, detail="Expediente no encontrado")
 
@@ -145,7 +147,7 @@ async def update_antecedentes(
         tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
         if not tenant_key:
             raise HTTPException(status_code=500, detail="Tenant encryption key missing")
-        
+
         expediente.antecedentes_cifrado = encrypt_field(
             data.antecedentes, tenant_key.encrypted_dek, tenant_id
         )

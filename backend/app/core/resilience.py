@@ -5,14 +5,13 @@ Provides reusable decorators for AWS service calls.
 Uses tenacity for retries with exponential backoff.
 """
 
+from botocore.exceptions import ClientError, EndpointConnectionError
 from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-from botocore.exceptions import ClientError, EndpointConnectionError
-
 
 # ── Retry decorators for different service profiles ──
 

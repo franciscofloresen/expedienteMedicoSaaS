@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +18,7 @@ async def get_recent_audit_logs(
 ):
     """Obtiene los logs de auditoría más recientes para el tenant actual."""
     tenant_id = getattr(request.state, "tenant_id", None)
-    
+
     stmt = (
         select(AuditLog)
         .where(AuditLog.tenant_id == tenant_id)
@@ -26,7 +27,7 @@ async def get_recent_audit_logs(
     )
     result = await db.execute(stmt)
     logs = result.scalars().all()
-    
+
     return [
         {
             "id": log.id,
@@ -42,8 +43,6 @@ async def get_recent_audit_logs(
         for log in logs
     ]
 
-from pydantic import BaseModel
-
 class ConsentimientoRequest(BaseModel):
     paciente_id: UUID
 
@@ -55,7 +54,7 @@ async def registrar_consentimiento(
 ):
     """
     Endpoint para registrar el consentimiento informado explícito.
-    No requiere lógica en DB porque el AuditMiddleware captura y 
+    No requiere lógica en DB porque el AuditMiddleware captura y
     almacena la petición automáticamente como prueba de auditoría inmutable.
     """
     return {"status": "ok", "evento": "CONSENTIMIENTO_ACEPTADO", "paciente_id": data.paciente_id}

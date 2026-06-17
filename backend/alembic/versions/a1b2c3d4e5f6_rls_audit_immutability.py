@@ -16,8 +16,9 @@ This migration:
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'a1b2c3d4e5f6'
@@ -126,7 +127,8 @@ def upgrade() -> None:
         CREATE OR REPLACE FUNCTION prevent_audit_modification()
         RETURNS TRIGGER AS $$
         BEGIN
-            RAISE EXCEPTION 'Audit log records cannot be modified or deleted (NOM-004/NOM-024 compliance)';
+            RAISE EXCEPTION 'Audit log records cannot be modified or deleted '
+            '(NOM-004/NOM-024 compliance)';
             RETURN NULL;
         END;
         $$ LANGUAGE plpgsql
@@ -147,7 +149,8 @@ def upgrade() -> None:
         RETURNS TRIGGER AS $$
         BEGIN
             IF OLD.es_editable = false THEN
-                RAISE EXCEPTION 'Signed medical notes cannot be modified (NOM-004 compliance). Use an amendment note instead.';
+                RAISE EXCEPTION 'Signed medical notes cannot be modified '
+                '(NOM-004 compliance). Use an amendment note instead.';
                 RETURN NULL;
             END IF;
             RETURN NEW;

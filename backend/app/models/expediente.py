@@ -1,8 +1,12 @@
 import uuid
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from sqlalchemy import DateTime, ForeignKey, String, text, UniqueConstraint
+if TYPE_CHECKING:
+    from app.models.nota import Nota
+    from app.models.paciente import Paciente
+
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import BYTEA, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,12 +32,12 @@ class Expediente(Base):
         UUID(as_uuid=True), ForeignKey("pacientes.id"), nullable=False, index=True
     )
     folio: Mapped[str] = mapped_column(String(20), nullable=False)
-    
+
     # Clinical history — encrypted JSON
     antecedentes_cifrado: Mapped[bytes | None] = mapped_column(BYTEA)
-    
+
     estado: Mapped[str] = mapped_column(String(20), server_default="activo")
-    
+
     # Audit
     creado_por: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False
@@ -42,5 +46,9 @@ class Expediente(Base):
         DateTime(timezone=True), server_default=text("now()")
     )
 
-    paciente: Mapped["Paciente"] = relationship("Paciente", back_populates="expedientes")
-    notas: Mapped[List["Nota"]] = relationship("Nota", back_populates="expediente")
+    paciente: Mapped["Paciente"] = relationship(
+        "Paciente", back_populates="expedientes"
+    )
+    notas: Mapped[List["Nota"]] = relationship(
+        "Nota", back_populates="expediente"
+    )

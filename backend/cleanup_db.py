@@ -1,6 +1,9 @@
 import asyncio
+
 from sqlalchemy import text
+
 from app.db.session import _get_session_factory
+
 
 async def main():
     factory = _get_session_factory()

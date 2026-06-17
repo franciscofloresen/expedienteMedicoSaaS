@@ -1,6 +1,9 @@
 import asyncio
+
 import httpx
+
 from app.core.config import settings
+
 
 async def test():
     async with httpx.AsyncClient() as client:
@@ -13,7 +16,7 @@ async def test():
         )
         print("Metadata Status:", resp.status_code)
         print("Metadata Response:", resp.text)
-        
+
         resp2 = await client.patch(
             "https://api.clerk.com/v1/users/user_3F1fR5VmF7lY84WqGrXMZw6Gb1F",
             headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},

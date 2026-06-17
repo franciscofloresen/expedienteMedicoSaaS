@@ -1,18 +1,17 @@
 """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
 
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.paciente import Paciente
 from app.models.tenant_key import TenantKey
-from app.services.encryption import encrypt_field, decrypt_field
+from app.services.encryption import decrypt_field, encrypt_field
 
 router = APIRouter()
 
@@ -25,7 +24,9 @@ class PacienteCreate(BaseModel):
     nombre_completo: str = Field(..., min_length=2, max_length=200)
     sexo: str = Field(..., pattern="^(M|F|X)$")
     fecha_nacimiento: date
-    curp: str | None = Field(None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$")
+    curp: str | None = Field(
+        None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$"
+    )
     entidad_nacimiento: str | None = None
     nacionalidad: str | None = None
     ocupacion: str | None = None
@@ -48,7 +49,9 @@ class PacienteUpdate(BaseModel):
     nombre_completo: str | None = Field(None, min_length=2, max_length=200)
     sexo: str | None = Field(None, pattern="^(M|F|X)$")
     fecha_nacimiento: date | None = None
-    curp: str | None = Field(None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$")
+    curp: str | None = Field(
+        None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$"
+    )
     telefono: str | None = None
     email: str | None = None
     aseguradora: str | None = None
@@ -69,7 +72,7 @@ async def list_pacientes(
 ):
     """List patients for the current tenant (RLS filtered). Supports search by name, curp, phone."""
     stmt = select(Paciente).where(Paciente.activo == True)
-    
+
     if q:
         search_term = f"%{q}%"
         stmt = stmt.where(
@@ -79,7 +82,7 @@ async def list_pacientes(
                 Paciente.telefono.ilike(search_term)
             )
         )
-        
+
     stmt = stmt.order_by(Paciente.nombre_completo).offset(skip).limit(limit)
     result = await db.execute(stmt)
     pacientes = result.scalars().all()
@@ -201,7 +204,7 @@ async def update_paciente(
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
     update_data = paciente_data.model_dump(exclude_unset=True)
-    
+
     # Handle address encryption if updated
     if "domicilio" in update_data:
         domicilio_texto = update_data.pop("domicilio")

@@ -19,8 +19,6 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -97,8 +95,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             # Also store in request state for any route handler that needs it
             try:
                 request.state.audit_entry = audit_entry
-            except Exception:
-                pass  # Request state may be unavailable in error scenarios
+            except Exception as e:
+                logger.debug("Failed to set audit entry on request state: %s", e)
 
     async def _persist_audit(self, entry: dict) -> None:
         """
@@ -109,7 +107,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
         - If the audit write fails, it does NOT crash the user's request.
         """
         from app.core.config import settings
-        if settings.environment == "testing" and not entry.get("request_id", "").startswith("test-audit-"):
+        if settings.environment == "testing" and not entry.get(
+            "request_id", ""
+        ).startswith("test-audit-"):
             # Avoid BaseHTTPMiddleware cross-loop asyncio bugs in pytest
             return
 

@@ -1,8 +1,13 @@
 import uuid
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, Column, DateTime, String, text
+if TYPE_CHECKING:
+    from app.models.cita import Cita
+    from app.models.paciente import Paciente
+    from app.models.tenant_key import TenantKey
+
+from sqlalchemy import Boolean, DateTime, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,6 +35,12 @@ class Tenant(Base):
     )
 
     # Relationships
-    tenant_key: Mapped["TenantKey"] = relationship("TenantKey", back_populates="tenant", uselist=False)
-    pacientes: Mapped[List["Paciente"]] = relationship("Paciente", foreign_keys="Paciente.tenant_id", back_populates="tenant")
-    citas: Mapped[List["Cita"]] = relationship("Cita", foreign_keys="Cita.tenant_id", back_populates="tenant")
+    tenant_key: Mapped["TenantKey"] = relationship(
+        "TenantKey", back_populates="tenant", uselist=False
+    )
+    pacientes: Mapped[List["Paciente"]] = relationship(
+        "Paciente", foreign_keys="Paciente.tenant_id", back_populates="tenant"
+    )
+    citas: Mapped[List["Cita"]] = relationship(
+        "Cita", foreign_keys="Cita.tenant_id", back_populates="tenant"
+    )

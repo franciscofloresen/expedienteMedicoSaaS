@@ -6,7 +6,9 @@ This router provides the `/me` endpoint to fetch local user context linked to th
 """
 
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,8 +60,6 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     }
 
 
-from pydantic import BaseModel, Field
-
 class ProfileUpdate(BaseModel):
     cedula: str | None = Field(None, min_length=5, max_length=20)
     especialidad: str | None = None
@@ -70,15 +70,16 @@ async def update_profile(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    from app.models.tenant import Tenant
     from sqlalchemy import select
-    
+
+    from app.models.tenant import Tenant
+
     tenant_id = request.state.tenant_id
     user_id = getattr(request.state, "user_id", None)
-    
+
     stmt = select(Tenant).where(Tenant.id == tenant_id)
     tenant = (await db.execute(stmt)).scalar_one_or_none()
-    
+
     if not tenant:
         raise HTTPException(status_code=404, detail="Perfil no encontrado")
 
@@ -86,12 +87,13 @@ async def update_profile(
         tenant.cedula = data.cedula
     if data.especialidad is not None:
         tenant.especialidad = data.especialidad
-        
+
     await db.flush()
 
     if user_id:
         try:
             import httpx
+
             from app.core.config import settings
             async with httpx.AsyncClient() as client:
                 # Update Clerk publicMetadata
@@ -113,14 +115,14 @@ async def update_profile(
                 resp.raise_for_status()
         except Exception as e:
             import logging
-            logging.getLogger("medrecord.auth").warning(f"Failed to update Clerk metadata for {user_id}: {e}")
+            logging.getLogger("medrecord.auth").warning(
+                f"Failed to update Clerk metadata for {user_id}: {e}"
+            )
 
     await db.commit()
-    
+
     return {"status": "success"}
 
-
-from pydantic import BaseModel, Field
 
 class OnboardingRequest(BaseModel):
     nombre_medico: str = Field(..., min_length=2, max_length=200)
@@ -140,16 +142,17 @@ async def onboarding(
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
         raise HTTPException(status_code=401, detail="No authenticated Clerk user found")
-        
+
     user_email = getattr(request.state, "user_email", f"doctor_{user_id}@medrecord.local")
 
+    import uuid
+
+    import httpx
+    from sqlalchemy import select, text
+
+    from app.core.config import settings
     from app.models.tenant import Tenant
     from app.models.tenant_key import TenantKey
-    from sqlalchemy import select, text
-    import uuid
-    import os
-    import httpx
-    from app.core.config import settings
 
     # Check if they already have a tenant
     tenant_id = getattr(request.state, "tenant_id", None)
@@ -169,10 +172,10 @@ async def onboarding(
         new_tenant_id = existing_tenant.id
     else:
         new_tenant_id = uuid.uuid4()
-        
+
         # We must bypass RLS to create the tenant because we don't have a tenant context yet
         await db.execute(
-            text("SELECT set_config('app.current_tenant', :tid, true)"), 
+            text("SELECT set_config('app.current_tenant', :tid, true)"),
             {"tid": str(new_tenant_id)}
         )
 
@@ -197,15 +200,15 @@ async def onboarding(
             )
         else:
             # Create dummy DEK for local dev (in production, we call KMS)
-            dummy_dek = b"mock_dek_for_onboarding_32_bytes" 
-            
+            dummy_dek = b"mock_dek_for_onboarding_32_bytes"
+
             new_key = TenantKey(
                 tenant_id=new_tenant_id,
                 encrypted_dek=dummy_dek,
                 kms_key_id="mock_kms_key"
             )
         db.add(new_key)
-        
+
         await db.commit()
 
     # Update Clerk Metadata so future tokens contain the tenant_id
@@ -249,12 +252,17 @@ async def onboarding(
                 resp_profile.raise_for_status()
         except httpx.HTTPStatusError as e:
             err_text = e.response.text
-            logger.error(f"Failed to update Clerk metadata for {user_id}: {e} - Response: {err_text}")
+            logger.error(
+                f"Failed to update Clerk metadata for {user_id}: {e} - "
+                f"Response: {err_text}"
+            )
             # Raise an exception so frontend actually fails and shows the error
-            raise HTTPException(status_code=500, detail=f"Error actualizando Clerk: {err_text}")
+            raise HTTPException(
+                status_code=500, detail=f"Error actualizando Clerk: {err_text}"
+            ) from e
         except Exception as e:
             logger.error(f"Failed to update Clerk metadata for {user_id}: {e}")
-            raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}") from e
 
     return {
         "status": "success",

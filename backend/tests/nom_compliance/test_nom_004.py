@@ -1,8 +1,9 @@
-import pytest
 from datetime import date
+
+import pytest
 from pydantic import ValidationError
 
-from app.core.nom_validator import PacienteNOM004, NotaEvolucionNOM004, validar_nota_nom004
+from app.core.nom_validator import PacienteNOM004, validar_nota_nom004
 
 
 def test_paciente_nom004_valid():
@@ -49,7 +50,7 @@ def test_nota_evolucion_valid():
         "diagnostico": "Faringitis aguda",
         "tratamiento": "Amoxicilina 500mg c/8h por 7 días"
     }
-    
+
     # Should not raise
     validar_nota_nom004("evolucion", payload)
 
@@ -66,6 +67,6 @@ def test_nota_evolucion_missing_vitals():
         "diagnostico": "Faringitis aguda",
         "tratamiento": "Amoxicilina 500mg c/8h por 7 días"
     }
-    
+
     with pytest.raises(ValueError, match="Incumplimiento NOM-004"):
         validar_nota_nom004("evolucion", payload)

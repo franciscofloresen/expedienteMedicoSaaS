@@ -5,16 +5,16 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.nom_validator import validar_nota_nom004
 from app.db.session import get_db
 from app.models.expediente import Expediente
-from app.models.paciente import Paciente
 from app.models.nota import Nota
+from app.models.paciente import Paciente
 from app.services.firma import sign_note, verify_signature
 
 logger = logging.getLogger("medrecord")
@@ -100,7 +100,7 @@ async def create_nota(
             "tratamiento": data.tratamiento,
         })
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     # Serialize all clinical content into the `contenido` Text column
     contenido_completo = json.dumps({
@@ -228,7 +228,6 @@ async def firmar_nota(
     - es_editable: set to false (immutable after signing)
     """
     tenant_id = request.state.tenant_id
-    user_id = getattr(request.state, "user_id", None)
 
     stmt = select(Nota).where(Nota.id == nota_id)
     nota = (await db.execute(stmt)).scalar_one_or_none()
@@ -301,7 +300,7 @@ async def firmar_nota(
         raise HTTPException(
             status_code=503,
             detail="El servicio de firma digital no está disponible en este entorno."
-        )
+        ) from e
 
 
 @router.get("/{nota_id}/verificar-firma")

@@ -12,8 +12,8 @@ import logging
 import time
 from typing import Any
 
-import jwt as pyjwt
 import httpx
+import jwt as pyjwt
 
 from app.core.config import settings
 
@@ -107,8 +107,8 @@ def decode_jwt(token: str) -> dict[str, Any]:
                 options={"verify_aud": False},
             )
             return claims
-        except pyjwt.ExpiredSignatureError:
-            raise ValueError("Token expirado")
+        except pyjwt.ExpiredSignatureError as e:
+            raise ValueError("Token expirado") from e
         except pyjwt.InvalidTokenError:
             # Not a local token — fall through to Clerk validation
             pass
@@ -129,7 +129,7 @@ def _decode_clerk_jwt(token: str) -> dict[str, Any]:
     try:
         headers = pyjwt.get_unverified_header(token)
     except pyjwt.InvalidTokenError as e:
-        raise ValueError(f"Token inválido: {e}")
+        raise ValueError(f"Token inválido: {e}") from e
 
     kid = headers.get("kid")
     if not kid:
@@ -160,13 +160,13 @@ def _decode_clerk_jwt(token: str) -> dict[str, Any]:
             public_key,
             algorithms=["RS256"],
             # Clerk doesn't strictly enforce standard audience in all tokens unless configured
-            options={"verify_aud": False}, 
+            options={"verify_aud": False},
             issuer=_get_issuer(),
         )
-    except pyjwt.ExpiredSignatureError:
-        raise ValueError("Token expirado")
+    except pyjwt.ExpiredSignatureError as e:
+        raise ValueError("Token expirado") from e
     except pyjwt.InvalidTokenError as e:
-        raise ValueError(f"Token inválido: {e}")
+        raise ValueError(f"Token inválido: {e}") from e
 
     return claims
 

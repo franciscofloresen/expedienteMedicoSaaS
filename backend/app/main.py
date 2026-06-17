@@ -1,3 +1,4 @@
+
 """
 CloudMedRecord SaaS — FastAPI Application Entry Point
 
@@ -10,17 +11,16 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from mangum import Mangum
-from slowapi import _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.v1 import auth, expedientes, notas, pacientes, audit, citas
+from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
 from app.core.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
-
 
 # ── Structured JSON Logging ──
 # IMP-09: All logs emitted as JSON for CloudWatch parsing and alerting.
@@ -104,8 +104,6 @@ app = FastAPI(
 # ── Rate Limit Error Handler ──
 # Rate limits for authentication are now handled by Clerk.
 # We keep the handler available in case other endpoints are rate limited in the future.
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter

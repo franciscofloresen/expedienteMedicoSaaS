@@ -23,13 +23,13 @@ class Consentimiento(Base):
     expediente_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("expedientes.id"), nullable=False, index=True
     )
-    
+
     tipo: Mapped[str | None] = mapped_column(String(50))
     s3_key: Mapped[str | None] = mapped_column(String(500))
     hash_documento: Mapped[str | None] = mapped_column(String(64))
     firmado_por: Mapped[str | None] = mapped_column(String(200))
     firmado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    
+
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )

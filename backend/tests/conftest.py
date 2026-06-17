@@ -7,7 +7,6 @@ and sample data fixtures.
 
 import asyncio
 import os
-import uuid
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -55,8 +54,12 @@ async def setup_database():
         await conn.run_sync(Base.metadata.create_all)
         # Grant permissions to medrecord_app role in the test database
         await conn.execute(text("GRANT USAGE ON SCHEMA public TO medrecord_app"))
-        await conn.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO medrecord_app"))
-        await conn.execute(text("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"))
+        await conn.execute(text(
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO medrecord_app"
+        ))
+        await conn.execute(text(
+            "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
+        ))
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

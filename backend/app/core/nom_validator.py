@@ -39,7 +39,12 @@ class NotaEvolucionNOM004(BaseModel):
     @field_validator("signos_vitales")
     def validate_signos_vitales(cls, v: dict[str, Any]) -> dict[str, Any]:
         """NOM-004 requires minimum vital signs."""
-        required = {"frecuencia_cardiaca", "frecuencia_respiratoria", "temperatura", "tension_arterial"}
+        required = {
+            "frecuencia_cardiaca",
+            "frecuencia_respiratoria",
+            "temperatura",
+            "tension_arterial"
+        }
         missing = required - set(v.keys())
         if missing:
             raise ValueError(f"Faltan signos vitales obligatorios (NOM-004): {missing}")
@@ -72,7 +77,12 @@ class NotaIngresoNOM004(BaseModel):
 
     @field_validator("signos_vitales")
     def validate_signos_vitales(cls, v: dict[str, Any]) -> dict[str, Any]:
-        required = {"frecuencia_cardiaca", "frecuencia_respiratoria", "temperatura", "tension_arterial"}
+        required = {
+            "frecuencia_cardiaca",
+            "frecuencia_respiratoria",
+            "temperatura",
+            "tension_arterial"
+        }
         missing = required - set(v.keys())
         if missing:
             raise ValueError(f"Faltan signos vitales obligatorios (NOM-004 §6.1): {missing}")
@@ -133,7 +143,12 @@ class NotaAnestesiologiaNOM004(BaseModel):
 
     @field_validator("signos_vitales")
     def validate_signos_vitales(cls, v: dict[str, Any]) -> dict[str, Any]:
-        required = {"frecuencia_cardiaca", "frecuencia_respiratoria", "temperatura", "tension_arterial"}
+        required = {
+            "frecuencia_cardiaca",
+            "frecuencia_respiratoria",
+            "temperatura",
+            "tension_arterial"
+        }
         missing = required - set(v.keys())
         if missing:
             raise ValueError(f"Faltan signos vitales obligatorios (NOM-004): {missing}")
@@ -188,4 +203,4 @@ def validar_nota_nom004(tipo_nota: str, contenido: dict[str, Any]) -> None:
     try:
         validator_class.model_validate(contenido)
     except Exception as e:
-        raise ValueError(f"Incumplimiento NOM-004 para nota '{tipo_nota}': {str(e)}")
+        raise ValueError(f"Incumplimiento NOM-004 para nota '{tipo_nota}': {str(e)}") from e

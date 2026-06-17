@@ -7,9 +7,9 @@ Create Date: 2026-06-17 00:54:44.420629
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '54bfed9c5a72'
@@ -37,7 +37,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_citas_paciente_id'), 'citas', ['paciente_id'], unique=False)
     op.create_index(op.f('ix_citas_tenant_id'), 'citas', ['tenant_id'], unique=False)
-    
+
     # --- RLS Enforcement ---
     op.execute("ALTER TABLE citas ENABLE ROW LEVEL SECURITY")
     op.execute("""

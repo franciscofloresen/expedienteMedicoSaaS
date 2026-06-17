@@ -29,7 +29,12 @@ class TestNoteSigning:
                 "expediente_id": "00000000-0000-0000-0000-000000000001",
                 "tipo_nota": "evolucion",
                 "contenido": {"evolucion_y_actualizacion_cuadro": "Patient stable."},
-                "signos_vitales": {"frecuencia_cardiaca": 72, "frecuencia_respiratoria": 16, "temperatura": 36.5, "tension_arterial": "120/80"},
+                "signos_vitales": {
+                    "frecuencia_cardiaca": 72,
+                    "frecuencia_respiratoria": 16,
+                    "temperatura": 36.5,
+                    "tension_arterial": "120/80"
+                },
                 "diagnosticos": ["Hipertensión"],
                 "tratamiento": "Continue current medication",
             },
