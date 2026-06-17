@@ -84,6 +84,9 @@ jobs:
         
     - name: Security audit (Node)
       run: npm audit --audit-level=high
+
+    - name: Lint Code (ESLint)
+      run: npm run lint
         
     - name: Check Types (TSC)
       run: npm run typecheck || npm run build
