@@ -86,7 +86,7 @@ _secrets_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _sm_client = None
 
 
-def _get_sm_client():
+def _get_sm_client() -> Any:
     import boto3
     global _sm_client
     if _sm_client is None:
@@ -114,7 +114,7 @@ def get_secret(secret_arn: str) -> dict[str, Any]:
     response = client.get_secret_value(SecretId=secret_arn)
     value = json.loads(response["SecretString"])
     _secrets_cache[secret_arn] = (now, value)
-    return value
+    return value  # type: ignore[no-any-return]
 
 
 def get_database_url() -> str:

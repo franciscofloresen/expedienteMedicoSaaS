@@ -1,3 +1,4 @@
+from typing import Any
 """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
 
 from datetime import date
@@ -69,7 +70,7 @@ async def list_pacientes(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """List patients for the current tenant (RLS filtered). Supports search by name, curp, phone."""
     stmt = select(Paciente).where(Paciente.activo == True)
 
@@ -105,7 +106,7 @@ async def create_paciente(
     paciente_data: PacienteCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """Create a new patient with NOM-004 required fields."""
     tenant_id = request.state.tenant_id
 
@@ -148,7 +149,7 @@ async def get_paciente(
     paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """Get patient details (decrypts address if present)."""
     stmt = select(Paciente).where(Paciente.id == paciente_id, Paciente.activo == True)
     result = await db.execute(stmt)
@@ -193,7 +194,7 @@ async def update_paciente(
     paciente_data: PacienteUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """Update patient details."""
     tenant_id = request.state.tenant_id
 
@@ -231,7 +232,7 @@ async def delete_paciente(
     paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Soft delete a patient.
     NOM-004 forbids deleting medical records for 5 years, so we only hide them from the UI.

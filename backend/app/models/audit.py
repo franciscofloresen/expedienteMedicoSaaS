@@ -1,3 +1,4 @@
+from typing import Any
 import uuid
 from datetime import datetime
 
@@ -48,8 +49,8 @@ class AuditLog(Base):
     )
 
     # Entity-level change tracking
-    datos_antes: Mapped[dict | None] = mapped_column(JSONB)
-    datos_despues: Mapped[dict | None] = mapped_column(JSONB)
+    datos_antes: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    datos_despues: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     exito: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     error_detalle: Mapped[str | None] = mapped_column(Text)

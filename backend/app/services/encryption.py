@@ -25,7 +25,7 @@ _kms_client = None
 _dek_cache: dict[str, tuple[float, bytes]] = {}
 
 
-def _get_kms_client():
+def _get_kms_client() -> Any:
     global _kms_client
     if _kms_client is None:
         _kms_client = boto3.client("kms", region_name=settings.aws_region)
@@ -78,7 +78,7 @@ def _decrypt_dek(encrypted_dek: bytes, tenant_id: str) -> bytes:
         CiphertextBlob=encrypted_dek,
         EncryptionContext={"tenant_id": tenant_id},
     )
-    return response["Plaintext"]
+    return response["Plaintext"]  # type: ignore[no-any-return]
 
 
 def _get_plaintext_dek(encrypted_dek: bytes, tenant_id: str) -> bytes:

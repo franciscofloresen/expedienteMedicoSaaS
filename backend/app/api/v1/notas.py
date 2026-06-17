@@ -43,7 +43,7 @@ async def list_notas(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """List all notes across the clinic, with patient info."""
     stmt = (
         select(Nota, Expediente, Paciente)
@@ -78,7 +78,7 @@ async def create_nota(
     data: NotaCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Crear una nueva nota médica (borrador).
     Se valida automáticamente que cumpla la NOM-004 mediante Pydantic (data).
@@ -131,7 +131,7 @@ async def update_nota(
     data: NotaUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Actualizar una nota médica (solo si es editable / no firmada).
     NOM-004: Signed notes are immutable. Corrections must be amendments.
@@ -175,7 +175,7 @@ async def list_notas_by_expediente(
     expediente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """Lista todas las notas de un expediente, ordenadas por fecha."""
     stmt = (
         select(Nota)
@@ -210,7 +210,7 @@ async def firmar_nota(
     nota_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Firma digitalmente la nota utilizando ECDSA P-256.
     En producción: vía AWS KMS. En desarrollo: llave local efímera.
@@ -264,7 +264,7 @@ async def firmar_nota(
         signature_data = sign_note(
             content=content_to_sign,
             tenant_id=tenant_id,
-            nota_id=nota_id,
+            nota_id=str(nota_id),
             medico_nombre=medico_nombre,
             medico_cedula=medico_cedula,
             medico_especialidad=medico_especialidad,
@@ -308,7 +308,7 @@ async def verificar_firma(
     nota_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Verify the digital signature on a signed medical note.
 

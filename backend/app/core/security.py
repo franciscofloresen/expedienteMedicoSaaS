@@ -157,7 +157,7 @@ def _decode_clerk_jwt(token: str) -> dict[str, Any]:
 
         claims = pyjwt.decode(
             token,
-            public_key,
+            public_key,  # type: ignore[arg-type]
             algorithms=["RS256"],
             # Clerk doesn't strictly enforce standard audience in all tokens unless configured
             options={"verify_aud": False},
@@ -171,9 +171,9 @@ def _decode_clerk_jwt(token: str) -> dict[str, Any]:
     return claims
 
 
-def _find_key_by_kid(jwks_data: dict, kid: str) -> dict | None:
+def _find_key_by_kid(jwks_data: dict[str, Any], kid: str) -> dict[str, Any] | None:
     """Find a key in JWKS data by its key ID."""
     for k in jwks_data.get("keys", []):
         if k.get("kid") == kid:
-            return k
+            return k  # type: ignore[no-any-return]
     return None

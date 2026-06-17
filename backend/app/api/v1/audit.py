@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
@@ -15,7 +16,7 @@ async def get_recent_audit_logs(
     request: Request,
     db: AsyncSession = Depends(get_db),
     limit: int = 20
-):
+) -> Any:
     """Obtiene los logs de auditoría más recientes para el tenant actual."""
     tenant_id = getattr(request.state, "tenant_id", None)
 
@@ -51,7 +52,7 @@ async def registrar_consentimiento(
     request: Request,
     data: ConsentimientoRequest,
     db: AsyncSession = Depends(get_db)
-):
+) -> Any:
     """
     Endpoint para registrar el consentimiento informado explícito.
     No requiere lógica en DB porque el AuditMiddleware captura y

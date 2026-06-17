@@ -1,3 +1,4 @@
+from typing import Any
 
 """
 CloudMedRecord SaaS — FastAPI Application Entry Point
@@ -25,7 +26,7 @@ from app.middleware.tenant import TenantMiddleware
 # ── Structured JSON Logging ──
 # IMP-09: All logs emitted as JSON for CloudWatch parsing and alerting.
 
-def _configure_logging():
+def _configure_logging() -> None:
     """Configure structured JSON logging for CloudWatch compatibility."""
     from pythonjsonlogger.json import JsonFormatter
 
@@ -60,7 +61,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Downgrade attacks (Strict-Transport-Security)
     """
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -79,7 +80,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     """Application startup and shutdown events."""
     # Startup: configure logging, warm up connections
     _configure_logging()
@@ -107,7 +108,7 @@ app = FastAPI(
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # ── Middleware (order matters: last added = first executed) ──
 
@@ -139,7 +140,7 @@ app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"]
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Any:
     """Health check endpoint for Route53 and monitoring."""
     return {"status": "ok", "version": "0.1.0"}
 

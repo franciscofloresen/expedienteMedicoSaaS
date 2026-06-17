@@ -1,3 +1,4 @@
+from typing import Any
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -40,7 +41,7 @@ class Nota(Base):
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
     diagnostico_cie10: Mapped[str | None] = mapped_column(String(10))
 
-    signos_vitales: Mapped[dict | None] = mapped_column(JSONB)
+    signos_vitales: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     # Signature
     firma_digital: Mapped[bytes | None] = mapped_column(BYTEA)

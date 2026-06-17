@@ -1,3 +1,4 @@
+from typing import Any
 """
 Digital Signature Service — ECDSA P-256 via AWS KMS (Production) / Local Key (Development)
 
@@ -25,7 +26,7 @@ _kms_client = None
 _local_key = None
 
 
-def _get_kms_client():
+def _get_kms_client() -> Any:
     global _kms_client
     if _kms_client is None:
         import boto3
@@ -34,7 +35,7 @@ def _get_kms_client():
     return _kms_client
 
 
-def _get_local_key():
+def _get_local_key() -> Any:
     """
     Generate or return a local ECDSA P-256 key for development signing.
     This key is ephemeral — it lives only in process memory.
@@ -50,7 +51,7 @@ def _get_local_key():
     return _local_key
 
 
-def canonical_serialize(content: str, metadata: dict) -> bytes:
+def canonical_serialize(content: str, metadata: dict[str, Any]) -> bytes:
     """
     Create a canonical representation of the note content for signing.
 
@@ -79,7 +80,7 @@ def sign_note(
     medico_nombre: str,
     medico_cedula: str,
     medico_especialidad: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """
     Sign a medical note using ECDSA P-256.
 
@@ -148,7 +149,7 @@ def _sign_with_kms(content_hash: str) -> tuple[bytes, str]:
         wait=wait_exponential(multiplier=0.1, min=0.1, max=1),
         reraise=True,
     )
-    def _do_sign():
+    def _do_sign() -> Any:
         kms = _get_kms_client()
         message_bytes = bytes.fromhex(content_hash)
         response = kms.sign(
@@ -159,7 +160,7 @@ def _sign_with_kms(content_hash: str) -> tuple[bytes, str]:
         )
         return response["Signature"], settings.kms_signing_key_id
 
-    return _do_sign()
+    return _do_sign()  # type: ignore[no-any-return]
 
 
 def _sign_with_local_key(content_hash: str) -> tuple[bytes, str]:
@@ -179,7 +180,7 @@ def _sign_with_local_key(content_hash: str) -> tuple[bytes, str]:
 
 def verify_signature(
     content: str,
-    metadata: dict,
+    metadata: dict[str, Any],
     signature: bytes,
     stored_hash: str,
     key_id: str,
@@ -223,7 +224,7 @@ def _verify_with_kms(content_hash: str, signature: bytes, key_id: str) -> bool:
         wait=wait_exponential(multiplier=0.1, min=0.1, max=1),
         reraise=True,
     )
-    def _do_verify():
+    def _do_verify() -> Any:
         kms = _get_kms_client()
         message_bytes = bytes.fromhex(content_hash)
         try:
@@ -238,7 +239,7 @@ def _verify_with_kms(content_hash: str, signature: bytes, key_id: str) -> bool:
         except kms.exceptions.KMSInvalidSignatureException:
             return False
 
-    return _do_verify()
+    return _do_verify()  # type: ignore[no-any-return]
 
 
 def _verify_with_local_key(content_hash: str, signature: bytes) -> bool:

@@ -1,3 +1,4 @@
+from typing import Any
 """
 API v1 — Authentication & Registration
 
@@ -21,7 +22,7 @@ router = APIRouter()
 # ── Endpoints ──
 
 @router.get("/me")
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Return current user info from the JWT token and database.
     """
@@ -69,7 +70,7 @@ async def update_profile(
     data: ProfileUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db)
-):
+) -> Any:
     from sqlalchemy import select
 
     from app.models.tenant import Tenant
@@ -134,7 +135,7 @@ async def onboarding(
     data: OnboardingRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-):
+) -> Any:
     """
     Onboarding flow: Create a new Tenant and TenantKey for a user who just signed up via Clerk.
     """
@@ -166,10 +167,10 @@ async def onboarding(
     # Check if they already have a tenant by email
     stmt = select(Tenant).where(Tenant.email == user_email)
     existing_tenant = await db.execute(stmt)
-    existing_tenant = existing_tenant.scalar_one_or_none()
+    tenant_row = existing_tenant.scalar_one_or_none()
 
-    if existing_tenant:
-        new_tenant_id = existing_tenant.id
+    if tenant_row:
+        new_tenant_id = tenant_row.id
     else:
         new_tenant_id = uuid.uuid4()
 

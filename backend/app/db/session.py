@@ -1,3 +1,4 @@
+from typing import Any
 """
 Database Session Management with RLS Tenant Context
 
@@ -25,7 +26,7 @@ _engine = None
 _async_session_factory = None
 
 
-def _get_engine():
+def _get_engine() -> Any:
     global _engine
     if _engine is None:
         from app.core.config import get_database_url
@@ -41,7 +42,7 @@ def _get_engine():
     return _engine
 
 
-def _get_session_factory():
+def _get_session_factory() -> Any:
     global _async_session_factory
     if _async_session_factory is None:
         _async_session_factory = async_sessionmaker(
@@ -58,7 +59,7 @@ async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
 
     Usage in route handlers:
         @router.get("/pacientes")
-        async def list_pacientes(db: AsyncSession = Depends(get_db)):
+        async def list_pacientes(db: AsyncSession = Depends(get_db)) -> Any:
             result = await db.execute(select(Paciente))
             # RLS automatically filters to current tenant's data
     """

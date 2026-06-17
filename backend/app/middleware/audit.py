@@ -1,3 +1,4 @@
+from typing import Any
 """
 Audit Middleware — NOM-004 + NOM-024 Compliance
 
@@ -98,7 +99,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 logger.debug("Failed to set audit entry on request state: %s", e)
 
-    async def _persist_audit(self, entry: dict) -> None:
+    async def _persist_audit(self, entry: dict[str, Any]) -> None:
         """
         Write audit entry to the database using a separate, short-lived session.
 

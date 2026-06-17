@@ -201,6 +201,6 @@ def validar_nota_nom004(tipo_nota: str, contenido: dict[str, Any]) -> None:
         return
 
     try:
-        validator_class.model_validate(contenido)
+        validator_class.model_validate(contenido)  # type: ignore[attr-defined]
     except Exception as e:
         raise ValueError(f"Incumplimiento NOM-004 para nota '{tipo_nota}': {str(e)}") from e

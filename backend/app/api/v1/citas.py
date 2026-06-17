@@ -1,3 +1,4 @@
+from typing import Any
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -20,7 +21,7 @@ async def read_citas(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     stmt = select(Cita)
     if start_date:
         stmt = stmt.where(Cita.fecha_inicio >= start_date)
@@ -35,7 +36,7 @@ async def create_cita(
     cita_in: CitaCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     tenant_id = request.state.tenant_id
     cita = Cita(
         tenant_id=tenant_id,
@@ -54,7 +55,7 @@ async def update_cita(
     cita_in: CitaUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     stmt = select(Cita).where(Cita.id == cita_id)
     result = await db.execute(stmt)
     cita = result.scalar_one_or_none()
@@ -78,7 +79,7 @@ async def delete_cita(
     cita_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     stmt = select(Cita).where(Cita.id == cita_id)
     result = await db.execute(stmt)
     cita = result.scalar_one_or_none()

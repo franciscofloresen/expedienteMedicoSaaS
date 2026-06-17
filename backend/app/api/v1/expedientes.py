@@ -1,3 +1,4 @@
+from typing import Any
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
 from uuid import UUID
@@ -31,7 +32,7 @@ async def list_expedientes(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """List all expedientes with basic patient info."""
     stmt = (
         select(Expediente, Paciente)
@@ -60,18 +61,18 @@ async def create_expediente(
     data: ExpedienteCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     tenant_id = request.state.tenant_id
 
     # Verify patient exists and belongs to tenant
-    stmt = select(Paciente).where(Paciente.id == data.paciente_id)
-    result = await db.execute(stmt)
+    stmt_paciente = select(Paciente).where(Paciente.id == data.paciente_id)
+    result = await db.execute(stmt_paciente)
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
     # Check if expediente already exists
-    stmt = select(Expediente).where(Expediente.paciente_id == data.paciente_id)
-    result = await db.execute(stmt)
+    stmt_exp = select(Expediente).where(Expediente.paciente_id == data.paciente_id)
+    result = await db.execute(stmt_exp)
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="El paciente ya tiene un expediente activo")
 
@@ -102,7 +103,7 @@ async def get_expediente_by_paciente(
     paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     stmt = select(Expediente).where(Expediente.paciente_id == paciente_id)
     expediente = (await db.execute(stmt)).scalar_one_or_none()
 
@@ -133,7 +134,7 @@ async def update_antecedentes(
     data: ExpedienteUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db)
-):
+) -> Any:
     tenant_id = request.state.tenant_id
 
     stmt = select(Expediente).where(Expediente.id == expediente_id)
