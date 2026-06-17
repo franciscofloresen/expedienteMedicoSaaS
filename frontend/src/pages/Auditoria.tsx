@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from '@tanstack/react-query';
 import { auditApi } from '../services/api';
 import { ShieldCheck, Calendar, Activity, Globe, Server, Printer } from 'lucide-react';

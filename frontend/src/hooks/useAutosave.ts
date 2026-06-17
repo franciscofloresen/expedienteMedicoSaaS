@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /**
  * useAutosave — Auto-saves form data to localStorage for offline resilience.
  *

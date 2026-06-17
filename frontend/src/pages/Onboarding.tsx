@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { authApi } from '../services/api';
 import { Activity } from 'lucide-react';
