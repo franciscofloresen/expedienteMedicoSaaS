@@ -1,11 +1,8 @@
 """
 Tenant Isolation Middleware
 
-Extracts tenant_id from the JWT token and sets the PostgreSQL
+Extracts tenant_id from the Clerk JWT token and sets the PostgreSQL
 session variable `app.current_tenant` for Row-Level Security.
-
-This middleware works in tandem with RLS policies — even if the
-middleware has a bug, RLS prevents cross-tenant data access.
 """
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -16,7 +13,7 @@ from app.core.config import settings
 from app.core.security import decode_jwt
 
 # Paths that don't require tenant context
-PUBLIC_PATHS = {"/health", "/docs", "/openapi.json", "/api/v1/auth/login", "/api/v1/auth/register"}
+PUBLIC_PATHS = {"/health", "/docs", "/openapi.json"}
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -31,47 +28,40 @@ class TenantMiddleware(BaseHTTPMiddleware):
             token = auth_header.split(" ", 1)[1]
             try:
                 claims = decode_jwt(token)
-            except Exception:
+            except Exception as e:
                 return JSONResponse(
                     status_code=401,
-                    content={"detail": "Token inválido o expirado"},
+                    content={"detail": f"Token inválido o expirado: {e}"},
                 )
             
-            tenant_id = claims.get("custom:tenant_id")
+            # Clerk puts custom claims in publicMetadata or custom JWT template
+            # For this integration, we expect tenant_id to be provided in the token.
+            metadata = claims.get("metadata", claims.get("public_metadata", {}))
+            tenant_id = claims.get("tenant_id") or claims.get("custom:tenant_id") or metadata.get("tenant_id")
+            
             if not tenant_id:
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "Token sin tenant_id asociado"},
-                )
+                # Allow onboarding path without tenant_id
+                if request.url.path == "/api/v1/auth/onboarding":
+                    pass
+                else:
+                    # For development demo without Clerk metadata configured, fallback to X-Tenant-ID
+                    if settings.environment == "development":
+                        tenant_id = request.headers.get("X-Tenant-ID")
+                    if not tenant_id:
+                        return JSONResponse(
+                            status_code=403,
+                            content={"detail": "Token sin tenant_id asociado (requiere configuración de Clerk JWT)"},
+                        )
                 
             request.state.tenant_id = tenant_id
             request.state.user_id = claims.get("sub")
-            request.state.user_email = claims.get("email")
-            request.state.user_name = claims.get("custom:nombre_medico", "Médico Titular")
-            request.state.user_cedula = claims.get("custom:cedula", "ND")
-            request.state.user_especialidad = claims.get("custom:especialidad", "General")
+            request.state.user_email = claims.get("email") or metadata.get("email", "")
+            request.state.user_name = claims.get("nombre_medico") or metadata.get("nombre_medico", "Médico Titular")
+            request.state.user_cedula = claims.get("cedula") or metadata.get("cedula", "ND")
+            request.state.user_especialidad = claims.get("especialidad") or metadata.get("especialidad", "General")
             return await call_next(request)
 
-        # Fallback to Dev bypass: allow X-Tenant-ID header in development ONLY if no auth token
-        if request.headers.get("X-Tenant-ID"):
-            if settings.environment != "development":
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "X-Tenant-ID header is not allowed in production"},
-                )
-            import logging
-            logging.getLogger("medrecord.security").warning(
-                "Dev bypass: using X-Tenant-ID header for tenant %s",
-                request.headers.get("X-Tenant-ID"),
-            )
-            request.state.tenant_id = request.headers.get("X-Tenant-ID")
-            request.state.user_id = "00000000-0000-0000-0000-000000000000"  # Must be valid UUID for audit cast
-            request.state.user_email = "dev@local.host"
-            request.state.user_name = "Dr. Local Dev"
-            request.state.user_cedula = "DEV-00000"
-            request.state.user_especialidad = "General"
-            return await call_next(request)
-            
+
         return JSONResponse(
             status_code=401,
             content={"detail": "Token de autenticación requerido"},

@@ -30,7 +30,7 @@ def _get_kms_client():
     if _kms_client is None:
         import boto3
 
-        _kms_client = boto3.client("kms", region_name=settings.cognito_region)
+        _kms_client = boto3.client("kms", region_name=settings.aws_region)
     return _kms_client
 
 

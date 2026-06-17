@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { auditApi } from '../services/api';
 import { ShieldCheck, Calendar, Activity, Globe, Server, Printer } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // Helper function to translate technical logs into clinical language
 const translateAction = (method: string, path: string) => {
@@ -37,26 +38,20 @@ export default function Auditoria() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ 
-          background: 'linear-gradient(135deg, var(--primary-light), var(--primary))', 
-          padding: '1rem', 
-          borderRadius: '12px',
-          color: 'white',
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
-        }}>
-          <ShieldCheck size={32} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ background: 'var(--primary-light)', padding: '1rem', borderRadius: '16px', color: 'var(--primary)', display: 'flex', boxShadow: '0 4px 20px rgba(0, 122, 255, 0.15)' }}>
+            <ShieldCheck size={32} />
+          </div>
+          <div>
+            <h1 className="font-serif" style={{ margin: 0, fontSize: '2.5rem', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Auditoría y Seguridad</h1>
+            <p className="text-muted tracking-widest" style={{ margin: '0.25rem 0 0 0', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600 }}>Registro Inmutable NOM-024</p>
+          </div>
         </div>
-        <div>
-          <h1 className="page-title" style={{ margin: 0, fontSize: '2rem' }}>Auditoría y Seguridad</h1>
-          <p className="text-muted" style={{ margin: '0.25rem 0 0 0' }}>Registro inmutable de actividades y accesos del sistema</p>
-        </div>
-        <div style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-outline no-print" onClick={() => window.print()}>
-            <Printer size={20} />
-            Imprimir Reporte Técnico
-          </button>
-        </div>
+        <button className="btn btn-outline no-print" style={{ padding: '0.75rem 1.5rem', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.05em' }} onClick={() => window.print()}>
+          <Printer size={20} />
+          IMPRIMIR REPORTE
+        </button>
       </div>
 
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -95,8 +90,11 @@ export default function Auditoria() {
                   const translation = translateAction(log.metodo, log.ruta);
                   const isHiddenInWeb = index >= 50;
                   return (
-                  <tr 
+                  <motion.tr 
                     key={log.id} 
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut', delay: index * 0.03 }}
                     className={isHiddenInWeb ? "print-only" : ""} 
                     style={{ 
                       borderBottom: '1px solid var(--border-light)', 
@@ -104,8 +102,8 @@ export default function Auditoria() {
                       display: isHiddenInWeb ? 'none' : undefined,
                       cursor: 'default'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
                       {new Date(log.timestamp).toLocaleString()}
@@ -152,11 +150,11 @@ export default function Auditoria() {
                     <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                       {log.ip_origen}
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })
               )}
-            </tbody>
+          </tbody>
           </table>
         </div>
       </div>

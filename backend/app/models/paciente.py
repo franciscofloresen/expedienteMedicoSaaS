@@ -62,3 +62,4 @@ class Paciente(Base):
 
     tenant: Mapped["Tenant"] = relationship("Tenant", foreign_keys=[tenant_id], back_populates="pacientes")
     expedientes: Mapped[List["Expediente"]] = relationship("Expediente", back_populates="paciente")
+    citas: Mapped[List["Cita"]] = relationship("Cita", foreign_keys="Cita.paciente_id", back_populates="paciente")

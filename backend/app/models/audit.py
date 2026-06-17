@@ -39,7 +39,7 @@ class AuditLog(Base):
 
     # Common fields
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
-    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    usuario_id: Mapped[str | None] = mapped_column(String(100), index=True)
 
     ip_origen: Mapped[str | None] = mapped_column(INET)
     user_agent: Mapped[str | None] = mapped_column(Text)

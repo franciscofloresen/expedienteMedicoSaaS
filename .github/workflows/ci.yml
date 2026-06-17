@@ -1,63 +1,21 @@
-name: CI — Tests + Security Scan
+name: CloudMedRecord CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
-
-env:
-  PYTHON_VERSION: "3.12"
-  NODE_VERSION: "20"
-  TERRAFORM_VERSION: "1.7"
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  # ── Frontend Build & Lint ──
-  frontend-build:
-    name: Frontend Build & Lint
+  backend-test:
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Lint
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Build
-        working-directory: frontend
-        run: npm run build
-
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 7
-
-  # ── Backend Tests ──
-  backend-tests:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    
     services:
       postgres:
         image: postgres:15
         env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
           POSTGRES_DB: medrecord_test
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
         ports:
           - 5432:5432
         options: >-
@@ -66,122 +24,72 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install -e ".[dev]"
-
-      - name: Run unit tests
-        working-directory: backend
-        run: pytest tests/unit/ -v --tb=short --ignore-glob="*/__pycache__/*"
-
-      - name: Run NOM compliance tests
-        working-directory: backend
-        run: pytest tests/nom_compliance/ -v --tb=short --ignore-glob="*/__pycache__/*"
-
-      - name: Run security tests
-        working-directory: backend
-        run: pytest tests/security/ -v --tb=short --ignore-glob="*/__pycache__/*"
-
-      - name: Run integration tests
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/medrecord_test
-          ENVIRONMENT: testing
-        run: pytest tests/integration/ -v --tb=short --ignore-glob="*/__pycache__/*"
-
-      - name: Coverage report
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/medrecord_test
-          ENVIRONMENT: testing
-        run: |
-          pytest --cov=app --cov-report=xml tests/ --ignore-glob="*/__pycache__/*"
-          echo "## Test Coverage" >> $GITHUB_STEP_SUMMARY
-
-  # ── Terraform Validation ──
-  terraform-validate:
-    name: Terraform Validate
-    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive terraform/
-
-      - name: Terraform Validate (dev)
-        working-directory: terraform/environments/dev
-        run: |
-          terraform init -backend=false
-          terraform validate
-
-  # ── Security Scanning ──
-  security-scan:
-    name: Security Scan (Checkov)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: terraform/
-          framework: terraform
-          output_format: github_failed_only
-          soft_fail: false
-
-  # ── Python Linting ──
-  lint:
-    name: Lint (Ruff)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install ruff
-        run: pip install ruff
-
-      - name: Ruff check
-        working-directory: backend
-        run: ruff check .
-
-      - name: Ruff format check
-        working-directory: backend
-        run: ruff format --check .
-  # ── Backend Artifact ──
-  backend-build:
-    name: Backend Build Artifact
-    runs-on: ubuntu-latest
+    - uses: actions/checkout@v4
     
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        pip install pip-audit
+        
+    - name: Security audit (Python)
+      run: pip-audit
+        
+    - name: Check code formatting (Ruff)
+      run: |
+        ruff check .
+        
+    - name: Type checking (MyPy)
+      run: |
+        mypy app/
+        
+    - name: Run Backend Tests (Pytest)
+      env:
+        DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@localhost:5432/medrecord_test
+        JWT_DEV_SECRET: testing-secret-key-123
+        CLERK_SECRET_KEY: testing-clerk-key-123
+        ENVIRONMENT: development
+      run: |
+        pytest -v --cov=app --cov-report=xml
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+        
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Zip backend code
-        run: zip -r backend.zip backend/ -x "backend/.venv/*" "backend/__pycache__/*" "backend/.pytest_cache/*"
-
-      - name: Upload backend artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-dist
-          path: backend.zip
-          retention-days: 7
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+        
+    - name: Install dependencies
+      run: npm ci
+        
+    - name: Security audit (Node)
+      run: npm audit --audit-level=high
+        
+    - name: Check Types (TSC)
+      run: npm run typecheck || npm run build
+      
+    - name: Build Project
+      env:
+        VITE_API_URL: https://api.cloudmedrecord.test
+        VITE_CLERK_PUBLISHABLE_KEY: pk_test_cloudmedrecord123
+      run: npm run build

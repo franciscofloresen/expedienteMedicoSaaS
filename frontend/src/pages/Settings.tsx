@@ -1,10 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
-import { User, Shield, Key, CreditCard, Lock, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lucide-react';
+import { UserProfile } from '@clerk/react';
 import { authApi } from '../services/api';
 import { useToast } from '../hooks/useToast';
 
 export default function Settings() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [isEditingProf, setIsEditingProf] = useState(false);
+  const [editCedula, setEditCedula] = useState('');
+  const [editEspecialidad, setEditEspecialidad] = useState('');
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: ['profile'],
@@ -12,8 +19,29 @@ export default function Settings() {
     retry: 1
   });
 
-  const handlePasswordChange = () => {
-    showToast("Funcionalidad deshabilitada en la versión de demostración.", "info");
+  const updateMutation = useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      showToast('Datos actualizados correctamente', 'success');
+      setIsEditingProf(false);
+    },
+    onError: () => {
+      showToast('Error al actualizar datos', 'error');
+    }
+  });
+
+  const handleEdit = () => {
+    setEditCedula(profile.cedula || '');
+    setEditEspecialidad(profile.especialidad || '');
+    setIsEditingProf(true);
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      cedula: editCedula,
+      especialidad: editEspecialidad
+    });
   };
 
   return (
@@ -32,41 +60,94 @@ export default function Settings() {
       ) : profile ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          {/* Tarjeta de Perfil */}
+          {/* Tarjeta de Perfil Profesional (Datos Médicos) */}
           <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <div style={{ backgroundColor: 'var(--primary-light)', padding: '0.5rem', borderRadius: 'var(--radius-md)', color: 'var(--primary)' }}>
-                <User size={24} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ backgroundColor: 'var(--primary-light)', padding: '0.5rem', borderRadius: 'var(--radius-md)', color: 'var(--primary)' }}>
+                  <User size={24} />
+                </div>
+                <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Datos Profesionales (NOM-004)</h2>
               </div>
-              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Perfil Profesional</h2>
+              {!isEditingProf ? (
+                <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleEdit}>
+                  <Edit2 size={16} /> Editar
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', color: 'var(--error)' }} onClick={() => setIsEditingProf(false)}>
+                    <X size={16} /> Cancelar
+                  </button>
+                  <button className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleSave} disabled={updateMutation.isPending}>
+                    <Check size={16} /> {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              )}
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-              <div>
-                <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Nombre Completo</label>
-                <div style={{ fontWeight: 500 }}>{profile.nombre_medico}</div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
               <div>
                 <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Cédula Profesional</label>
-                <div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{profile.cedula}</div>
+                {isEditingProf ? (
+                  <input type="text" className="form-input" value={editCedula} onChange={e => setEditCedula(e.target.value)} />
+                ) : (
+                  <div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{profile.cedula}</div>
+                )}
               </div>
               <div>
                 <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Especialidad</label>
-                <div>{profile.especialidad || 'No especificada'}</div>
+                {isEditingProf ? (
+                  <input type="text" className="form-input" value={editEspecialidad} onChange={e => setEditEspecialidad(e.target.value)} />
+                ) : (
+                  <div>{profile.especialidad || 'No especificada'}</div>
+                )}
               </div>
-              <div>
-                <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Correo Electrónico</label>
-                <div>{profile.email}</div>
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={handlePasswordChange}>
-                <Lock size={18} />
-                Cambiar Contraseña
-              </button>
             </div>
           </div>
+
+            {/* Perfil de Usuario de Clerk */}
+            <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s', padding: 0, overflow: 'hidden' }}>
+              <UserProfile 
+                appearance={{
+                  variables: {
+                    colorPrimary: '#007aff',
+                    fontFamily: "'Inter', sans-serif",
+                    colorBackground: 'transparent',
+                  },
+                  elements: {
+                    rootBox: {
+                      width: '100%',
+                    },
+                    cardBox: {
+                      width: '100%',
+                      boxShadow: 'none',
+                      margin: 0,
+                    },
+                    card: {
+                      boxShadow: 'none',
+                      border: 'none',
+                      background: 'transparent',
+                      width: '100%',
+                      maxWidth: '100%',
+                      margin: 0,
+                    },
+                    navbar: {
+                      display: 'none'
+                    },
+                    scrollBox: {
+                      borderRadius: '0',
+                    },
+                    pageScrollBox: {
+                      padding: '1.5rem',
+                    },
+                    profileSection: {
+                      padding: '0',
+                      gap: '1rem',
+                    }
+                  }
+                }}
+              />
+            </div>
 
           {/* Tarjeta de Seguridad y Facturación */}
           <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s' }}>

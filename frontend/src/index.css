@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
 :root {
   /* Premium Apple Health inspired colors */
@@ -48,6 +49,18 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.015em;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+.tracking-widest {
+  letter-spacing: 0.3em;
+}
+
+.tracking-wider {
+  letter-spacing: 0.1em;
 }
 
 /* Base Layout */
@@ -429,6 +442,9 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease;
+  position: sticky;
+  top: 2rem;
+  height: calc(100vh - 4rem);
 }
 
 .sidebar-overlay {
@@ -536,4 +552,146 @@ h1, h2, h3, h4 {
   .no-print {
     display: none !important;
   }
+}
+
+/* --- CINEMATIC ANIMATIONS --- */
+@keyframes aurora-1 {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  50% { transform: translateY(-20%) translateX(10%) scale(1.1); }
+}
+
+@keyframes aurora-2 {
+  0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+  50% { transform: translateY(10%) translateX(-10%) scale(1.05); }
+}
+
+.aurora-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  z-index: -1;
+  background-color: var(--bg-app);
+}
+
+.aurora-blob-1 {
+  position: absolute;
+  top: -20%; left: -10%;
+  width: 70vw; height: 70vw;
+  background: radial-gradient(circle, rgba(0,122,255,0.15) 0%, rgba(0,122,255,0) 70%);
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: aurora-1 15s ease-in-out infinite;
+}
+
+.aurora-blob-2 {
+  position: absolute;
+  top: 10%; right: -20%;
+  width: 80vw; height: 80vw;
+  background: radial-gradient(circle, rgba(88,86,214,0.1) 0%, rgba(88,86,214,0) 70%);
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: aurora-2 20s ease-in-out infinite;
+}
+
+/* ── Custom react-big-calendar styles for CloudMedRecord ── */
+.rbc-calendar {
+  background-color: var(--bg-card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  font-family: inherit;
+}
+
+.rbc-toolbar {
+  margin-bottom: 1.5rem !important;
+}
+
+.rbc-toolbar button {
+  color: var(--text-main) !important;
+  border-color: var(--border-light) !important;
+  border-radius: 8px !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s ease;
+  background-color: transparent !important;
+  font-weight: 500;
+}
+
+.rbc-toolbar button:hover {
+  background-color: var(--bg-app) !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2) !important;
+}
+
+.rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+  border: 1px solid var(--border-light) !important;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--bg-app);
+}
+
+.rbc-header {
+  padding: 0.75rem 0 !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  background-color: var(--bg-card);
+}
+
+.rbc-day-bg {
+  border-left: 1px solid var(--border-light) !important;
+}
+
+.rbc-month-row {
+  border-top: 1px solid var(--border-light) !important;
+}
+
+.rbc-off-range-bg {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+
+.rbc-today {
+  background-color: rgba(14, 165, 233, 0.05) !important;
+}
+
+.rbc-event {
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  background: linear-gradient(135deg, var(--primary) 0%, #0284c7 100%) !important;
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.3) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.rbc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(14, 165, 233, 0.4) !important;
+}
+
+.rbc-time-content {
+  border-top: 1px solid var(--border-light) !important;
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid var(--border-light) !important;
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
 }

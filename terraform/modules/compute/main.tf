@@ -19,9 +19,7 @@ variable "lambda_security_group_id" {
   type = string
 }
 
-variable "cognito_user_pool_arn" {
-  type = string
-}
+
 
 variable "db_secret_arn" {
   type = string
@@ -44,6 +42,10 @@ variable "s3_audit_bucket" {
 }
 
 variable "s3_consent_bucket" {
+  type = string
+}
+
+variable "waf_acl_arn" {
   type = string
 }
 
@@ -141,7 +143,7 @@ resource "aws_lambda_function" "api" {
   handler       = "app.main.handler"
   runtime       = "python3.12"
   timeout       = 30
-  memory_size   = 512
+  memory_size   = 1024
 
   filename         = data.archive_file.dummy.output_path
   source_code_hash = data.archive_file.dummy.output_base64sha256
@@ -192,13 +194,7 @@ resource "aws_api_gateway_rest_api" "api" {
   }
 }
 
-resource "aws_api_gateway_authorizer" "cognito" {
-  name            = "cognito-authorizer"
-  type            = "COGNITO_USER_POOLS"
-  rest_api_id     = aws_api_gateway_rest_api.api.id
-  provider_arns   = [var.cognito_user_pool_arn]
-  identity_source = "method.request.header.Authorization"
-}
+
 
 resource "aws_api_gateway_resource" "proxy" {
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -210,8 +206,7 @@ resource "aws_api_gateway_method" "proxy" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.proxy.id
   http_method   = "ANY"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "lambda" {
@@ -229,8 +224,7 @@ resource "aws_api_gateway_method" "proxy_root" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_rest_api.api.root_resource_id
   http_method   = "ANY"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito.id
+  authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "lambda_root" {
@@ -264,6 +258,11 @@ resource "aws_api_gateway_stage" "api" {
   tags = {
     Environment = var.environment
   }
+}
+
+resource "aws_wafv2_web_acl_association" "api" {
+  resource_arn = aws_api_gateway_stage.api.arn
+  web_acl_arn  = var.waf_acl_arn
 }
 
 # Allow API GW to invoke Lambda

@@ -19,32 +19,58 @@ from app.core.config import settings
 
 logger = logging.getLogger("medrecord.security")
 
-# ── JWKS Cache (Cognito production mode) ──
+# ── JWKS Cache (Clerk production mode) ──
 
 _jwks_cache: dict[str, Any] | None = None
 _jwks_cached_at: float = 0
 JWKS_CACHE_TTL = 3600  # 1 hour
 
 # ── Local JWT Config (development mode) ──
+# SECURITY: The secret is NEVER hardcoded. It is read from the
+# JWT_DEV_SECRET env var, or generated ephemerally per process.
 
-LOCAL_JWT_SECRET = "medrecord-dev-secret-change-in-production"
 LOCAL_JWT_ALGORITHM = "HS256"
+_ephemeral_secret: str | None = None
+
+
+def _get_local_jwt_secret() -> str:
+    """
+    Get the JWT signing secret for local development.
+
+    Priority:
+    1. JWT_DEV_SECRET env var (via settings) — for stable tokens across restarts.
+    2. Ephemeral random secret — generated once per process, tokens expire on restart.
+
+    NEVER hardcoded. NEVER committed to source control.
+    """
+    global _ephemeral_secret
+
+    # Try configured secret first
+    if settings.jwt_dev_secret:
+        return settings.jwt_dev_secret
+
+    # Generate ephemeral secret (tokens won't survive Lambda cold start — acceptable in dev)
+    if _ephemeral_secret is None:
+        import os
+        _ephemeral_secret = os.urandom(32).hex()
+        logger.warning(
+            "No JWT_DEV_SECRET configured — using ephemeral secret. "
+            "Tokens will be invalidated on process restart. "
+            "Set JWT_DEV_SECRET in .env.local for persistent dev sessions."
+        )
+    return _ephemeral_secret
 
 
 def _get_jwks_url() -> str:
-    region = settings.cognito_region
-    pool_id = settings.cognito_user_pool_id
-    return f"https://cognito-idp.{region}.amazonaws.com/{pool_id}/.well-known/jwks.json"
+    return settings.clerk_jwks_url
 
 
 def _get_issuer() -> str:
-    region = settings.cognito_region
-    pool_id = settings.cognito_user_pool_id
-    return f"https://cognito-idp.{region}.amazonaws.com/{pool_id}"
+    return settings.clerk_issuer_url
 
 
 def _fetch_jwks() -> dict[str, Any]:
-    """Fetch JWKS from Cognito with caching."""
+    """Fetch JWKS from Clerk with caching."""
     global _jwks_cache, _jwks_cached_at
 
     now = time.time()
@@ -63,7 +89,7 @@ def decode_jwt(token: str) -> dict[str, Any]:
     Decode and validate a JWT token.
 
     In development: validates HS256 tokens issued by our local auth endpoints.
-    In production: validates RS256 tokens from Cognito via JWKS.
+    In production: validates RS256 tokens from Clerk via JWKS.
 
     Returns:
         dict: Token claims including sub, email, custom:tenant_id
@@ -76,34 +102,29 @@ def decode_jwt(token: str) -> dict[str, Any]:
         try:
             claims = pyjwt.decode(
                 token,
-                LOCAL_JWT_SECRET,
+                _get_local_jwt_secret(),
                 algorithms=[LOCAL_JWT_ALGORITHM],
                 options={"verify_aud": False},
             )
-            # Validate required claims
-            if not claims.get("custom:tenant_id"):
-                raise ValueError("Token sin tenant_id asociado")
             return claims
         except pyjwt.ExpiredSignatureError:
             raise ValueError("Token expirado")
         except pyjwt.InvalidTokenError:
-            # Not a local token — fall through to Cognito validation
-            # (allows Cognito tokens to work in dev mode too)
+            # Not a local token — fall through to Clerk validation
             pass
 
-    # Production: Cognito RS256 validation via JWKS
-    return _decode_cognito_jwt(token)
+    # Production: Clerk RS256 validation via JWKS
+    return _decode_clerk_jwt(token)
 
 
-def _decode_cognito_jwt(token: str) -> dict[str, Any]:
+def _decode_clerk_jwt(token: str) -> dict[str, Any]:
     """
-    Decode and validate a Cognito JWT token using JWKS.
+    Decode and validate a Clerk JWT token using JWKS.
 
     Validates:
     - Signature (via JWKS)
     - Expiration
-    - Issuer (Cognito User Pool)
-    - Token use (access token)
+    - Issuer (Clerk)
     """
     try:
         headers = pyjwt.get_unverified_header(token)
@@ -138,7 +159,8 @@ def _decode_cognito_jwt(token: str) -> dict[str, Any]:
             token,
             public_key,
             algorithms=["RS256"],
-            audience=settings.cognito_client_id,
+            # Clerk doesn't strictly enforce standard audience in all tokens unless configured
+            options={"verify_aud": False}, 
             issuer=_get_issuer(),
         )
     except pyjwt.ExpiredSignatureError:

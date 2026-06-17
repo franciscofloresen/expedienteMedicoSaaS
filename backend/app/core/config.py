@@ -18,9 +18,11 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings from environment variables."""
 
-    # Environment
-    environment: str = "development"
+    # Environment — SECURITY: defaults to 'production' (fail-closed).
+    # You MUST explicitly set ENVIRONMENT=development in .env.local for local dev.
+    environment: str = "production"
     log_level: str = "INFO"
+    aws_region: str = "us-east-1"
 
     # Database (resolved from Secrets Manager in prod)
     db_secret_arn: str = ""
@@ -35,14 +37,18 @@ class Settings(BaseSettings):
     s3_audit_bucket: str = "medrecord-audit-dev"
     s3_consent_bucket: str = "medrecord-consent-dev"
 
-    # Cognito
-    cognito_user_pool_id: str = ""
-    cognito_client_id: str = ""
-    cognito_region: str = "us-east-1"
+    # Clerk Auth
+    clerk_issuer_url: str = ""
+    clerk_secret_key: str = ""
+    clerk_jwks_url: str = ""
 
     # Cache TTLs (seconds)
     secrets_cache_ttl: int = 300  # 5 minutes
     dek_cache_ttl: int = 300      # 5 minutes
+
+    # Local JWT (development only — NEVER hardcode secrets)
+    # If empty in dev mode, an ephemeral random secret is generated per process.
+    jwt_dev_secret: str = ""
 
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:5173"])
@@ -84,7 +90,7 @@ def _get_sm_client():
     import boto3
     global _sm_client
     if _sm_client is None:
-        _sm_client = boto3.client("secretsmanager", region_name=get_settings().cognito_region)
+        _sm_client = boto3.client("secretsmanager", region_name=get_settings().aws_region)
     return _sm_client
 
 
@@ -117,7 +123,7 @@ def get_database_url() -> str:
     or use the direct DATABASE_URL env var in development.
     """
     s = get_settings()
-    if s.environment == "development":
+    if s.environment in ("development", "testing"):
         return s.database_url
 
     secret = get_secret(s.db_secret_arn)

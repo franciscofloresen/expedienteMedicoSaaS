@@ -7,6 +7,7 @@ from .nota import Nota
 from .consentimiento import Consentimiento
 from .aviso_privacidad import AvisoPrivacidad
 from .audit import AuditLog
+from .cita import Cita
 
 # Import all models here so Alembic can discover them
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "Consentimiento",
     "AvisoPrivacidad",
     "AuditLog",
+    "Cita",
 ]

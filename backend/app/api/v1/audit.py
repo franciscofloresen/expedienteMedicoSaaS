@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +45,7 @@ async def get_recent_audit_logs(
 from pydantic import BaseModel
 
 class ConsentimientoRequest(BaseModel):
-    paciente_id: str
+    paciente_id: UUID
 
 @router.post("/consentimiento")
 async def registrar_consentimiento(

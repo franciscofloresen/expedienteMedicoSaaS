@@ -1,5 +1,5 @@
 /**
- * MedRecord Frontend — API Data Transfer Objects
+ * CloudMedRecord Frontend — API Data Transfer Objects
  *
  * These types mirror the backend Pydantic/SQLAlchemy schemas.
  * Keep in sync with backend model changes.
@@ -107,4 +107,23 @@ export interface NotaCreate {
 
 export interface ApiError {
   detail: string;
+}
+
+export interface CitaBase {
+  paciente_id?: string | null;
+  titulo: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: string;
+  notas?: string | null;
+}
+
+export interface Cita extends CitaBase {
+  id: string;
+  tenant_id: string;
+  creado_en: string;
+  modificado_en: string;
+  
+  // Useful for frontend only
+  paciente?: Paciente;
 }

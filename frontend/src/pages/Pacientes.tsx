@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Edit2, Trash2, Search, Users, FileCheck, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
 import Modal from '../components/Modal';
@@ -129,7 +130,7 @@ export default function Pacientes() {
   return (
     <>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Pacientes</h1>
+        <h1 className="font-serif animate-fade-in" style={{ marginBottom: 0, fontSize: '2.5rem', fontWeight: 600, color: 'var(--text-main)' }}>Pacientes</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div style={{ position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -142,7 +143,9 @@ export default function Pacientes() {
               style={{ padding: '0.75rem 1rem 0.75rem 2.5rem', width: '320px', borderRadius: '100px', backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', border: '1px solid transparent' }}
             />
           </div>
-          <button className="btn btn-primary" onClick={() => setIsFormModalOpen(true)}>Nuevo Paciente</button>
+          <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '100px', fontWeight: 600, letterSpacing: '0.05em' }} onClick={() => setIsFormModalOpen(true)}>
+            NUEVO PACIENTE
+          </button>
         </div>
       </header>
 
@@ -204,12 +207,15 @@ export default function Pacientes() {
                 {searchQuery ? 'No se encontraron pacientes que coincidan con la búsqueda.' : 'No hay pacientes registrados.'}
               </td></tr>
             ) : (
-              pacientes.map((p: Paciente) => (
-                <tr 
-                  key={p.id} 
-                  style={{ borderBottom: '1px solid var(--border-light)', transition: 'all 0.2s ease', cursor: 'pointer' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              pacientes.map((p: Paciente, index: number) => (
+                <motion.tr 
+                  key={p.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.05 }}
+                  style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s ease', cursor: 'pointer' }}
+                  onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                  onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
                   onClick={() => navigate(`/app/pacientes/${p.id}`)}
                 >
                   <td style={{ padding: '1.25rem 1.5rem' }}>
@@ -246,7 +252,7 @@ export default function Pacientes() {
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))
             )}
           </tbody>

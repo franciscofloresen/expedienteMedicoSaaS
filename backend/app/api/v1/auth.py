@@ -1,228 +1,22 @@
 """
 API v1 — Authentication & Registration
 
-In development: Uses local JWT issuance with bcrypt password hashing.
-In production: Will delegate to AWS Cognito.
-
-The JWT claims structure matches Cognito's format:
-- sub: user UUID
-- email: user email
-- custom:tenant_id: tenant UUID
-- custom:nombre_medico: doctor name
-- custom:cedula: professional license number
-
-This means the TenantMiddleware works identically regardless of
-whether the JWT was issued locally or by Cognito.
+Delegates authentication entirely to Clerk.
+This router provides the `/me` endpoint to fetch local user context linked to the Clerk JWT.
 """
 
-import uuid
 import logging
-from datetime import datetime, timedelta, timezone
-
-import bcrypt
-import jwt as pyjwt
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
-from app.db.session import _get_session_factory, get_db
+from app.db.session import get_db
 
 logger = logging.getLogger("medrecord.auth")
 
 router = APIRouter()
 
-# ── JWT Configuration ──
-# In production this would be Cognito's RSA keys.
-# In dev, we use a symmetric HS256 key for simplicity.
-JWT_SECRET = "medrecord-dev-secret-change-in-production"
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRY_HOURS = 24
-
-
-# ── Request/Response Schemas ──
-
-class RegisterRequest(BaseModel):
-    nombre_medico: str = Field(..., min_length=3, max_length=200, description="Full name of the doctor")
-    cedula: str = Field(..., min_length=5, max_length=20, description="Cédula profesional")
-    especialidad: str | None = Field(None, max_length=100, description="Medical specialty")
-    email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128, description="Account password")
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-class AuthResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    tenant_id: str
-    nombre_medico: str
-    email: str
-
-
-# ── Helpers ──
-
-def _hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-def _verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
-
-
-def _create_jwt(tenant_id: str, email: str, nombre_medico: str, cedula: str) -> str:
-    """
-    Create a JWT with Cognito-compatible claims.
-    The TenantMiddleware reads `custom:tenant_id` from these claims.
-    """
-    now = datetime.now(timezone.utc)
-    claims = {
-        "sub": tenant_id,
-        "email": email,
-        "custom:tenant_id": tenant_id,
-        "custom:nombre_medico": nombre_medico,
-        "custom:cedula": cedula,
-        "iat": now,
-        "exp": now + timedelta(hours=JWT_EXPIRY_HOURS),
-        "iss": "medrecord-dev",
-        "token_use": "access",
-    }
-    return pyjwt.encode(claims, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
 # ── Endpoints ──
-
-@router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(data: RegisterRequest):
-    """
-    Register a new doctor (creates tenant + returns JWT).
-
-    In production, this would call Cognito AdminCreateUser.
-    In development, it creates the tenant directly in the database.
-    """
-    from app.models.tenant import Tenant
-    from app.models.tenant_key import TenantKey
-
-    factory = _get_session_factory()
-
-    async with factory() as session:
-        async with session.begin():
-            # Check for duplicate email
-            stmt = select(Tenant).where(Tenant.email == data.email)
-            existing = (await session.execute(stmt)).scalar_one_or_none()
-            if existing:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Ya existe una cuenta con este correo electrónico",
-                )
-
-            # Check for duplicate cédula
-            stmt = select(Tenant).where(Tenant.cedula == data.cedula)
-            existing = (await session.execute(stmt)).scalar_one_or_none()
-            if existing:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Ya existe una cuenta con esta cédula profesional",
-                )
-
-            # Create tenant
-            tenant_id = str(uuid.uuid4())
-            hashed_pw = _hash_password(data.password)
-
-            tenant = Tenant(
-                id=tenant_id,
-                nombre_medico=data.nombre_medico,
-                cedula=data.cedula,
-                especialidad=data.especialidad,
-                email=data.email,
-                password_hash=hashed_pw,
-            )
-            session.add(tenant)
-
-            # Local auth: Also create a mock local TenantKey so envelope encryption doesn't crash
-            # Only needed locally, but safe enough here since we are mocking Cognito
-            import os
-            random_key = os.urandom(32)
-            tenant_key = TenantKey(
-                tenant_id=tenant_id,
-                encrypted_dek=random_key,
-                kms_key_id="mock-local-kms-key",
-            )
-            session.add(tenant_key)
-
-            await session.flush()
-
-    # Issue JWT
-    token = _create_jwt(
-        tenant_id=tenant_id,
-        email=data.email,
-        nombre_medico=data.nombre_medico,
-        cedula=data.cedula,
-    )
-
-    logger.info("New tenant registered: %s (%s)", data.email, tenant_id)
-
-    return AuthResponse(
-        access_token=token,
-        tenant_id=tenant_id,
-        nombre_medico=data.nombre_medico,
-        email=data.email,
-    )
-
-
-@router.post("/login", response_model=AuthResponse)
-async def login(data: LoginRequest):
-    """
-    Authenticate a doctor and return a JWT.
-
-    In production, this would validate against Cognito.
-    In development, it validates against the local database.
-    """
-    from app.models.tenant import Tenant
-
-    factory = _get_session_factory()
-
-    async with factory() as session:
-        async with session.begin():
-            stmt = select(Tenant).where(Tenant.email == data.email)
-            tenant = (await session.execute(stmt)).scalar_one_or_none()
-
-            if not tenant:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Credenciales inválidas",
-                )
-
-            if not tenant.activo:
-                raise HTTPException(
-                    status_code=403,
-                    detail="La cuenta está desactivada. Contacte soporte.",
-                )
-
-            # Verify password against hash
-            if not tenant.password_hash or not _verify_password(data.password, tenant.password_hash):
-                raise HTTPException(
-                    status_code=401,
-                    detail="Credenciales inválidas",
-                )
-
-    # Issue JWT
-    token = _create_jwt(
-        tenant_id=str(tenant.id),
-        email=tenant.email,
-        nombre_medico=tenant.nombre_medico,
-        cedula=tenant.cedula,
-    )
-
-    return AuthResponse(
-        access_token=token,
-        tenant_id=str(tenant.id),
-        nombre_medico=tenant.nombre_medico,
-        email=tenant.email,
-    )
-
 
 @router.get("/me")
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
@@ -261,4 +55,209 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
             "kms_key_id": tenant_key.kms_key_id,
             "ultima_rotacion": tenant_key.rotated_at.isoformat() if tenant_key.rotated_at else None,
         }
+    }
+
+
+from pydantic import BaseModel, Field
+
+class ProfileUpdate(BaseModel):
+    cedula: str | None = Field(None, min_length=5, max_length=20)
+    especialidad: str | None = None
+
+@router.put("/profile")
+async def update_profile(
+    data: ProfileUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.models.tenant import Tenant
+    from sqlalchemy import select
+    
+    tenant_id = request.state.tenant_id
+    user_id = getattr(request.state, "user_id", None)
+    
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
+    tenant = (await db.execute(stmt)).scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    if data.cedula:
+        tenant.cedula = data.cedula
+    if data.especialidad is not None:
+        tenant.especialidad = data.especialidad
+        
+    await db.flush()
+
+    if user_id:
+        try:
+            import httpx
+            from app.core.config import settings
+            async with httpx.AsyncClient() as client:
+                # Update Clerk publicMetadata
+                resp = await client.patch(
+                    f"https://api.clerk.com/v1/users/{user_id}/metadata",
+                    headers={
+                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "public_metadata": {
+                            "tenant_id": str(tenant_id),
+                            "nombre_medico": tenant.nombre_medico,
+                            "cedula": tenant.cedula,
+                            "especialidad": tenant.especialidad
+                        }
+                    }
+                )
+                resp.raise_for_status()
+        except Exception as e:
+            import logging
+            logging.getLogger("medrecord.auth").warning(f"Failed to update Clerk metadata for {user_id}: {e}")
+
+    await db.commit()
+    
+    return {"status": "success"}
+
+
+from pydantic import BaseModel, Field
+
+class OnboardingRequest(BaseModel):
+    nombre_medico: str = Field(..., min_length=2, max_length=200)
+    cedula: str = Field(..., min_length=5, max_length=20)
+    especialidad: str | None = None
+
+@router.post("/onboarding")
+async def onboarding(
+    data: OnboardingRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Onboarding flow: Create a new Tenant and TenantKey for a user who just signed up via Clerk.
+    """
+    # The user is authenticated via Clerk but doesn't have a tenant yet
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="No authenticated Clerk user found")
+        
+    user_email = getattr(request.state, "user_email", f"doctor_{user_id}@medrecord.local")
+
+    from app.models.tenant import Tenant
+    from app.models.tenant_key import TenantKey
+    from sqlalchemy import select, text
+    import uuid
+    import os
+    import httpx
+    from app.core.config import settings
+
+    # Check if they already have a tenant
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if tenant_id:
+        # Check if it actually exists in DB
+        stmt = select(Tenant).where(Tenant.id == tenant_id)
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none():
+            return {"status": "already_onboarded", "tenant_id": str(tenant_id)}
+
+    # Check if they already have a tenant by email
+    stmt = select(Tenant).where(Tenant.email == user_email)
+    existing_tenant = await db.execute(stmt)
+    existing_tenant = existing_tenant.scalar_one_or_none()
+
+    if existing_tenant:
+        new_tenant_id = existing_tenant.id
+    else:
+        new_tenant_id = uuid.uuid4()
+        
+        # We must bypass RLS to create the tenant because we don't have a tenant context yet
+        await db.execute(
+            text("SELECT set_config('app.current_tenant', :tid, true)"), 
+            {"tid": str(new_tenant_id)}
+        )
+
+        # Create Tenant
+        new_tenant = Tenant(
+            id=new_tenant_id,
+            nombre_medico=data.nombre_medico,
+            cedula=data.cedula,
+            especialidad=data.especialidad or "General",
+            email=user_email,
+            plan="basico"
+        )
+        db.add(new_tenant)
+
+        if settings.environment != "development":
+            from app.services.encryption import generate_tenant_dek
+            dek_data = generate_tenant_dek(str(new_tenant_id))
+            new_key = TenantKey(
+                tenant_id=new_tenant_id,
+                encrypted_dek=dek_data["encrypted_dek"],
+                kms_key_id=dek_data["kms_key_id"]
+            )
+        else:
+            # Create dummy DEK for local dev (in production, we call KMS)
+            dummy_dek = b"mock_dek_for_onboarding_32_bytes" 
+            
+            new_key = TenantKey(
+                tenant_id=new_tenant_id,
+                encrypted_dek=dummy_dek,
+                kms_key_id="mock_kms_key"
+            )
+        db.add(new_key)
+        
+        await db.commit()
+
+    # Update Clerk Metadata so future tokens contain the tenant_id
+    if settings.clerk_secret_key:
+        try:
+            nombre_parts = data.nombre_medico.split()
+            first_name = nombre_parts[0] if nombre_parts else ""
+            last_name = " ".join(nombre_parts[1:]) if len(nombre_parts) > 1 else ""
+
+            async with httpx.AsyncClient() as client:
+                # 1. Update public_metadata using the specific /metadata endpoint
+                resp_meta = await client.patch(
+                    f"https://api.clerk.com/v1/users/{user_id}/metadata",
+                    headers={
+                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "public_metadata": {
+                            "tenant_id": str(new_tenant_id),
+                            "cedula": data.cedula,
+                            "nombre_medico": data.nombre_medico,
+                            "especialidad": data.especialidad or "General"
+                        }
+                    }
+                )
+                resp_meta.raise_for_status()
+
+                # 2. Update first_name and last_name using the main user endpoint
+                resp_profile = await client.patch(
+                    f"https://api.clerk.com/v1/users/{user_id}",
+                    headers={
+                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "first_name": first_name,
+                        "last_name": last_name
+                    }
+                )
+                resp_profile.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            err_text = e.response.text
+            logger.error(f"Failed to update Clerk metadata for {user_id}: {e} - Response: {err_text}")
+            # Raise an exception so frontend actually fails and shows the error
+            raise HTTPException(status_code=500, detail=f"Error actualizando Clerk: {err_text}")
+        except Exception as e:
+            logger.error(f"Failed to update Clerk metadata for {user_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+    return {
+        "status": "success",
+        "tenant_id": str(new_tenant_id),
+        "message": "Onboarding completado"
     }

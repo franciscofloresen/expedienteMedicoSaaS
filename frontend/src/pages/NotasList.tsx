@@ -109,7 +109,7 @@ export default function NotasList() {
                     <button 
                       className="btn btn-outline" 
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
-                      onClick={() => navigate(`/pacientes/${nota.paciente_id}`)}
+                      onClick={() => navigate(`/app/pacientes/${nota.paciente_id}`)}
                     >
                       <ExternalLink size={16} /> Ver Nota
                     </button>

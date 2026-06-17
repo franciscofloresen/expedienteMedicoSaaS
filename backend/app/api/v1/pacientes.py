@@ -2,6 +2,7 @@
 
 from datetime import date
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
@@ -141,7 +142,7 @@ async def create_paciente(
 
 @router.get("/{paciente_id}")
 async def get_paciente(
-    paciente_id: str,
+    paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
@@ -185,7 +186,7 @@ async def get_paciente(
 
 @router.put("/{paciente_id}")
 async def update_paciente(
-    paciente_id: str,
+    paciente_id: UUID,
     paciente_data: PacienteUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -224,7 +225,7 @@ async def update_paciente(
 
 @router.delete("/{paciente_id}")
 async def delete_paciente(
-    paciente_id: str,
+    paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):

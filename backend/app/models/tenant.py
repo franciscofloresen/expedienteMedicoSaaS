@@ -23,7 +23,6 @@ class Tenant(Base):
     especialidad: Mapped[str | None] = mapped_column(String(100))
     rfc: Mapped[str | None] = mapped_column(String(13))
     email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
-    password_hash: Mapped[str | None] = mapped_column(String(128))
     plan: Mapped[str] = mapped_column(String(20), server_default="basico")
     activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     creado_en: Mapped[datetime] = mapped_column(
@@ -33,3 +32,4 @@ class Tenant(Base):
     # Relationships
     tenant_key: Mapped["TenantKey"] = relationship("TenantKey", back_populates="tenant", uselist=False)
     pacientes: Mapped[List["Paciente"]] = relationship("Paciente", foreign_keys="Paciente.tenant_id", back_populates="tenant")
+    citas: Mapped[List["Cita"]] = relationship("Cita", foreign_keys="Cita.tenant_id", back_populates="tenant")

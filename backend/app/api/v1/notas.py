@@ -3,6 +3,7 @@
 import json
 import logging
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
@@ -126,7 +127,7 @@ async def create_nota(
 
 @router.put("/{nota_id}")
 async def update_nota(
-    nota_id: str,
+    nota_id: UUID,
     data: NotaUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -171,7 +172,7 @@ async def update_nota(
 
 @router.get("/expediente/{expediente_id}")
 async def list_notas_by_expediente(
-    expediente_id: str,
+    expediente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
@@ -206,7 +207,7 @@ async def list_notas_by_expediente(
 
 @router.post("/{nota_id}/firmar")
 async def firmar_nota(
-    nota_id: str,
+    nota_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
@@ -276,7 +277,7 @@ async def firmar_nota(
         nota.firma_kms_key_id = signature_data["firma_kms_key_id"]
         nota.firma_algoritmo = signature_data["firma_algoritmo"]
         nota.firmado_en = signature_data["firmado_en"]
-        nota.firmado_por = user_id
+        nota.firmado_por = tenant_id
         nota.medico_nombre = signature_data["medico_nombre"]
         nota.medico_cedula = signature_data["medico_cedula"]
         nota.medico_especialidad = signature_data["medico_especialidad"]
@@ -305,7 +306,7 @@ async def firmar_nota(
 
 @router.get("/{nota_id}/verificar-firma")
 async def verificar_firma(
-    nota_id: str,
+    nota_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):

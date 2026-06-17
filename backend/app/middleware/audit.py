@@ -129,7 +129,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                                 exito, error_detalle
                             ) VALUES (
                                 :request_id, :method, :path,
-                                CAST(:tenant_id AS uuid), CAST(:usuario_id AS uuid),
+                                CAST(:tenant_id AS uuid), :usuario_id,
                                 CAST(:ip_origen AS inet), :user_agent,
                                 :status_code, :duration_ms,
                                 :exito, :error_detalle
@@ -152,8 +152,16 @@ class AuditMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             # Audit persistence failure must NOT crash the request.
             # But it MUST be logged loudly — this is a compliance alarm.
+            # IMP-10: The 'alarm_key' field is targeted by a CloudWatch
+            # Metric Filter to trigger an SNS alarm immediately.
             logger.error(
-                "CRITICAL: Failed to persist audit log to database: %s | entry=%s",
-                exc,
-                json.dumps(entry, ensure_ascii=False),
+                "CRITICAL: Failed to persist audit log to database",
+                extra={
+                    "alarm_key": "AUDIT_PERSISTENCE_FAILURE",
+                    "error": str(exc),
+                    "method": entry.get("method"),
+                    "path": entry.get("path"),
+                    "tenant_id": entry.get("tenant_id"),
+                    "severity": "P0",
+                },
             )

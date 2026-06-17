@@ -64,7 +64,7 @@ export default function ExpedientesList() {
                     <button 
                       className="btn btn-primary" 
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
-                      onClick={() => navigate(`/pacientes/${exp.paciente_id}`)}
+                      onClick={() => navigate(`/app/pacientes/${exp.paciente_id}`)}
                     >
                       <ExternalLink size={16} /> Abrir
                     </button>

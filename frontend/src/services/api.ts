@@ -7,11 +7,12 @@ import type {
   ExpedienteCreate,
   Nota,
   NotaCreate,
+  Cita,
+  CitaBase,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
-const IS_DEV = import.meta.env.VITE_ENV === 'development' || import.meta.env.DEV;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,18 +21,21 @@ export const api = axios.create({
   },
 });
 
-// Interceptor: inject auth headers
-// In production, this will inject the Cognito access token.
-// In development, it falls back to the X-Tenant-ID header for local testing.
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+let getToken: (() => Promise<string | null>) | null = null;
 
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
-  } else if (IS_DEV) {
-    // Dev-only bypass: backend also guards this behind ENVIRONMENT=development
-    config.headers['X-Tenant-ID'] = '00000000-0000-0000-0000-000000000000';
+export const setTokenFetcher = (fetcher: () => Promise<string | null>) => {
+  getToken = fetcher;
+};
+
+// Interceptor: inject auth headers
+api.interceptors.request.use(async (config) => {
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
   }
+  
 
   return config;
 });
@@ -41,6 +45,14 @@ export const authApi = {
     const res = await api.get('/auth/me');
     return res.data;
   },
+  updateProfile: async (data: { cedula?: string; especialidad?: string }): Promise<any> => {
+    const res = await api.put('/auth/profile', data);
+    return res.data;
+  },
+  onboarding: async (data: { nombre_medico: string; cedula: string; especialidad?: string }): Promise<any> => {
+    const res = await api.post('/auth/onboarding', data);
+    return res.data;
+  }
 };
 
 // Servicios de Pacientes
@@ -120,6 +132,27 @@ export const auditApi = {
   },
   registrarConsentimiento: async (paciente_id: string): Promise<void> => {
     await api.post('/audit/consentimiento', { paciente_id });
+  }
+};
+
+export const citasApi = {
+  getAll: async (start_date?: string, end_date?: string): Promise<Cita[]> => {
+    const params: any = {};
+    if (start_date) params.start_date = start_date;
+    if (end_date) params.end_date = end_date;
+    const res = await api.get('/citas', { params });
+    return res.data;
+  },
+  create: async (data: CitaBase): Promise<Cita> => {
+    const res = await api.post('/citas', data);
+    return res.data;
+  },
+  update: async (id: string, data: Partial<CitaBase>): Promise<Cita> => {
+    const res = await api.put(`/citas/${id}`, data);
+    return res.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/citas/${id}`);
   }
 };
 

@@ -245,6 +245,38 @@ resource "aws_route53_health_check" "api" {
   }
 }
 
+# ── Audit Failure Metric Filter & Alarm ──
+resource "aws_cloudwatch_log_metric_filter" "audit_failure" {
+  name           = "medrecord-audit-failure-${var.environment}"
+  log_group_name = "/aws/lambda/${var.lambda_function_name}"
+  pattern        = "{ $.alarm_key = \"AUDIT_PERSISTENCE_FAILURE\" }"
+  metric_transformation {
+    name      = "AuditPersistenceFailures"
+    namespace = "MedRecord/Custom"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "audit_failure_alarm" {
+  alarm_name          = "medrecord-audit-failure-${var.environment}"
+  alarm_description   = "Audit persistence failed (DB trigger bypass or connectivity issue)"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "AuditPersistenceFailures"
+  namespace           = "MedRecord/Custom"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = [aws_sns_topic.alarms.arn]
+
+  tags = {
+    Environment = var.environment
+    Severity    = "P1"
+  }
+}
+
 # ── Outputs ──
 output "sns_topic_arn" {
   value = aws_sns_topic.alarms.arn

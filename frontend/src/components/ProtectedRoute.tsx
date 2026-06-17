@@ -1,20 +1,12 @@
-/**
- * Protected route wrapper — redirects to /login if not authenticated.
- *
- * Usage in App.tsx:
- *   <Route element={<ProtectedRoute />}>
- *     <Route path="/" element={<Layout />}>...</Route>
- *   </Route>
- */
-
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth, useUser } from '@clerk/react';
 
 export default function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoaded, userId } = useAuth();
+  const { user } = useUser();
   const location = useLocation();
 
-  if (isLoading) {
+  if (!isLoaded || (userId && !user)) {
     return (
       <div style={{
         display: 'flex',
@@ -31,9 +23,21 @@ export default function ProtectedRoute() {
     );
   }
 
-  if (!isAuthenticated) {
-    // Redirect to login, saving the intended destination
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!userId) {
+    // Redirect to login
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  // If authenticated but missing tenant_id, force onboarding
+  const hasTenant = user?.publicMetadata?.tenant_id;
+  
+  if (!hasTenant && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  // If they have a tenant but try to access onboarding, send them to the app
+  if (hasTenant && location.pathname === '/onboarding') {
+    return <Navigate to="/app" replace />;
   }
 
   return <Outlet />;

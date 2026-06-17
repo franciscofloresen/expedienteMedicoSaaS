@@ -1,5 +1,7 @@
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select, desc
@@ -95,7 +97,7 @@ async def create_expediente(
 
 @router.get("/paciente/{paciente_id}")
 async def get_expediente_by_paciente(
-    paciente_id: str,
+    paciente_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
@@ -125,7 +127,7 @@ async def get_expediente_by_paciente(
 
 @router.put("/{expediente_id}/antecedentes")
 async def update_antecedentes(
-    expediente_id: str,
+    expediente_id: UUID,
     data: ExpedienteUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db)

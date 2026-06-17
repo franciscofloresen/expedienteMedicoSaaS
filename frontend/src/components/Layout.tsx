@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Users, FileText, Settings as SettingsIcon, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Activity, Users, FileText, Settings as SettingsIcon, Menu, X, ShieldCheck, Calendar as CalendarIcon } from 'lucide-react';
+import { UserButton } from '@clerk/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ConnectionStatus } from './ConnectionStatus';
 
 export default function Layout() {
-  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -16,7 +18,7 @@ export default function Layout() {
           <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', padding: '0.4rem', borderRadius: '8px', color: 'white', display: 'flex' }}>
             <Activity size={20} />
           </div>
-          <h2 className="page-title" style={{ fontSize: '1.25rem', margin: 0, letterSpacing: '-0.02em' }}>MedRecord</h2>
+          <span className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>CloudMedRecord</span>
         </div>
         <button className="btn btn-icon" style={{ background: 'transparent', border: 'none', color: 'var(--text-main)' }} onClick={toggleMenu} aria-label="Menu">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -35,12 +37,35 @@ export default function Layout() {
             <Activity size={24} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.4rem', marginBottom: 0, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>MedRecord</h2>
+            <h2 style={{ fontSize: '1.4rem', marginBottom: 0, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>CloudMedRecord</h2>
             <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Clínico</span>
           </div>
         </div>
         
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <NavLink 
+            to="/app/agenda" 
+            style={({ isActive }) => ({ 
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.75rem 1rem', borderRadius: '12px',
+              textDecoration: 'none',
+              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
+              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              transition: 'all 0.2s ease'
+            })}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            {({ isActive }) => (
+              <>
+                <CalendarIcon size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
+                Agenda
+              </>
+            )}
+          </NavLink>
           <NavLink 
             to="/app" 
             end
@@ -50,7 +75,10 @@ export default function Layout() {
               textDecoration: 'none',
               backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
               color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: isActive ? 600 : 500,
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
               transition: 'all 0.2s ease'
             })}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -70,7 +98,10 @@ export default function Layout() {
               textDecoration: 'none',
               backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
               color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: isActive ? 600 : 500,
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
               transition: 'all 0.2s ease'
             })}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -90,7 +121,10 @@ export default function Layout() {
               textDecoration: 'none',
               backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
               color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: isActive ? 600 : 500,
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
               transition: 'all 0.2s ease'
             })}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -110,7 +144,10 @@ export default function Layout() {
               textDecoration: 'none',
               backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
               color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: isActive ? 600 : 500,
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
               transition: 'all 0.2s ease'
             })}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -125,17 +162,9 @@ export default function Layout() {
         </nav>
         
         <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-          {user && (
-            <div className="user-info" style={{ marginBottom: '1rem', padding: '0.5rem', border: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.1rem' }}>
-                {user.nombre_medico.charAt(0)}
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <div className="user-info-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.nombre_medico}</div>
-                <div className="user-info-email" style={{ fontSize: '0.75rem' }}>Médico Tratante</div>
-              </div>
-            </div>
-          )}
+          <div style={{ marginBottom: '1rem', padding: '0.5rem', border: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <UserButton showName />
+          </div>
           <NavLink 
             to="/app/settings" 
             className={({ isActive }) => `btn btn-outline ${isActive ? 'active-link' : ''}`} 
@@ -147,30 +176,35 @@ export default function Layout() {
               borderRadius: '12px',
               backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
               color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: isActive ? 600 : 500,
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
               transition: 'all 0.2s ease'
             })}
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <SettingsIcon size={20} style={{ opacity: 0.8 }} />
-            Configuración
+            CONFIGURACIÓN
           </NavLink>
-          <button
-            className="btn btn-outline"
-            style={{ justifyContent: 'flex-start', border: 'none', width: '100%', color: 'var(--text-muted)', padding: '0.75rem 1rem', borderRadius: '12px', transition: 'all 0.2s ease' }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--error)'; e.currentTarget.style.backgroundColor = 'rgba(255, 59, 48, 0.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
-            onClick={logout}
-          >
-            <LogOut size={20} style={{ opacity: 0.8 }} />
-            Cerrar Sesión
-          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="main-content">
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <ConnectionStatus />
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity } from 'lucide-react';
+import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity, RefreshCcw } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { expedientesApi, notasApi, pacientesApi, auditApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
+import { useAutosave } from '../hooks/useAutosave';
 import Modal from '../components/Modal';
 import { AxiosError } from 'axios';
 
@@ -21,6 +23,9 @@ export default function Expediente() {
   const [notaToSign, setNotaToSign] = useState<Nota | null>(null);
 
   const [isAntecedentesModalOpen, setIsAntecedentesModalOpen] = useState(false);
+
+  // Autosave Draft
+  const { draft, hasDraft, draftAge, saveDraft, clearDraft, lastSaveSecondsAgo } = useAutosave<any>(`nota-${id}`);
 
   // Consent state
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -111,6 +116,7 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSidePanelOpen(false);
       setEditingNota(null);
+      clearDraft();
       showToast("Borrador creado", "success");
     },
     onError: (error: unknown) => {
@@ -125,6 +131,7 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSidePanelOpen(false);
       setEditingNota(null);
+      clearDraft();
       showToast("Borrador actualizado", "success");
     },
     onError: (error: unknown) => {
@@ -188,6 +195,43 @@ export default function Expediente() {
     }
   };
 
+  const handleFormChange = (e: FormEvent<HTMLFormElement>) => {
+    if (editingNota) return; // Only autosave new drafts
+    const formData = new FormData(e.currentTarget);
+    saveDraft({
+      fc: formData.get('fc'),
+      fr: formData.get('fr'),
+      temp: formData.get('temp'),
+      ta: formData.get('ta'),
+      evolucion: formData.get('evolucion'),
+      diagnostico: formData.get('diagnostico'),
+      tratamiento: formData.get('tratamiento')
+    });
+  };
+
+  const applyDraft = () => {
+    if (!draft) return;
+    const form = document.getElementById('nota-form') as HTMLFormElement;
+    if (!form) return;
+    
+    // Helper to set value
+    const setVal = (name: string, val: any) => {
+      if (val) {
+        const input = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+        if (input) input.value = val;
+      }
+    };
+
+    setVal('fc', draft.fc);
+    setVal('fr', draft.fr);
+    setVal('temp', draft.temp);
+    setVal('ta', draft.ta);
+    setVal('evolucion', draft.evolucion);
+    setVal('diagnostico', draft.diagnostico);
+    setVal('tratamiento', draft.tratamiento);
+    showToast("Borrador recuperado", "success");
+  };
+
   const confirmSign = (nota: Nota) => {
     setNotaToSign(nota);
     setIsSignModalOpen(true);
@@ -199,10 +243,10 @@ export default function Expediente() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <header style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-          <button className="btn btn-outline" style={{ padding: '0.5rem' }} onClick={() => navigate('/')}>
+          <button className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '12px' }} onClick={() => navigate('/app')}>
             <ArrowLeft size={20} />
           </button>
-          <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Crear Expediente: {paciente?.nombre_completo}</h1>
+          <h1 className="font-serif animate-fade-in" style={{ marginBottom: 0, fontSize: '2rem', fontWeight: 600, color: 'var(--text-main)' }}>Crear Expediente: {paciente?.nombre_completo}</h1>
         </header>
 
         <div className="glass-card animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
@@ -271,10 +315,10 @@ export default function Expediente() {
     <div style={{ position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }} className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn btn-outline" style={{ padding: '0.5rem' }} onClick={() => navigate('/')}>
+          <button className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '12px' }} onClick={() => navigate('/app')}>
             <ArrowLeft size={20} />
           </button>
-          <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Expediente Clínico</h1>
+          <h1 className="font-serif animate-fade-in" style={{ marginBottom: 0, fontSize: '2rem', fontWeight: 600, color: 'var(--text-main)' }}>Expediente Clínico</h1>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-outline" onClick={() => window.print()}>
@@ -383,9 +427,16 @@ export default function Expediente() {
                 <p className="text-muted">No hay notas registradas para este expediente.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {notas.map((nota: Nota) => (
-                  <div key={nota.id} style={{ 
+              <div 
+                style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+              >
+                {notas.map((nota: Nota, index: number) => (
+                  <motion.div 
+                    key={nota.id} 
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.1 }}
+                    style={{ 
                     border: nota.firmada ? '1px solid var(--border-light)' : '1px solid rgba(0, 122, 255, 0.3)', 
                     borderRadius: '16px', 
                     backgroundColor: 'var(--bg-card)',
@@ -504,7 +555,7 @@ export default function Expediente() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -536,8 +587,32 @@ export default function Expediente() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmitNota}>
-          <h4 style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Signos Vitales</h4>
+        {!editingNota && hasDraft && (
+          <div style={{ backgroundColor: 'var(--primary-light)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '0.9rem' }}>
+              <RefreshCcw size={16} />
+              <span>Borrador guardado localmente {draftAge}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', border: 'none', color: 'var(--error)' }} onClick={clearDraft}>
+                Descartar
+              </button>
+              <button type="button" className="btn btn-primary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }} onClick={applyDraft}>
+                Recuperar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <form id="nota-form" onSubmit={handleSubmitNota} onChange={handleFormChange}>
+          <h4 style={{ marginBottom: '1rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+            Signos Vitales
+            {!editingNota && lastSaveSecondsAgo !== null && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>
+                Guardado hace {lastSaveSecondsAgo}s
+              </span>
+            )}
+          </h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
             <div className="form-group">
               <label className="form-label">FC (lpm)</label>
