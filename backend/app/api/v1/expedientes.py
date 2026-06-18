@@ -1,6 +1,7 @@
-from typing import Any
+
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request

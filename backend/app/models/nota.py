@@ -1,7 +1,6 @@
-from typing import Any
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from app.models.expediente import Expediente

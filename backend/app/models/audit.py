@@ -1,6 +1,6 @@
-from typing import Any
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Float, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import INET, JSONB, UUID

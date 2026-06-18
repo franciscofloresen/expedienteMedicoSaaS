@@ -1,4 +1,4 @@
-from typing import Any
+
 """
 Audit Middleware — NOM-004 + NOM-024 Compliance
 
@@ -18,6 +18,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint

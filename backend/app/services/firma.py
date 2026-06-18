@@ -1,4 +1,4 @@
-from typing import Any
+
 """
 Digital Signature Service — ECDSA P-256 via AWS KMS (Production) / Local Key (Development)
 
@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from app.core.config import settings
 

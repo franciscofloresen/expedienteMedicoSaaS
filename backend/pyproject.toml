@@ -62,3 +62,8 @@ include = ["app*"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+
+[[tool.mypy.overrides]]
+module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*"]
+ignore_missing_imports = true

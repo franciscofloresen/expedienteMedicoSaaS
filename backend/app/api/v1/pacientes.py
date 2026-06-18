@@ -1,7 +1,8 @@
-from typing import Any
+
 """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
 
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request

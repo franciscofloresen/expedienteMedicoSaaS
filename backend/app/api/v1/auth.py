@@ -1,4 +1,4 @@
-from typing import Any
+
 """
 API v1 — Authentication & Registration
 
@@ -7,6 +7,7 @@ This router provides the `/me` endpoint to fetch local user context linked to th
 """
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field

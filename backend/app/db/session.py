@@ -1,4 +1,4 @@
-from typing import Any
+
 """
 Database Session Management with RLS Tenant Context
 
@@ -14,6 +14,7 @@ On every request:
 """
 
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from fastapi import Request
 from sqlalchemy import text
