@@ -146,4 +146,41 @@ async def health_check() -> Any:
 
 
 # Lambda handler (Mangum adapter)
-handler = Mangum(app, lifespan="auto")
+_asgi_handler = Mangum(app, lifespan="auto")
+
+def handler(event, context) -> Any:
+    """
+    Custom handler to allow running Alembic migrations securely inside the VPC
+    before routing normal HTTP traffic to FastAPI.
+    """
+    if isinstance(event, dict) and event.get("run_migrations"):
+        import subprocess
+        import os
+        import asyncio
+        from sqlalchemy.ext.asyncio import create_async_engine
+        
+        print("Running Alembic migrations...")
+        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+        
+        if result.returncode == 0:
+            print("Migrations applied successfully. Creating RLS role...")
+            # Create the RLS role required by the app
+            async def create_role():
+                engine = create_async_engine(os.environ["DATABASE_URL"], echo=False)
+                async with engine.begin() as conn:
+                    from sqlalchemy import text
+                    # Check if role exists
+                    res = await conn.execute(text("SELECT 1 FROM pg_roles WHERE rolname='medrecord_app';"))
+                    if not res.fetchone():
+                        await conn.execute(text("CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';"))
+                        await conn.execute(text("GRANT CONNECT ON DATABASE medrecord TO medrecord_app;"))
+                await engine.dispose()
+                
+            asyncio.run(create_role())
+            return {"statusCode": 200, "body": "Migrations and role creation successful!"}
+        else:
+            return {"statusCode": 500, "body": f"Migrations failed: {result.stderr}"}
+            
+    return _asgi_handler(event, context)

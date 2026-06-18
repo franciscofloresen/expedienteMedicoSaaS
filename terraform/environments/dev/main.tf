@@ -104,6 +104,9 @@ module "observability" {
   alarm_email          = var.alarm_email
   db_cluster_id        = "medrecord-${var.environment}"
   health_check_fqdn    = ""  # No custom domain in dev
+  lambda_function_name = "medrecord-api-${var.environment}"
+  api_name             = "medrecord-api-${var.environment}"
+  depends_on           = [module.compute]
 }
 
 # ── CDN (CloudFront) ──

@@ -241,7 +241,41 @@ resource "aws_wafv2_web_acl" "api" {
 # ============================================================
 # CloudTrail — All management events + S3 data events
 # ============================================================
+data "aws_iam_policy_document" "cloudtrail_bucket_policy" {
+  statement {
+    sid    = "AWSCloudTrailAclCheck"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+    actions   = ["s3:GetBucketAcl"]
+    resources = ["arn:aws:s3:::${var.cloudtrail_bucket_name}"]
+  }
+  statement {
+    sid    = "AWSCloudTrailWrite"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${var.cloudtrail_bucket_name}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "cloudtrail" {
+  bucket = var.cloudtrail_bucket_name
+  policy = data.aws_iam_policy_document.cloudtrail_bucket_policy.json
+}
+
 resource "aws_cloudtrail" "main" {
+  depends_on = [aws_s3_bucket_policy.cloudtrail]
   name                          = "medrecord-trail-${var.environment}"
   s3_bucket_name                = var.cloudtrail_bucket_name
   include_global_service_events = true

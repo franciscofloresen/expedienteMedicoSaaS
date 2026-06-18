@@ -136,9 +136,21 @@ data "archive_file" "dummy" {
   }
 }
 
+# ── CloudWatch Log Group ──
+resource "aws_cloudwatch_log_group" "api_logs" {
+  name              = "/aws/lambda/medrecord-api-${var.environment}"
+  retention_in_days = 30
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
 # ── Lambda Function ──
 resource "aws_lambda_function" "api" {
   function_name = "medrecord-api-${var.environment}"
+  
+  depends_on = [aws_cloudwatch_log_group.api_logs]
   role          = aws_iam_role.lambda_exec.arn
   handler       = "app.main.handler"
   runtime       = "python3.12"

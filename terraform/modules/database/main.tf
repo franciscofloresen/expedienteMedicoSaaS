@@ -44,15 +44,17 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
-# ── Aurora Cluster ──
-resource "aws_rds_cluster" "main" {
-  cluster_identifier = "medrecord-${var.environment}"
-  engine             = "aurora-postgresql"
-  engine_mode        = "provisioned"
-  engine_version     = "15.4"
+# ── RDS Instance (Single-AZ for Dev/Pilot) ──
+resource "aws_db_instance" "main" {
+  identifier        = "medrecord-${var.environment}"
+  engine            = "postgres"
+  engine_version    = "15.15"
+  instance_class    = "db.t4g.micro"
+  allocated_storage = 20
+  storage_type      = "gp3"
 
-  database_name   = "medrecord"
-  master_username = var.db_master_username
+  db_name             = "medrecord"
+  username            = var.db_master_username
   # Password managed by Secrets Manager (see security module)
   manage_master_user_password = true
 
@@ -60,9 +62,9 @@ resource "aws_rds_cluster" "main" {
   storage_encrypted = true
   kms_key_id        = var.kms_key_arn
 
-  # Backup — RPO < 5 minutes (Aurora PITR is automatic)
-  backup_retention_period = 35 # Maximum retention, free with Aurora
-  preferred_backup_window = "03:00-04:00"
+  # Backup
+  backup_retention_period = 7
+  backup_window           = "03:00-04:00"
   copy_tags_to_snapshot   = true
 
   # Protection
@@ -74,41 +76,14 @@ resource "aws_rds_cluster" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [var.rds_security_group_id]
 
-  # Performance Insights (free for 7-day retention)
+  # Performance Insights
   performance_insights_enabled          = true
   performance_insights_retention_period = 7
 
-  # Serverless v2 scaling config
-  serverlessv2_scaling_configuration {
-    min_capacity = 0.5 # $43/month — sufficient for MVP
-    max_capacity = 4.0 # Auto-scales under load
-  }
-
-  # CloudWatch log exports
-  enabled_cloudwatch_logs_exports = ["postgresql"]
-
   tags = {
-    Name        = "medrecord-aurora-${var.environment}"
+    Name        = "medrecord-rds-${var.environment}"
     Environment = var.environment
     Project     = "medrecord"
-  }
-}
-
-# ── Aurora Writer Instance (Serverless v2) ──
-resource "aws_rds_cluster_instance" "writer" {
-  identifier         = "medrecord-${var.environment}-w1"
-  cluster_identifier = aws_rds_cluster.main.id
-  instance_class     = "db.serverless"
-  engine             = aws_rds_cluster.main.engine
-  engine_version     = aws_rds_cluster.main.engine_version
-
-  performance_insights_enabled          = true
-  performance_insights_retention_period = 7
-
-  tags = {
-    Name        = "medrecord-writer-${var.environment}"
-    Environment = var.environment
-    Role        = "writer"
   }
 }
 
@@ -127,7 +102,7 @@ resource "aws_db_proxy" "main" {
     auth_scheme = "SECRETS"
     description = "Authenticate via Secrets Manager"
     iam_auth    = "REQUIRED"
-    secret_arn  = aws_rds_cluster.main.master_user_secret[0].secret_arn
+    secret_arn  = aws_db_instance.main.master_user_secret[0].secret_arn
   }
 
   tags = {
@@ -147,9 +122,9 @@ resource "aws_db_proxy_default_target_group" "main" {
 }
 
 resource "aws_db_proxy_target" "main" {
-  db_proxy_name         = aws_db_proxy.main.name
-  target_group_name     = aws_db_proxy_default_target_group.main.name
-  db_cluster_identifier = aws_rds_cluster.main.id
+  db_proxy_name          = aws_db_proxy.main.name
+  target_group_name      = aws_db_proxy_default_target_group.main.name
+  db_instance_identifier = aws_db_instance.main.identifier
 }
 
 # ── IAM Role for RDS Proxy ──
@@ -185,7 +160,7 @@ resource "aws_iam_role_policy" "rds_proxy_secrets" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = [aws_rds_cluster.main.master_user_secret[0].secret_arn]
+        Resource = [aws_db_instance.main.master_user_secret[0].secret_arn]
       },
       {
         Effect   = "Allow"
@@ -198,11 +173,7 @@ resource "aws_iam_role_policy" "rds_proxy_secrets" {
 
 # ── Outputs ──
 output "cluster_endpoint" {
-  value = aws_rds_cluster.main.endpoint
-}
-
-output "cluster_reader_endpoint" {
-  value = aws_rds_cluster.main.reader_endpoint
+  value = aws_db_instance.main.endpoint
 }
 
 output "proxy_endpoint" {
@@ -210,9 +181,9 @@ output "proxy_endpoint" {
 }
 
 output "cluster_arn" {
-  value = aws_rds_cluster.main.arn
+  value = aws_db_instance.main.arn
 }
 
 output "db_secret_arn" {
-  value = aws_rds_cluster.main.master_user_secret[0].secret_arn
+  value = aws_db_instance.main.master_user_secret[0].secret_arn
 }
