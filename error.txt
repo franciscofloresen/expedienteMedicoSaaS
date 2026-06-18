@@ -1,723 +1,139 @@
 Run ruff check .
-F401 `typing.Any` imported but unused
- --> app/api/v1/__init__.py:1:20
-  |
-1 | from typing import Any
-  |                    ^^^
-2 | # API v1
-  |
-help: Remove unused import: `typing.Any`
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/api/v1/auth.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """
-3 | API v1 — Authentication & Registration
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:9:1
-   |
- 7 | """
- 8 |
- 9 | import logging
-   | ^^^^^^^^^^^^^^
-10 |
-11 | from fastapi import APIRouter, Depends, HTTPException, Request
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:11:1
-   |
- 9 | import logging
-10 |
-11 | from fastapi import APIRouter, Depends, HTTPException, Request
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-12 | from pydantic import BaseModel, Field
-13 | from sqlalchemy import select
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:12:1
-   |
-11 | from fastapi import APIRouter, Depends, HTTPException, Request
-12 | from pydantic import BaseModel, Field
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-13 | from sqlalchemy import select
-14 | from sqlalchemy.ext.asyncio import AsyncSession
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:13:1
-   |
-11 | from fastapi import APIRouter, Depends, HTTPException, Request
-12 | from pydantic import BaseModel, Field
-13 | from sqlalchemy import select
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-14 | from sqlalchemy.ext.asyncio import AsyncSession
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:14:1
-   |
-12 | from pydantic import BaseModel, Field
-13 | from sqlalchemy import select
-14 | from sqlalchemy.ext.asyncio import AsyncSession
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-15 |
-16 | from app.db.session import get_db
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/auth.py:16:1
-   |
-14 | from sqlalchemy.ext.asyncio import AsyncSession
-15 |
-16 | from app.db.session import get_db
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17 |
-18 | logger = logging.getLogger("medrecord.auth")
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/api/v1/citas.py:1:1
-   |
- 1 | / from typing import Any
- 2 | | import logging
- 3 | | from datetime import datetime, timezone
- 4 | | from typing import List, Optional
- 5 | | from uuid import UUID
- 6 | |
- 7 | | from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
- 8 | | from sqlalchemy import select
- 9 | | from sqlalchemy.ext.asyncio import AsyncSession
-10 | |
-11 | | from app.db.session import get_db
-12 | | from app.models.cita import Cita
-13 | | from app.schemas.cita import CitaCreate, CitaResponse, CitaUpdate
-   | |_________________________________________________________________^
-14 |
-15 |   logger = logging.getLogger("medrecord")
-   |
-help: Organize imports
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/api/v1/expedientes.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
- --> app/api/v1/expedientes.py:4:1
-  |
-2 | """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
-3 |
-4 | from uuid import UUID
-  | ^^^^^^^^^^^^^^^^^^^^^
-5 |
-6 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-  |
-
-E402 Module level import not at top of file
- --> app/api/v1/expedientes.py:6:1
-  |
-4 | from uuid import UUID
-5 |
-6 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-7 | from pydantic import BaseModel, Field
-8 | from sqlalchemy import desc, select
-  |
-
-E402 Module level import not at top of file
- --> app/api/v1/expedientes.py:7:1
-  |
-6 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-7 | from pydantic import BaseModel, Field
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-8 | from sqlalchemy import desc, select
-9 | from sqlalchemy.ext.asyncio import AsyncSession
-  |
-
-E402 Module level import not at top of file
- --> app/api/v1/expedientes.py:8:1
-  |
-6 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-7 | from pydantic import BaseModel, Field
-8 | from sqlalchemy import desc, select
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-9 | from sqlalchemy.ext.asyncio import AsyncSession
-  |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:9:1
-   |
- 7 | from pydantic import BaseModel, Field
- 8 | from sqlalchemy import desc, select
- 9 | from sqlalchemy.ext.asyncio import AsyncSession
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-10 |
-11 | from app.db.session import get_db
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:11:1
-   |
- 9 | from sqlalchemy.ext.asyncio import AsyncSession
-10 |
-11 | from app.db.session import get_db
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-12 | from app.models.expediente import Expediente
-13 | from app.models.paciente import Paciente
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:12:1
-   |
-11 | from app.db.session import get_db
-12 | from app.models.expediente import Expediente
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:13:1
-   |
-11 | from app.db.session import get_db
-12 | from app.models.expediente import Expediente
-13 | from app.models.paciente import Paciente
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-14 | from app.models.tenant_key import TenantKey
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:14:1
-   |
-12 | from app.models.expediente import Expediente
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/expedientes.py:15:1
-   |
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-16 |
-17 | router = APIRouter()
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/api/v1/pacientes.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
- --> app/api/v1/pacientes.py:4:1
-  |
-2 | """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
-3 |
-4 | from datetime import date
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^
-5 | from uuid import UUID
-  |
-
-E402 Module level import not at top of file
- --> app/api/v1/pacientes.py:5:1
-  |
-4 | from datetime import date
-5 | from uuid import UUID
-  | ^^^^^^^^^^^^^^^^^^^^^
-6 |
-7 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-  |
-
-E402 Module level import not at top of file
- --> app/api/v1/pacientes.py:7:1
-  |
-5 | from uuid import UUID
-6 |
-7 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-8 | from pydantic import BaseModel, Field, field_validator
-9 | from sqlalchemy import or_, select
-  |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:8:1
-   |
- 7 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
- 8 | from pydantic import BaseModel, Field, field_validator
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 9 | from sqlalchemy import or_, select
-10 | from sqlalchemy.ext.asyncio import AsyncSession
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:9:1
-   |
- 7 | from fastapi import APIRouter, Depends, HTTPException, Query, Request
- 8 | from pydantic import BaseModel, Field, field_validator
- 9 | from sqlalchemy import or_, select
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-10 | from sqlalchemy.ext.asyncio import AsyncSession
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:10:1
-   |
- 8 | from pydantic import BaseModel, Field, field_validator
- 9 | from sqlalchemy import or_, select
-10 | from sqlalchemy.ext.asyncio import AsyncSession
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-11 |
-12 | from app.db.session import get_db
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:12:1
-   |
-10 | from sqlalchemy.ext.asyncio import AsyncSession
-11 |
-12 | from app.db.session import get_db
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:13:1
-   |
-12 | from app.db.session import get_db
-13 | from app.models.paciente import Paciente
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-14 | from app.models.tenant_key import TenantKey
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:14:1
-   |
-12 | from app.db.session import get_db
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   |
-
-E402 Module level import not at top of file
-  --> app/api/v1/pacientes.py:15:1
-   |
-13 | from app.models.paciente import Paciente
-14 | from app.models.tenant_key import TenantKey
-15 | from app.services.encryption import decrypt_field, encrypt_field
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-16 |
-17 | router = APIRouter()
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/db/session.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """
-3 | Database Session Management with RLS Tenant Context
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
-  --> app/db/session.py:16:1
-   |
-14 | """
-15 |
-16 | from collections.abc import AsyncGenerator
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17 |
-18 | from fastapi import Request
-   |
-
-E402 Module level import not at top of file
-  --> app/db/session.py:18:1
-   |
-16 | from collections.abc import AsyncGenerator
-17 |
-18 | from fastapi import Request
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-19 | from sqlalchemy import text
-20 | from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-   |
-
-E402 Module level import not at top of file
-  --> app/db/session.py:19:1
-   |
-18 | from fastapi import Request
-19 | from sqlalchemy import text
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-20 | from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-   |
-
-E402 Module level import not at top of file
-  --> app/db/session.py:20:1
-   |
-18 | from fastapi import Request
-19 | from sqlalchemy import text
-20 | from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-21 |
-22 | # Lazy initialization — engine is created on first request, not at import time.
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:10:1
-   |
- 8 | """
- 9 |
-10 | import logging
-   | ^^^^^^^^^^^^^^
-11 | from contextlib import asynccontextmanager
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:11:1
-   |
-10 | import logging
-11 | from contextlib import asynccontextmanager
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-12 |
-13 | from fastapi import FastAPI, Request
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:13:1
-   |
-11 | from contextlib import asynccontextmanager
-12 |
-13 | from fastapi import FastAPI, Request
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-14 | from fastapi.middleware.cors import CORSMiddleware
-15 | from mangum import Mangum
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:14:1
-   |
-13 | from fastapi import FastAPI, Request
-14 | from fastapi.middleware.cors import CORSMiddleware
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-15 | from mangum import Mangum
-16 | from slowapi import Limiter, _rate_limit_exceeded_handler
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:15:1
-   |
-13 | from fastapi import FastAPI, Request
-14 | from fastapi.middleware.cors import CORSMiddleware
-15 | from mangum import Mangum
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^
-16 | from slowapi import Limiter, _rate_limit_exceeded_handler
-17 | from slowapi.errors import RateLimitExceeded
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:16:1
-   |
-14 | from fastapi.middleware.cors import CORSMiddleware
-15 | from mangum import Mangum
-16 | from slowapi import Limiter, _rate_limit_exceeded_handler
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-17 | from slowapi.errors import RateLimitExceeded
-18 | from slowapi.util import get_remote_address
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:17:1
-   |
-15 | from mangum import Mangum
-16 | from slowapi import Limiter, _rate_limit_exceeded_handler
-17 | from slowapi.errors import RateLimitExceeded
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-18 | from slowapi.util import get_remote_address
-19 | from starlette.middleware.base import BaseHTTPMiddleware
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:18:1
-   |
-16 | from slowapi import Limiter, _rate_limit_exceeded_handler
-17 | from slowapi.errors import RateLimitExceeded
-18 | from slowapi.util import get_remote_address
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-19 | from starlette.middleware.base import BaseHTTPMiddleware
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:19:1
-   |
-17 | from slowapi.errors import RateLimitExceeded
-18 | from slowapi.util import get_remote_address
-19 | from starlette.middleware.base import BaseHTTPMiddleware
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-20 |
-21 | from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:21:1
-   |
-19 | from starlette.middleware.base import BaseHTTPMiddleware
-20 |
-21 | from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-22 | from app.core.config import settings
-23 | from app.middleware.audit import AuditMiddleware
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:22:1
-   |
-21 | from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
-22 | from app.core.config import settings
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-23 | from app.middleware.audit import AuditMiddleware
-24 | from app.middleware.tenant import TenantMiddleware
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:23:1
-   |
-21 | from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
-22 | from app.core.config import settings
-23 | from app.middleware.audit import AuditMiddleware
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-24 | from app.middleware.tenant import TenantMiddleware
-   |
-
-E402 Module level import not at top of file
-  --> app/main.py:24:1
-   |
-22 | from app.core.config import settings
-23 | from app.middleware.audit import AuditMiddleware
-24 | from app.middleware.tenant import TenantMiddleware
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-25 |
-26 | # ── Structured JSON Logging ──
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/middleware/audit.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """
-3 | Audit Middleware — NOM-004 + NOM-024 Compliance
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:16:1
-   |
-14 | """
-15 |
-16 | import json
-   | ^^^^^^^^^^^
-17 | import logging
-18 | import time
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:17:1
-   |
-16 | import json
-17 | import logging
-   | ^^^^^^^^^^^^^^
-18 | import time
-19 | import uuid
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:18:1
-   |
-16 | import json
-17 | import logging
-18 | import time
-   | ^^^^^^^^^^^
-19 | import uuid
-20 | from datetime import datetime, timezone
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:19:1
-   |
-17 | import logging
-18 | import time
-19 | import uuid
-   | ^^^^^^^^^^^
-20 | from datetime import datetime, timezone
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:20:1
-   |
-18 | import time
-19 | import uuid
-20 | from datetime import datetime, timezone
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-21 |
-22 | from sqlalchemy import text
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:22:1
-   |
-20 | from datetime import datetime, timezone
-21 |
-22 | from sqlalchemy import text
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-23 | from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-24 | from starlette.requests import Request
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:23:1
-   |
-22 | from sqlalchemy import text
-23 | from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-24 | from starlette.requests import Request
-25 | from starlette.responses import Response
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:24:1
-   |
-22 | from sqlalchemy import text
-23 | from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-24 | from starlette.requests import Request
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-25 | from starlette.responses import Response
-   |
-
-E402 Module level import not at top of file
-  --> app/middleware/audit.py:25:1
-   |
-23 | from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-24 | from starlette.requests import Request
-25 | from starlette.responses import Response
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-26 |
-27 | logger = logging.getLogger("medrecord.audit")
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/models/audit.py:1:1
-  |
-1 | / from typing import Any
-2 | | import uuid
-3 | | from datetime import datetime
-4 | |
-5 | | from sqlalchemy import BigInteger, Boolean, DateTime, Float, Integer, String, Text, text
-6 | | from sqlalchemy.dialects.postgresql import INET, JSONB, UUID
-7 | | from sqlalchemy.orm import Mapped, mapped_column
-8 | |
-9 | | from app.models.base import Base
-  | |________________________________^
-  |
-help: Organize imports
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/models/nota.py:1:1
-  |
-1 | / from typing import Any
-2 | | import uuid
-3 | | from datetime import datetime
-4 | | from typing import TYPE_CHECKING
-  | |________________________________^
-5 |
-6 |   if TYPE_CHECKING:
-  |
-help: Organize imports
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/services/firma.py:1:1
-  |
-1 | from typing import Any
-  | ^^^^^^^^^^^^^^^^^^^^^^
-2 | """
-3 | Digital Signature Service — ECDSA P-256 via AWS KMS (Production) / Local Key (Development)
-  |
-help: Organize imports
-
-E402 Module level import not at top of file
-  --> app/services/firma.py:16:1
-   |
-14 | """
-15 |
-16 | import hashlib
-   | ^^^^^^^^^^^^^^
-17 | import json
-18 | import logging
-   |
-
-E402 Module level import not at top of file
-  --> app/services/firma.py:17:1
-   |
-16 | import hashlib
-17 | import json
-   | ^^^^^^^^^^^
-18 | import logging
-19 | from datetime import datetime, timezone
+W291 [*] Trailing whitespace
+  --> app/middleware/tenant.py:17:15
+   |
+15 | # Paths that don't require tenant context
+16 | PUBLIC_PATHS = {
+17 |     "/health", 
+   |               ^
+18 |     "/docs", 
+19 |     "/openapi.json",
+   |
+help: Remove trailing whitespace
+
+W291 [*] Trailing whitespace
+  --> app/middleware/tenant.py:18:13
+   |
+16 | PUBLIC_PATHS = {
+17 |     "/health", 
+18 |     "/docs", 
+   |             ^
+19 |     "/openapi.json",
+20 |     "/api/v1/auth/register",
+   |
+help: Remove trailing whitespace
+
+W293 [*] Blank line contains whitespace
+  --> tests/conftest.py:66:1
+   |
+64 |             "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
+65 |         ))
+66 |         
+   | ^^^^^^^^
+67 |         # Enable RLS on core tables
+68 |         for table in ["pacientes", "expedientes", "notas", "citas", "audit_log", "tenant_keys"]:
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> tests/conftest.py:79:1
+   |
+77 |                 WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid)
+78 |             """))
+79 |         
+   | ^^^^^^^^
+80 |         # Seed Tenants
+81 |         await conn.execute(
+   |
+help: Remove whitespace from blank line
+
+E501 Line too long (130 > 100)
+  --> tests/conftest.py:93:101
+   |
+91 |             text("""
+92 |                 INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
+93 |                 VALUES (:id_a, 'mock-kms-key-id-a', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea),
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+94 |                        (:id_b, 'mock-kms-key-id-b', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea)
+95 |                 ON CONFLICT (tenant_id) DO NOTHING
+   |
+
+E501 Line too long (129 > 100)
+  --> tests/conftest.py:94:101
+   |
+92 |                 INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
+93 |                 VALUES (:id_a, 'mock-kms-key-id-a', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea),
+94 |                        (:id_b, 'mock-kms-key-id-b', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea)
+   |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+95 |                 ON CONFLICT (tenant_id) DO NOTHING
+96 |             """),
+   |
+
+E501 Line too long (122 > 100)
+   --> tests/conftest.py:133:101
+    |
+131 |     """Client with Tenant A headers."""
+132 |     transport = ASGITransport(app=app)
+133 |     async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_A_ID}) as ac:
+    |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^
+134 |         yield ac
+135 |         await asyncio.sleep(0.1)
+    |
+
+E501 Line too long (122 > 100)
+   --> tests/conftest.py:142:101
+    |
+140 |     """Client with Tenant B headers."""
+141 |     transport = ASGITransport(app=app)
+142 |     async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_B_ID}) as ac:
+    |                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^
+143 |         yield ac
+144 |         await asyncio.sleep(0.1)
+    |
+
+E501 Line too long (102 > 100)
+  --> tests/integration/test_audit_persistence.py:19:101
+   |
+17 |     """Tests that API requests create audit_log entries in the database."""
+18 |
+19 |     async def test_get_request_creates_audit_entry(self, client_tenant_a: AsyncClient, seed_tenant_a):
+   |                                                                                                     ^^
+20 |         """A simple GET to a known endpoint should create an audit_log row."""
+21 |         response = await client_tenant_a.get("/api/v1/pacientes/")
    |
 
-E402 Module level import not at top of file
-  --> app/services/firma.py:18:1
+E501 Line too long (103 > 100)
+  --> tests/integration/test_audit_persistence.py:30:101
    |
-16 | import hashlib
-17 | import json
-18 | import logging
-   | ^^^^^^^^^^^^^^
-19 | from datetime import datetime, timezone
+28 |         assert response.status_code == 200
+29 |
+30 |     async def test_audit_entry_has_request_metadata(self, client_tenant_a: AsyncClient, seed_tenant_a):
+   |                                                                                                     ^^^
+31 |         """Audit entries should include method, path, status code, and timing."""
+32 |         response = await client_tenant_a.get("/api/v1/pacientes/")
    |
 
-E402 Module level import not at top of file
-  --> app/services/firma.py:19:1
+E501 Line too long (103 > 100)
+  --> tests/integration/test_audit_persistence.py:43:101
    |
-17 | import json
-18 | import logging
-19 | from datetime import datetime, timezone
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-20 |
-21 | from app.core.config import settings
+41 |         assert response.status_code in (401, 403)
+42 |
+43 |     async def test_post_request_creates_audit_entry(self, client_tenant_a: AsyncClient, seed_tenant_a):
+   |                                                                                                     ^^^
+44 |         """POST requests should also be audited."""
+45 |         response = await client_tenant_a.post(
    |
 
-E402 Module level import not at top of file
-  --> app/services/firma.py:21:1
+E501 Line too long (102 > 100)
+  --> tests/security/test_rls_isolation.py:25:101
    |
-19 | from datetime import datetime, timezone
-20 |
-21 | from app.core.config import settings
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-22 |
-23 | logger = logging.getLogger("medrecord.firma")
+24 |     async def test_tenant_a_cannot_see_tenant_b_patients(
+25 |         self, client_tenant_a: AsyncClient, client_tenant_b: AsyncClient, seed_tenant_a, seed_tenant_b
+   |                                                                                                     ^^
+26 |     ):
+27 |         """Patients created by Tenant A should not be visible to Tenant B."""
    |
 
-Found 67 errors.
-[*] 9 fixable with the `--fix` option.
+Found 12 errors.
+[*] 4 fixable with the `--fix` option.
 Error: Process completed with exit code 1.

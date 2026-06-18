@@ -63,7 +63,7 @@ async def setup_database():
         await conn.execute(text(
             "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
         ))
-        
+
         # Enable RLS on core tables
         for table in ["pacientes", "expedientes", "notas", "citas", "audit_log", "tenant_keys"]:
             await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
@@ -76,7 +76,7 @@ async def setup_database():
                 USING (tenant_id = current_setting('app.current_tenant', true)::uuid)
                 WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid)
             """))
-        
+
         # Seed Tenants
         await conn.execute(
             text("""
@@ -87,14 +87,21 @@ async def setup_database():
             """),
             {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
         )
+        dek = b"\x00" * 32  # 32-byte mock DEK
         await conn.execute(
-            text("""
-                INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
-                VALUES (:id_a, 'mock-kms-key-id-a', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea),
-                       (:id_b, 'mock-kms-key-id-b', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea)
-                ON CONFLICT (tenant_id) DO NOTHING
-            """),
-            {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
+            text(
+                "INSERT INTO tenant_keys"
+                " (tenant_id, kms_key_id, encrypted_dek)"
+                " VALUES (:id_a, 'mock-kms-a', :dek_a),"
+                " (:id_b, 'mock-kms-b', :dek_b)"
+                " ON CONFLICT (tenant_id) DO NOTHING"
+            ),
+            {
+                "id_a": TENANT_A_ID,
+                "id_b": TENANT_B_ID,
+                "dek_a": dek,
+                "dek_b": dek,
+            },
         )
     yield
     async with engine.begin() as conn:
@@ -130,7 +137,10 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
 async def client_tenant_a(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Client with Tenant A headers."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_A_ID}) as ac:
+    hdrs = {"X-Tenant-ID": TENANT_A_ID}
+    async with AsyncClient(
+        transport=transport, base_url="http://testserver", headers=hdrs,
+    ) as ac:
         yield ac
         await asyncio.sleep(0.1)
 
@@ -139,50 +149,21 @@ async def client_tenant_a(setup_database) -> AsyncGenerator[AsyncClient, None]:
 async def client_tenant_b(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Client with Tenant B headers."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_B_ID}) as ac:
+    hdrs = {"X-Tenant-ID": TENANT_B_ID}
+    async with AsyncClient(
+        transport=transport, base_url="http://testserver", headers=hdrs,
+    ) as ac:
         yield ac
         await asyncio.sleep(0.1)
 
 
 @pytest_asyncio.fixture
-async def seed_tenant_a(db_session: AsyncSession):
-    """Seed Tenant A with a tenant, patient, and expediente."""
-    await db_session.execute(
-        text("""
-            INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
-            VALUES (:id, 'Dr. Tenant A', 'CED-A-001', 'General', 'a@test.com')
-            ON CONFLICT (id) DO NOTHING
-        """),
-        {"id": TENANT_A_ID},
-    )
-    await db_session.execute(
-        text("""
-            INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
-            VALUES (:id, 'mock-kms-key-id', '\\x00'::bytea)
-            ON CONFLICT (tenant_id) DO NOTHING
-        """),
-        {"id": TENANT_A_ID},
-    )
-    await db_session.flush()
+async def seed_tenant_a(setup_database):
+    """Tenant A is seeded in setup_database; this fixture ensures dependency."""
+    pass
 
 
 @pytest_asyncio.fixture
-async def seed_tenant_b(db_session: AsyncSession):
-    """Seed Tenant B."""
-    await db_session.execute(
-        text("""
-            INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
-            VALUES (:id, 'Dr. Tenant B', 'CED-B-001', 'Cardiología', 'b@test.com')
-            ON CONFLICT (id) DO NOTHING
-        """),
-        {"id": TENANT_B_ID},
-    )
-    await db_session.execute(
-        text("""
-            INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
-            VALUES (:id, 'mock-kms-key-id', '\\x00'::bytea)
-            ON CONFLICT (tenant_id) DO NOTHING
-        """),
-        {"id": TENANT_B_ID},
-    )
-    await db_session.flush()
+async def seed_tenant_b(setup_database):
+    """Tenant B is seeded in setup_database; this fixture ensures dependency."""
+    pass

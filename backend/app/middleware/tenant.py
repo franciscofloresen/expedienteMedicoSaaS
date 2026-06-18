@@ -14,8 +14,8 @@ from app.core.security import decode_jwt
 
 # Paths that don't require tenant context
 PUBLIC_PATHS = {
-    "/health", 
-    "/docs", 
+    "/health",
+    "/docs",
     "/openapi.json",
     "/api/v1/auth/register",
     "/api/v1/auth/login",

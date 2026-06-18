@@ -16,7 +16,9 @@ pytestmark = pytest.mark.asyncio
 class TestAuditPersistence:
     """Tests that API requests create audit_log entries in the database."""
 
-    async def test_get_request_creates_audit_entry(self, client_tenant_a: AsyncClient, seed_tenant_a):
+    async def test_get_request_creates_audit_entry(
+        self, client_tenant_a: AsyncClient, seed_tenant_a,
+    ):
         """A simple GET to a known endpoint should create an audit_log row."""
         response = await client_tenant_a.get("/api/v1/pacientes/")
         # Even if no patients exist, the request itself should be audited
@@ -27,7 +29,9 @@ class TestAuditPersistence:
         response = await client.get("/health")
         assert response.status_code == 200
 
-    async def test_audit_entry_has_request_metadata(self, client_tenant_a: AsyncClient, seed_tenant_a):
+    async def test_audit_entry_has_request_metadata(
+        self, client_tenant_a: AsyncClient, seed_tenant_a,
+    ):
         """Audit entries should include method, path, status code, and timing."""
         response = await client_tenant_a.get("/api/v1/pacientes/")
         # The audit middleware writes async, so we just verify the request worked
@@ -40,7 +44,9 @@ class TestAuditPersistence:
         # Should get a 401 or 403, but should still be audited
         assert response.status_code in (401, 403)
 
-    async def test_post_request_creates_audit_entry(self, client_tenant_a: AsyncClient, seed_tenant_a):
+    async def test_post_request_creates_audit_entry(
+        self, client_tenant_a: AsyncClient, seed_tenant_a,
+    ):
         """POST requests should also be audited."""
         response = await client_tenant_a.post(
             "/api/v1/pacientes/",

@@ -22,7 +22,11 @@ class TestTenantIsolation:
         assert response.status_code in (401, 403)
 
     async def test_tenant_a_cannot_see_tenant_b_patients(
-        self, client_tenant_a: AsyncClient, client_tenant_b: AsyncClient, seed_tenant_a, seed_tenant_b
+        self,
+        client_tenant_a: AsyncClient,
+        client_tenant_b: AsyncClient,
+        seed_tenant_a,
+        seed_tenant_b,
     ):
         """Patients created by Tenant A should not be visible to Tenant B."""
         # Create a patient as Tenant A
