@@ -54,6 +54,14 @@ jobs:
       run: |
         mypy app/
         
+    - name: Create DB role for RLS
+      env:
+        PGPASSWORD: postgrespassword
+      run: |
+        psql -h localhost -U postgres -d medrecord_test -c \
+          "CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';
+           GRANT CONNECT ON DATABASE medrecord_test TO medrecord_app;"
+
     - name: Run Backend Tests (Pytest)
       env:
         DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@localhost:5432/medrecord_test

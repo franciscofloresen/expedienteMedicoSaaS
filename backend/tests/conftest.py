@@ -17,10 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 # Override environment before importing app
 os.environ["ENVIRONMENT"] = "development"
-os.environ["DATABASE_URL"] = os.environ.get(
-    "TEST_DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5433/medrecord_test",
-)
+# Priority: DATABASE_URL (set by CI) > TEST_DATABASE_URL > local default
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = os.environ.get(
+        "TEST_DATABASE_URL",
+        "postgresql+asyncpg://postgres:postgres@localhost:5433/medrecord_test",
+    )
 
 from app.main import app  # noqa: E402
 from app.models.base import Base  # noqa: E402
