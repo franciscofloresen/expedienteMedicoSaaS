@@ -78,7 +78,7 @@ async def delete_cita(
     cita_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> Any:
+) -> None:
     stmt = select(Cita).where(Cita.id == cita_id)
     result = await db.execute(stmt)
     cita = result.scalar_one_or_none()

@@ -45,6 +45,9 @@ def _get_test_engine():
         _test_engine = create_async_engine(db_url, echo=False)
     return _test_engine
 
+# Test tenant IDs
+TENANT_A_ID = "11111111-1111-1111-1111-111111111111"
+TENANT_B_ID = "22222222-2222-2222-2222-222222222222"
 
 @pytest_asyncio.fixture(scope="session")
 async def setup_database():
@@ -60,6 +63,39 @@ async def setup_database():
         await conn.execute(text(
             "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
         ))
+        
+        # Enable RLS on core tables
+        for table in ["pacientes", "expedientes", "notas", "citas", "audit_log", "tenant_keys"]:
+            await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
+            await conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))
+            # The policy: tenant_id must match the app.current_tenant setting
+            await conn.execute(text(f"""
+                CREATE POLICY tenant_isolation_policy ON {table}
+                FOR ALL
+                TO medrecord_app
+                USING (tenant_id = current_setting('app.current_tenant', true)::uuid)
+                WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid)
+            """))
+        
+        # Seed Tenants
+        await conn.execute(
+            text("""
+                INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
+                VALUES (:id_a, 'Dr. Tenant A', 'CED-A-001', 'General', 'a@test.com'),
+                       (:id_b, 'Dr. Tenant B', 'CED-B-001', 'Cardiología', 'b@test.com')
+                ON CONFLICT (id) DO NOTHING
+            """),
+            {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
+        )
+        await conn.execute(
+            text("""
+                INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
+                VALUES (:id_a, 'mock-kms-key-id-a', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea),
+                       (:id_b, 'mock-kms-key-id-b', '\\x0000000000000000000000000000000000000000000000000000000000000000'::bytea)
+                ON CONFLICT (tenant_id) DO NOTHING
+            """),
+            {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
+        )
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -78,9 +114,6 @@ async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 
-# Test tenant IDs
-TENANT_A_ID = "11111111-1111-1111-1111-111111111111"
-TENANT_B_ID = "22222222-2222-2222-2222-222222222222"
 
 
 @pytest_asyncio.fixture
@@ -94,17 +127,21 @@ async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def client_tenant_a(client: AsyncClient) -> AsyncClient:
+async def client_tenant_a(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Client with Tenant A headers."""
-    client.headers["X-Tenant-ID"] = TENANT_A_ID
-    return client
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_A_ID}) as ac:
+        yield ac
+        await asyncio.sleep(0.1)
 
 
 @pytest_asyncio.fixture
-async def client_tenant_b(client: AsyncClient) -> AsyncClient:
+async def client_tenant_b(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Client with Tenant B headers."""
-    client.headers["X-Tenant-ID"] = TENANT_B_ID
-    return client
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver", headers={"X-Tenant-ID": TENANT_B_ID}) as ac:
+        yield ac
+        await asyncio.sleep(0.1)
 
 
 @pytest_asyncio.fixture
@@ -115,6 +152,14 @@ async def seed_tenant_a(db_session: AsyncSession):
             INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
             VALUES (:id, 'Dr. Tenant A', 'CED-A-001', 'General', 'a@test.com')
             ON CONFLICT (id) DO NOTHING
+        """),
+        {"id": TENANT_A_ID},
+    )
+    await db_session.execute(
+        text("""
+            INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
+            VALUES (:id, 'mock-kms-key-id', '\\x00'::bytea)
+            ON CONFLICT (tenant_id) DO NOTHING
         """),
         {"id": TENANT_A_ID},
     )
@@ -129,6 +174,14 @@ async def seed_tenant_b(db_session: AsyncSession):
             INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
             VALUES (:id, 'Dr. Tenant B', 'CED-B-001', 'Cardiología', 'b@test.com')
             ON CONFLICT (id) DO NOTHING
+        """),
+        {"id": TENANT_B_ID},
+    )
+    await db_session.execute(
+        text("""
+            INSERT INTO tenant_keys (tenant_id, kms_key_id, encrypted_dek)
+            VALUES (:id, 'mock-kms-key-id', '\\x00'::bytea)
+            ON CONFLICT (tenant_id) DO NOTHING
         """),
         {"id": TENANT_B_ID},
     )

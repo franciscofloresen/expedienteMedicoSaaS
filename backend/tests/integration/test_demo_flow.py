@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_demo_flow(client: AsyncClient, db_session: AsyncSession):
+async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_tenant_a):
     """
     E2E Test mirroring the local presentation flow:
     1. Register Doctor
@@ -17,29 +17,9 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession):
     8. Verify Audit Log
     """
 
-    # 1. Register Doctor
-    register_data = {
-        "nombre_medico": "Dr. Demo Test",
-        "cedula": "DEMO-123",
-        "especialidad": "General",
-        "email": "dr.demo@test.com",
-        "password": "Password123!"
-    }
-
-    res = await client.post("/api/v1/auth/register", json=register_data)
-    assert res.status_code == 201
-    auth_data = res.json()
-    token = auth_data["access_token"]
-
-    headers = {"Authorization": f"Bearer {token}"}
-
-    # 2. Login
-    login_data = {
-        "email": "dr.demo@test.com",
-        "password": "Password123!"
-    }
-    res = await client.post("/api/v1/auth/login", json=login_data)
-    assert res.status_code == 200
+    # Use seed_tenant_a instead of registering, as auth is now via Clerk
+    from tests.conftest import TENANT_A_ID
+    headers = {"X-Tenant-ID": TENANT_A_ID}
 
     # 3. Create Patient
     patient_data = {

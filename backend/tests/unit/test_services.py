@@ -26,9 +26,12 @@ def test_compute_content_hash():
     assert hash_hex == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
 
 
+@patch("app.services.encryption.settings")
 @patch("app.services.encryption._get_kms_client")
-def test_encryption_decryption_flow(mock_get_kms):
+def test_encryption_decryption_flow(mock_get_kms, mock_settings):
     """Test envelope encryption logic with mocked KMS."""
+    mock_settings.environment = "production"
+    mock_settings.dek_cache_ttl = 300
 
     # Mock KMS response for decrypt (returns our fake DEK)
     mock_kms = MagicMock()

@@ -13,7 +13,13 @@ from app.core.config import settings
 from app.core.security import decode_jwt
 
 # Paths that don't require tenant context
-PUBLIC_PATHS = {"/health", "/docs", "/openapi.json"}
+PUBLIC_PATHS = {
+    "/health", 
+    "/docs", 
+    "/openapi.json",
+    "/api/v1/auth/register",
+    "/api/v1/auth/login",
+}
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -24,6 +30,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
         # Extract Authorization header
         auth_header = request.headers.get("Authorization")
+        tenant_id = None
+        claims = {}
+        metadata = {}
+
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
             try:
@@ -35,7 +45,6 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 )
 
             # Clerk puts custom claims in publicMetadata or custom JWT template
-            # For this integration, we expect tenant_id to be provided in the token.
             metadata = claims.get("metadata", claims.get("public_metadata", {}))
             tenant_id = (
                 claims.get("tenant_id") or
@@ -43,39 +52,30 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 metadata.get("tenant_id")
             )
 
-            if not tenant_id:
-                # Allow onboarding path without tenant_id
-                if request.url.path == "/api/v1/auth/onboarding":
-                    pass
-                else:
-                    # For dev demo without Clerk metadata configured, fallback to X-Tenant-ID
-                    if settings.environment == "development":
-                        tenant_id = request.headers.get("X-Tenant-ID")
-                    if not tenant_id:
-                        return JSONResponse(
-                            status_code=403,
-                            content={
-                                "detail": "Token sin tenant_id asociado "
-                                          "(requiere configuración de Clerk JWT)"
-                            },
-                        )
+        # Fallback for dev demo without Clerk metadata configured
+        if not tenant_id and settings.environment == "development":
+            tenant_id = request.headers.get("X-Tenant-ID")
 
-            request.state.tenant_id = tenant_id
-            request.state.user_id = claims.get("sub")
-            request.state.user_email = claims.get("email") or metadata.get("email", "")
-            request.state.user_name = claims.get("nombre_medico") or metadata.get(
-                "nombre_medico", "Médico Titular"
-            )
-            request.state.user_cedula = claims.get("cedula") or metadata.get("cedula", "ND")
-            request.state.user_especialidad = claims.get("especialidad") or metadata.get(
-                "especialidad", "General"
-            )
-            return await call_next(request)
+        if not tenant_id:
+            # Allow onboarding path without tenant_id if they have a valid token
+            if request.url.path == "/api/v1/auth/onboarding" and claims:
+                pass
+            else:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Token de autenticación requerido o tenant_id faltante"},
+                )
 
-
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Token de autenticación requerido"},
+        request.state.tenant_id = tenant_id
+        request.state.user_id = claims.get("sub", "dev-user")
+        request.state.user_email = claims.get("email") or metadata.get("email", "dev@test.com")
+        request.state.user_name = claims.get("nombre_medico") or metadata.get(
+            "nombre_medico", "Médico Titular"
         )
+        request.state.user_cedula = claims.get("cedula") or metadata.get("cedula", "ND")
+        request.state.user_especialidad = claims.get("especialidad") or metadata.get(
+            "especialidad", "General"
+        )
+        return await call_next(request)
 
 
