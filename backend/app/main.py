@@ -1,4 +1,3 @@
-
 """
 CloudMedRecord SaaS — FastAPI Application Entry Point
 
@@ -26,6 +25,7 @@ from app.middleware.tenant import TenantMiddleware
 # ── Structured JSON Logging ──
 # IMP-09: All logs emitted as JSON for CloudWatch parsing and alerting.
 
+
 def _configure_logging() -> None:
     """Configure structured JSON logging for CloudWatch compatibility."""
     from pythonjsonlogger.json import JsonFormatter
@@ -49,6 +49,7 @@ def _configure_logging() -> None:
 
 # ── Security Headers Middleware ──
 # IMP-02: Defense-in-depth headers on every API response.
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -148,7 +149,8 @@ async def health_check() -> Any:
 # Lambda handler (Mangum adapter)
 _asgi_handler = Mangum(app, lifespan="auto")
 
-def handler(event, context) -> Any:
+
+def handler(event: Any, context: Any) -> Any:
     """
     Custom handler to allow running Alembic migrations securely inside the VPC
     before routing normal HTTP traffic to FastAPI.
@@ -156,8 +158,10 @@ def handler(event, context) -> Any:
     if isinstance(event, dict) and event.get("run_migrations"):
         import asyncio
         import os
+        import traceback
 
         from alembic.config import Config
+        from sqlalchemy import text
         from sqlalchemy.ext.asyncio import create_async_engine
 
         from alembic import command
@@ -168,11 +172,11 @@ def handler(event, context) -> Any:
             command.upgrade(alembic_cfg, "head")
 
             print("Migrations applied successfully. Creating RLS role...")
+
             # Create the RLS role required by the app
-            async def create_role():
+            async def create_role() -> None:
                 engine = create_async_engine(os.environ["DATABASE_URL"], echo=False)
                 async with engine.begin() as conn:
-                    from sqlalchemy import text
                     # Check if role exists
                     res = await conn.execute(
                         text("SELECT 1 FROM pg_roles WHERE rolname='medrecord_app';")
@@ -190,6 +194,7 @@ def handler(event, context) -> Any:
             return {"statusCode": 200, "body": "Migrations and role creation successful!"}
         except Exception:
             import traceback
+
             err = traceback.format_exc()
             print(err)
             return {"statusCode": 500, "body": f"Migrations failed: {err}"}
