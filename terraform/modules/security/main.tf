@@ -7,17 +7,6 @@ variable "environment" {
   type = string
 }
 
-variable "api_gateway_arn" {
-  type        = string
-  description = "ARN of the API Gateway stage for WAF association"
-  default     = ""
-}
-
-variable "sns_alarm_topic_arn" {
-  type        = string
-  description = "SNS topic ARN for alarm notifications"
-  default     = ""
-}
 
 # ── Data Sources ──
 data "aws_caller_identity" "current" {}
