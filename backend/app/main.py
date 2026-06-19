@@ -154,17 +154,17 @@ def handler(event, context) -> Any:
     before routing normal HTTP traffic to FastAPI.
     """
     if isinstance(event, dict) and event.get("run_migrations"):
-        import subprocess
         import os
         import asyncio
         from sqlalchemy.ext.asyncio import create_async_engine
+        from alembic.config import Config
+        from alembic import command
         
-        print("Running Alembic migrations...")
-        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
-        
-        if result.returncode == 0:
+        print("Running Alembic migrations programmatically...")
+        try:
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            
             print("Migrations applied successfully. Creating RLS role...")
             # Create the RLS role required by the app
             async def create_role():
@@ -180,7 +180,10 @@ def handler(event, context) -> Any:
                 
             asyncio.run(create_role())
             return {"statusCode": 200, "body": "Migrations and role creation successful!"}
-        else:
-            return {"statusCode": 500, "body": f"Migrations failed: {result.stderr}"}
+        except Exception as e:
+            import traceback
+            err = traceback.format_exc()
+            print(err)
+            return {"statusCode": 500, "body": f"Migrations failed: {err}"}
             
     return _asgi_handler(event, context)
