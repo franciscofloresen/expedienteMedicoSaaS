@@ -130,8 +130,9 @@ def get_database_url() -> str:
     secret = get_secret(s.db_secret_arn)
     host = os.environ.get("DB_HOST") or secret.get("host")
     port = os.environ.get("DB_PORT") or secret.get("port", "5432")
-    
-    # Handle case where DB_HOST already includes the port (e.g., from terraform aws_db_instance.endpoint)
+
+    # Handle case where DB_HOST already includes the port
+    # (e.g., from terraform aws_db_instance.endpoint)
     if host and ":" in host:
         host, parsed_port = host.rsplit(":", 1)
         # Only override port if DB_PORT wasn't explicitly set in the environment
