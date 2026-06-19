@@ -19,9 +19,6 @@ variable "rds_security_group_id" {
   type = string
 }
 
-variable "lambda_security_group_id" {
-  type = string
-}
 
 variable "kms_key_arn" {
   type        = string
@@ -87,98 +84,13 @@ resource "aws_db_instance" "main" {
   }
 }
 
-# ── RDS Proxy (Connection Pooling for Lambda) ──
-resource "aws_db_proxy" "main" {
-  name                   = "medrecord-proxy-${var.environment}"
-  debug_logging          = var.environment != "prod"
-  engine_family          = "POSTGRESQL"
-  idle_client_timeout    = 300 # 5 minutes
-  require_tls            = true
-  role_arn               = aws_iam_role.rds_proxy.arn
-  vpc_security_group_ids = [var.lambda_security_group_id]
-  vpc_subnet_ids         = var.private_subnet_ids
 
-  auth {
-    auth_scheme = "SECRETS"
-    description = "Authenticate via Secrets Manager"
-    iam_auth    = "REQUIRED"
-    secret_arn  = aws_db_instance.main.master_user_secret[0].secret_arn
-  }
-
-  tags = {
-    Name        = "medrecord-proxy-${var.environment}"
-    Environment = var.environment
-  }
-}
-
-resource "aws_db_proxy_default_target_group" "main" {
-  db_proxy_name = aws_db_proxy.main.name
-
-  connection_pool_config {
-    max_connections_percent      = 90
-    max_idle_connections_percent = 50
-    connection_borrow_timeout    = 120
-  }
-}
-
-resource "aws_db_proxy_target" "main" {
-  db_proxy_name          = aws_db_proxy.main.name
-  target_group_name      = aws_db_proxy_default_target_group.main.name
-  db_instance_identifier = aws_db_instance.main.identifier
-}
-
-# ── IAM Role for RDS Proxy ──
-resource "aws_iam_role" "rds_proxy" {
-  name = "medrecord-rds-proxy-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "rds.amazonaws.com"
-      }
-    }]
-  })
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-resource "aws_iam_role_policy" "rds_proxy_secrets" {
-  name = "secrets-access"
-  role = aws_iam_role.rds_proxy.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
-        ]
-        Resource = [aws_db_instance.main.master_user_secret[0].secret_arn]
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["kms:Decrypt"]
-        Resource = [var.kms_key_arn]
-      }
-    ]
-  })
-}
 
 # ── Outputs ──
 output "cluster_endpoint" {
   value = aws_db_instance.main.endpoint
 }
 
-output "proxy_endpoint" {
-  value = aws_db_proxy.main.endpoint
-}
 
 output "cluster_arn" {
   value = aws_db_instance.main.arn

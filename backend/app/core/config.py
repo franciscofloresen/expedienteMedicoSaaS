@@ -7,6 +7,7 @@ are picked up within the cache window.
 """
 
 import json
+import os
 import time
 from functools import lru_cache
 from typing import Any, Union
@@ -130,7 +131,7 @@ def get_database_url() -> str:
     host = os.environ.get("DB_HOST") or secret.get("host")
     port = os.environ.get("DB_PORT") or secret.get("port", "5432")
     dbname = os.environ.get("DB_NAME") or secret.get("dbname", "postgres")
-    
+
     return (
         f"postgresql+asyncpg://{secret['username']}:{secret['password']}"
         f"@{host}:{port}/{dbname}"

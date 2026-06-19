@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+
 import { Edit2, Trash2, Search, Users, FileCheck, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
 import Modal from '../components/Modal';
@@ -42,11 +40,7 @@ export default function Pacientes() {
       closeFormModal();
     },
     onError: (error: unknown) => {
-      let message = "Error al registrar el paciente";
-      if (error instanceof AxiosError && error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        message = Array.isArray(detail) ? detail.map((e: any) => `${e.loc[e.loc.length-1]}: ${e.msg}`).join(', ') : detail;
-      }
+      const message = error instanceof Error ? error.message : "Error al registrar el paciente";
       showToast(message, 'error');
     }
   });
@@ -59,11 +53,7 @@ export default function Pacientes() {
       closeFormModal();
     },
     onError: (error: unknown) => {
-      let message = "Error al actualizar el paciente";
-      if (error instanceof AxiosError && error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        message = Array.isArray(detail) ? detail.map((e: any) => `${e.loc[e.loc.length-1]}: ${e.msg}`).join(', ') : detail;
-      }
+      const message = error instanceof Error ? error.message : "Error al actualizar el paciente";
       showToast(message, 'error');
     }
   });
@@ -77,8 +67,8 @@ export default function Pacientes() {
       setPacienteToDelete(null);
     },
     onError: (error: unknown) => {
-      const message = error instanceof AxiosError ? error.response?.data?.detail : undefined;
-      showToast(message || "Error al archivar el paciente", 'error');
+      const message = error instanceof Error ? error.message : "Error al archivar el paciente";
+      showToast(message, 'error');
       setIsDeleteModalOpen(false);
       setPacienteToDelete(null);
     }
@@ -208,12 +198,10 @@ export default function Pacientes() {
                 {searchQuery ? 'No se encontraron pacientes que coincidan con la búsqueda.' : 'No hay pacientes registrados.'}
               </td></tr>
             ) : (
-              pacientes.map((p: Paciente, index: number) => (
-                <motion.tr 
-                  key={p.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.05 }}
+              pacientes.map((p: Paciente) => (
+                <tr 
+                  key={p.id} 
+                  className="fade-in"
                   style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s ease', cursor: 'pointer' }}
                   onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
                   onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -253,7 +241,7 @@ export default function Pacientes() {
                       </button>
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))
             )}
           </tbody>

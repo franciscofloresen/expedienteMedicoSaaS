@@ -1,5 +1,5 @@
 # ============================================================
-# MedRecord SaaS — Dev Environment
+# MedRecord SaaS — Root Infrastructure
 # ============================================================
 
 terraform {
@@ -33,63 +33,45 @@ provider "aws" {
   }
 }
 
-variable "region" {
-  type    = string
-  default = "us-east-1"
-}
-
-variable "environment" {
-  type    = string
-  default = "dev"
-}
-
-variable "alarm_email" {
-  type        = string
-  description = "Email for alarm notifications"
-}
-
 # ── Networking ──
 module "networking" {
-  source      = "../../modules/networking"
+  source      = "./modules/networking"
   environment = var.environment
 }
 
 # ── Security (KMS, WAF, CloudTrail, Secrets) ──
 module "security" {
-  source                = "../../modules/security"
+  source                = "./modules/security"
   environment           = var.environment
   cloudtrail_bucket_name = module.storage.audit_bucket_name
 }
 
 # ── Storage (S3 buckets) ──
 module "storage" {
-  source      = "../../modules/storage"
+  source      = "./modules/storage"
   environment = var.environment
   kms_key_arn = module.security.encryption_key_arn
 }
 
-# ── Database (Aurora + RDS Proxy) ──
+# ── Database (Aurora Serverless v2) ──
 module "database" {
-  source                   = "../../modules/database"
+  source                   = "./modules/database"
   environment              = var.environment
   vpc_id                   = module.networking.vpc_id
   private_subnet_ids       = module.networking.private_subnet_ids
   rds_security_group_id    = module.networking.rds_security_group_id
-  lambda_security_group_id = module.networking.lambda_security_group_id
   kms_key_arn              = module.security.encryption_key_arn
 }
 
-
-
 # ── Compute (Lambda + API Gateway) ──
 module "compute" {
-  source                   = "../../modules/compute"
+  source                   = "./modules/compute"
   environment              = var.environment
   vpc_id                   = module.networking.vpc_id
   private_subnet_ids       = module.networking.private_subnet_ids
   lambda_security_group_id = module.networking.lambda_security_group_id
   db_secret_arn            = module.database.db_secret_arn
-  db_proxy_endpoint        = module.database.proxy_endpoint
+  db_cluster_endpoint      = module.database.cluster_endpoint
   encryption_key_arn       = module.security.encryption_key_arn
   signing_key_arn          = module.security.signing_key_arn
   s3_expedientes_bucket    = module.storage.expedientes_bucket_name
@@ -98,9 +80,9 @@ module "compute" {
   waf_acl_arn              = module.security.waf_acl_arn
 }
 
-# ── Observability (Alarms, SNS, Health Check) ──
+# ── Observability (Alarms, SNS) ──
 module "observability" {
-  source               = "../../modules/observability"
+  source               = "./modules/observability"
   environment          = var.environment
   alarm_email          = var.alarm_email
   db_cluster_id        = "medrecord-${var.environment}"
@@ -112,7 +94,7 @@ module "observability" {
 
 # ── CDN (CloudFront) ──
 module "cdn" {
-  source                         = "../../modules/cdn"
+  source                         = "./modules/cdn"
   environment                    = var.environment
   s3_bucket_regional_domain_name = module.storage.frontend_bucket_regional_domain_name
   s3_bucket_id                   = module.storage.frontend_bucket_id
@@ -123,11 +105,9 @@ output "vpc_id" {
   value = module.networking.vpc_id
 }
 
-output "db_proxy_endpoint" {
-  value = module.database.proxy_endpoint
+output "db_cluster_endpoint" {
+  value = module.database.cluster_endpoint
 }
-
-
 
 output "encryption_key_arn" {
   value = module.security.encryption_key_arn

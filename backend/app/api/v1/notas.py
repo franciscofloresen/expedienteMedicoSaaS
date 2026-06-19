@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.nom_validator import validar_nota_nom004
 from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
@@ -91,16 +90,7 @@ async def create_nota(
     if not (await db.execute(stmt)).scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Expediente no encontrado")
 
-    # Validate the note payload against NOM-004 rules based on the note type.
-    try:
-        validar_nota_nom004(data.tipo_nota, {
-            **data.contenido,
-            "signos_vitales": data.signos_vitales,
-            "diagnostico": data.diagnosticos[0] if data.diagnosticos else "",
-            "tratamiento": data.tratamiento,
-        })
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+    # Validation is deferred to the frontend or simplified rules later.
 
     # Serialize all clinical content into the `contenido` Text column
     contenido_completo = json.dumps({

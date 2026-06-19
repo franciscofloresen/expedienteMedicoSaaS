@@ -4,13 +4,12 @@ import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity, RefreshCcw } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { expedientesApi, notasApi, pacientesApi, auditApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import Modal from '../components/Modal';
-import { AxiosError } from 'axios';
+
 
 export default function Expediente() {
   const { id } = useParams<{ id: string }>();
@@ -122,8 +121,8 @@ export default function Expediente() {
       showToast("Borrador creado", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof AxiosError ? error.response?.data?.detail : undefined;
-      showToast(message || "Error al guardar el borrador", "error");
+      const message = error instanceof Error ? error.message : "Error al guardar el borrador";
+      showToast(message, "error");
     }
   });
 
@@ -137,8 +136,8 @@ export default function Expediente() {
       showToast("Borrador actualizado", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof AxiosError ? error.response?.data?.detail : undefined;
-      showToast(message || "Error al actualizar el borrador", "error");
+      const message = error instanceof Error ? error.message : "Error al actualizar el borrador";
+      showToast(message, "error");
     }
   });
 
@@ -152,8 +151,8 @@ export default function Expediente() {
       showToast("Nota firmada y bloqueada exitosamente", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof AxiosError ? error.response?.data?.detail : undefined;
-      showToast(message || "Error al firmar la nota", "error");
+      const message = error instanceof Error ? error.message : "Error al firmar la nota";
+      showToast(message, "error");
       setIsSignModalOpen(false);
     }
   });
@@ -432,12 +431,10 @@ export default function Expediente() {
               <div 
                 style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
               >
-                {notas.map((nota: Nota, index: number) => (
-                  <motion.div 
+                {notas.map((nota: Nota) => (
+                  <div 
                     key={nota.id} 
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.1 }}
+                    className="fade-in"
                     style={{ 
                     border: nota.firmada ? '1px solid var(--border-light)' : '1px solid rgba(0, 122, 255, 0.3)', 
                     borderRadius: '16px', 
@@ -557,7 +554,7 @@ export default function Expediente() {
                         </div>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}

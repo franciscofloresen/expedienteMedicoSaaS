@@ -302,7 +302,7 @@ variable "cloudtrail_bucket_name" {
 # Secrets Manager — DB Credentials with Rotation
 # ============================================================
 resource "aws_secretsmanager_secret" "app_config" {
-  name                    = "medrecord/${var.environment}/app-config"
+  name                    = "medrecord/${var.environment}/app-config-v2"
   description             = "Application configuration secrets"
   kms_key_id              = aws_kms_key.data_encryption.arn
   recovery_window_in_days = var.environment == "prod" ? 30 : 7

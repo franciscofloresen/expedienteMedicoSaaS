@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { authApi } from '../services/api';
 import { Activity } from 'lucide-react';
 import { useAuth } from '@clerk/react';
-import { motion } from 'framer-motion';
 import { useToast } from '../hooks/useToast';
 
 export default function Onboarding() {
@@ -51,10 +50,7 @@ export default function Onboarding() {
       background: 'var(--bg-main)',
       padding: '2rem'
     }}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div 
         className="glass-card"
         style={{
           width: '100%',
@@ -147,7 +143,7 @@ export default function Onboarding() {
             {loading ? 'Creando entorno...' : 'Comenzar a usar CloudMedRecord'}
           </button>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { auditApi } from '../services/api';
 import { ShieldCheck, Calendar, Activity, Globe, Server, Printer } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 // Helper function to translate technical logs into clinical language
 const translateAction = (method: string, path: string) => {
@@ -91,12 +90,9 @@ export default function Auditoria() {
                   const translation = translateAction(log.metodo, log.ruta);
                   const isHiddenInWeb = index >= 50;
                   return (
-                  <motion.tr 
+                  <tr 
                     key={log.id} 
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeOut', delay: index * 0.03 }}
-                    className={isHiddenInWeb ? "print-only" : ""} 
+                    className={isHiddenInWeb ? "print-only fade-in" : "fade-in"} 
                     style={{ 
                       borderBottom: '1px solid var(--border-light)', 
                       transition: 'background-color 0.2s', 
@@ -151,7 +147,7 @@ export default function Auditoria() {
                     <td style={{ padding: '1.25rem 1.5rem', fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                       {log.ip_origen}
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })
               )}

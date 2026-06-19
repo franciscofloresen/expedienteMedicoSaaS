@@ -1,8 +1,6 @@
 from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,18 +42,4 @@ async def get_recent_audit_logs(
         for log in logs
     ]
 
-class ConsentimientoRequest(BaseModel):
-    paciente_id: UUID
 
-@router.post("/consentimiento")
-async def registrar_consentimiento(
-    request: Request,
-    data: ConsentimientoRequest,
-    db: AsyncSession = Depends(get_db)
-) -> Any:
-    """
-    Endpoint para registrar el consentimiento informado explícito.
-    No requiere lógica en DB porque el AuditMiddleware captura y
-    almacena la petición automáticamente como prueba de auditoría inmutable.
-    """
-    return {"status": "ok", "evento": "CONSENTIMIENTO_ACEPTADO", "paciente_id": data.paciente_id}

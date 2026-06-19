@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Activity, Users, FileText, Settings as SettingsIcon, Menu, X, ShieldCheck, Calendar as CalendarIcon } from 'lucide-react';
 import { UserButton } from '@clerk/react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectionStatus } from './ConnectionStatus';
 
 export default function Layout() {
@@ -45,119 +44,44 @@ export default function Layout() {
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <NavLink 
             to="/app/agenda" 
-            style={({ isActive }) => ({ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.75rem 1rem', borderRadius: '12px',
-              textDecoration: 'none',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            {({ isActive }) => (
-              <>
-                <CalendarIcon size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
-                Agenda
-              </>
-            )}
+            <CalendarIcon size={20} className="nav-icon" />
+            Agenda
           </NavLink>
           <NavLink 
             to="/app" 
             end
-            style={({ isActive }) => ({ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.75rem 1rem', borderRadius: '12px',
-              textDecoration: 'none',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            {({ isActive }) => (
-              <>
-                <Users size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
-                Pacientes
-              </>
-            )}
+            <Users size={20} className="nav-icon" />
+            Pacientes
           </NavLink>
           <NavLink 
             to="/app/expedientes" 
-            style={({ isActive }) => ({ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.75rem 1rem', borderRadius: '12px',
-              textDecoration: 'none',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            {({ isActive }) => (
-              <>
-                <FileText size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
-                Expedientes
-              </>
-            )}
+            <FileText size={20} className="nav-icon" />
+            Expedientes
           </NavLink>
           <NavLink 
             to="/app/notas" 
-            style={({ isActive }) => ({ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.75rem 1rem', borderRadius: '12px',
-              textDecoration: 'none',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            {({ isActive }) => (
-              <>
-                <Activity size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
-                Notas Médicas
-              </>
-            )}
+            <Activity size={20} className="nav-icon" />
+            Notas Médicas
           </NavLink>
           <NavLink 
             to="/app/auditoria" 
-            style={({ isActive }) => ({ 
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.75rem 1rem', borderRadius: '12px',
-              textDecoration: 'none',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            {({ isActive }) => (
-              <>
-                <ShieldCheck size={20} style={{ opacity: isActive ? 1 : 0.8 }} />
-                Auditoría
-              </>
-            )}
+            <ShieldCheck size={20} className="nav-icon" />
+            Auditoría
           </NavLink>
         </nav>
         
@@ -167,44 +91,20 @@ export default function Layout() {
           </div>
           <NavLink 
             to="/app/settings" 
-            className={({ isActive }) => `btn btn-outline ${isActive ? 'active-link' : ''}`} 
-            style={({ isActive }) => ({ 
-              justifyContent: 'flex-start', 
-              border: 'none', 
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '12px',
-              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent', 
-              color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.2s ease'
-            })}
+            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            <SettingsIcon size={20} style={{ opacity: 0.8 }} />
+            <SettingsIcon size={20} className="nav-icon" />
             CONFIGURACIÓN
           </NavLink>
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="main-content">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <ConnectionStatus />
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <div key={location.pathname} className="fade-in" style={{ width: '100%', height: '100%' }}>
+          <ConnectionStatus />
+          <Outlet />
+        </div>
       </main>
     </div>
   );

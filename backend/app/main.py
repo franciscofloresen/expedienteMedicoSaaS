@@ -12,9 +12,6 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
@@ -103,13 +100,7 @@ app = FastAPI(
     redoc_url=None,
 )
 
-# ── Rate Limit Error Handler ──
-# Rate limits for authentication are now handled by Clerk.
-# We keep the handler available in case other endpoints are rate limited in the future.
 
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # ── Middleware (order matters: last added = first executed) ──
 
@@ -150,19 +141,15 @@ async def health_check() -> Any:
 _asgi_handler = Mangum(app, lifespan="auto")
 
 
-def handler(event: Any, context: Any) -> Any:
+def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Custom handler to allow running Alembic migrations securely inside the VPC
     before routing normal HTTP traffic to FastAPI.
     """
     if isinstance(event, dict) and event.get("run_migrations"):
-        import asyncio
-        import os
         import traceback
 
         from alembic.config import Config
-        from sqlalchemy import text
-        from sqlalchemy.ext.asyncio import create_async_engine
 
         from alembic import command
 
@@ -171,27 +158,8 @@ def handler(event: Any, context: Any) -> Any:
             alembic_cfg = Config("alembic.ini")
             command.upgrade(alembic_cfg, "head")
 
-            print("Migrations applied successfully. Creating RLS role...")
-
-            # Create the RLS role required by the app
-            async def create_role() -> None:
-                engine = create_async_engine(os.environ["DATABASE_URL"], echo=False)
-                async with engine.begin() as conn:
-                    # Check if role exists
-                    res = await conn.execute(
-                        text("SELECT 1 FROM pg_roles WHERE rolname='medrecord_app';")
-                    )
-                    if not res.fetchone():
-                        await conn.execute(
-                            text("CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';")
-                        )
-                        await conn.execute(
-                            text("GRANT CONNECT ON DATABASE medrecord TO medrecord_app;")
-                        )
-                await engine.dispose()
-
-            asyncio.run(create_role())
-            return {"statusCode": 200, "body": "Migrations and role creation successful!"}
+            print("Migrations applied successfully!")
+            return {"statusCode": 200, "body": "Migrations successful!"}
         except Exception:
             import traceback
 

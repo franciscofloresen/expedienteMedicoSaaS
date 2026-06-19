@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Zap, FileText, Activity, ArrowDown } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
 
 export default function Landing() {
@@ -72,10 +71,7 @@ export default function Landing() {
         {/* Contenido Central */}
         <div style={{ position: 'relative', zIndex: 20, textAlign: 'center', padding: '0 5%' }}>
           
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
+          <div
             style={{ 
               backgroundColor: 'rgba(255, 255, 255, 0.85)', 
               backdropFilter: 'blur(20px)',
@@ -107,59 +103,45 @@ export default function Landing() {
               <Link to="/register" style={{ color: 'var(--text-main)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Crear Clínica</Link>
               <Link to="/privacidad" style={{ color: 'var(--primary)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}>Cumplimiento Legal</Link>
             </div>
-          </motion.div>
+          </div>
 
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div 
-          animate={{ y: [0, 10, 0] }} 
-          transition={{ repeat: Infinity, duration: 2 }}
+        <div 
           style={{ position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', zIndex: 20, color: 'white', opacity: 0.7 }}
         >
           <ArrowDown size={24} />
-        </motion.div>
+        </div>
       </section>
 
       {/* Banner de Características "Luxury" */}
       <section style={{ backgroundColor: '#ffffff', color: 'var(--text-main)', padding: '5rem 0', position: 'relative', zIndex: 30 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 5%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem', textAlign: 'center' }}>
           
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.8 }}
+          <div 
             style={{ padding: '2rem 1rem' }}
           >
             <ShieldCheck size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
             <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Auditoría Inmutable</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Cada nota firmada se sella digitalmente. Cumplimos estrictamente con la NOM-004 y NOM-024.</p>
-          </motion.div>
+          </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+          <div 
             style={{ padding: '2rem 1rem', borderLeft: '1px solid var(--border-light)', borderRight: '1px solid var(--border-light)' }}
           >
             <Zap size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
             <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Rapidez Extrema</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Interfaz minimalista diseñada para que dediques más tiempo al paciente y menos al teclado.</p>
-          </motion.div>
+          </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+          <div 
             style={{ padding: '2rem 1rem' }}
           >
             <FileText size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
             <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Listo para 2026</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Infraestructura interoperable alineada con el próximo Decreto de Digitalización del Sector Salud.</p>
-          </motion.div>
+          </div>
 
         </div>
       </section>
