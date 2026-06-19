@@ -89,6 +89,7 @@ module "compute" {
   private_subnet_ids       = module.networking.private_subnet_ids
   lambda_security_group_id = module.networking.lambda_security_group_id
   db_secret_arn            = module.database.db_secret_arn
+  db_proxy_endpoint        = module.database.proxy_endpoint
   encryption_key_arn       = module.security.encryption_key_arn
   signing_key_arn          = module.security.signing_key_arn
   s3_expedientes_bucket    = module.storage.expedientes_bucket_name

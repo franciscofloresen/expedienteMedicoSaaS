@@ -25,6 +25,10 @@ variable "db_secret_arn" {
   type = string
 }
 
+variable "db_proxy_endpoint" {
+  type = string
+}
+
 variable "encryption_key_arn" {
   type = string
 }
@@ -169,6 +173,7 @@ resource "aws_lambda_function" "api" {
     variables = {
       ENVIRONMENT           = var.environment
       DB_SECRET_ARN         = var.db_secret_arn
+      DB_HOST               = var.db_proxy_endpoint
       KMS_ENCRYPTION_KEY_ID = var.encryption_key_arn
       KMS_SIGNING_KEY_ID    = var.signing_key_arn
       S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
