@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -10,30 +10,42 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children, footer }: ModalProps) {
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEsc);
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    }
-    return () => {
-      document.removeEventListener('keydown', handleEsc);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen && !dialog.open) {
+      dialog.showModal();
+      document.body.style.overflow = 'hidden';
+    } else if (!isOpen && dialog.open) {
+      dialog.close();
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if (e.target === dialogRef.current) {
+      onClose();
+    }
+  };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <dialog
+      ref={dialogRef}
+      onCancel={onClose}
+      onClick={handleBackdropClick}
+      className="modal-dialog"
+    >
       <div 
         className="modal-content glass-card animate-fade-in" 
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
+        role="document"
       >
         <div className="modal-header">
           <h2 id="modal-title" className="modal-title">{title}</h2>
@@ -42,6 +54,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Moda
             onClick={onClose} 
             aria-label="Cerrar"
             title="Cerrar"
+            type="button"
           >
             <X size={20} />
           </button>
@@ -55,6 +68,6 @@ export default function Modal({ isOpen, onClose, title, children, footer }: Moda
           </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

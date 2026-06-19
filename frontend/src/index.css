@@ -259,24 +259,23 @@ h1, h2, h3, h4 {
   to { transform: rotate(360deg); }
 }
 /* --- MODAL STYLES --- */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+dialog.modal-dialog {
+  margin: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  width: 100%;
+  max-width: 500px;
+  overflow: visible;
+}
+
+dialog.modal-dialog::backdrop {
   background-color: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
 }
 
 .modal-content {
   width: 100%;
-  max-width: 500px;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   display: flex;
@@ -450,7 +449,7 @@ h1, h2, h3, h4 {
     overflow: visible !important;
   }
   
-  .sidebar, .mobile-header, .toast-container, .btn, button, .modal-backdrop {
+  .sidebar, .mobile-header, .toast-container, .btn, button, dialog.modal-dialog {
     display: none !important;
   }
   
