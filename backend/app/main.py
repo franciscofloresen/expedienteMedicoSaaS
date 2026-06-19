@@ -154,17 +154,19 @@ def handler(event, context) -> Any:
     before routing normal HTTP traffic to FastAPI.
     """
     if isinstance(event, dict) and event.get("run_migrations"):
-        import os
         import asyncio
-        from sqlalchemy.ext.asyncio import create_async_engine
+        import os
+
         from alembic.config import Config
+        from sqlalchemy.ext.asyncio import create_async_engine
+
         from alembic import command
-        
+
         print("Running Alembic migrations programmatically...")
         try:
             alembic_cfg = Config("alembic.ini")
             command.upgrade(alembic_cfg, "head")
-            
+
             print("Migrations applied successfully. Creating RLS role...")
             # Create the RLS role required by the app
             async def create_role():
@@ -172,18 +174,24 @@ def handler(event, context) -> Any:
                 async with engine.begin() as conn:
                     from sqlalchemy import text
                     # Check if role exists
-                    res = await conn.execute(text("SELECT 1 FROM pg_roles WHERE rolname='medrecord_app';"))
+                    res = await conn.execute(
+                        text("SELECT 1 FROM pg_roles WHERE rolname='medrecord_app';")
+                    )
                     if not res.fetchone():
-                        await conn.execute(text("CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';"))
-                        await conn.execute(text("GRANT CONNECT ON DATABASE medrecord TO medrecord_app;"))
+                        await conn.execute(
+                            text("CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';")
+                        )
+                        await conn.execute(
+                            text("GRANT CONNECT ON DATABASE medrecord TO medrecord_app;")
+                        )
                 await engine.dispose()
-                
+
             asyncio.run(create_role())
             return {"statusCode": 200, "body": "Migrations and role creation successful!"}
-        except Exception as e:
+        except Exception:
             import traceback
             err = traceback.format_exc()
             print(err)
             return {"statusCode": 500, "body": f"Migrations failed: {err}"}
-            
+
     return _asgi_handler(event, context)
