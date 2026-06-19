@@ -19,6 +19,7 @@ dependencies = [
     "PyJWT>=2.8",               # JWT issuance + validation
     "httpx>=0.27",              # Async HTTP client
     "python-json-logger>=3.0",  # Structured JSON logging for CloudWatch
+    "fpdf2>=2.7.9",             # PDF Generation
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,7 @@ ignore = ["S101", "E712"]  # Allow assert in tests, E712 for SQLAlchemy == True
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/versions/*.py" = ["E501"]
+"app/services/pdf.py" = ["E501"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Security"]
@@ -64,5 +66,5 @@ strict = true
 
 
 [[tool.mypy.overrides]]
-module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*"]
+module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*", "fpdf.*"]
 ignore_missing_imports = true

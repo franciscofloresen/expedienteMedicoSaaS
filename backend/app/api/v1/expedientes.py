@@ -1,19 +1,23 @@
 
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
+import io
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.expediente import Expediente
+from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.models.tenant_key import TenantKey
 from app.services.encryption import decrypt_field, encrypt_field
+from app.services.pdf import generate_expediente_pdf
 
 router = APIRouter()
 
@@ -156,3 +160,59 @@ async def update_antecedentes(
 
     await db.flush()
     return {"status": "success"}
+
+@router.get("/{expediente_id}/export")
+async def export_expediente_pdf(
+    expediente_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> StreamingResponse:
+    tenant_id = request.state.tenant_id
+
+    # Get Expediente & Paciente
+    stmt = (
+        select(Expediente, Paciente)
+        .join(Paciente, Expediente.paciente_id == Paciente.id)
+        .where(Expediente.id == expediente_id)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+
+    expediente, paciente = row
+
+    # Get Notas
+    stmt_notas = (
+        select(Nota)
+        .where(Nota.expediente_id == expediente_id)
+        .order_by(Nota.creado_en)
+    )
+    notas = (await db.execute(stmt_notas)).scalars().all()
+
+    # Decrypt antecedentes if needed
+    antecedentes = None
+    if expediente.antecedentes_cifrado:
+        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
+        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
+        if tenant_key:
+            antecedentes = decrypt_field(
+                expediente.antecedentes_cifrado, tenant_key.encrypted_dek, tenant_id
+            )
+
+    # Generate PDF
+    pdf_bytes = generate_expediente_pdf(
+        paciente=paciente,
+        expediente=expediente,
+        antecedentes=antecedentes,
+        notas=notas
+    )
+
+    filename = f"expediente_{paciente.nombre_completo.replace(' ', '_')}.pdf"
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )

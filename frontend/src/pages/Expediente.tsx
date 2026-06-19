@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity, RefreshCcw, Download } from 'lucide-react';
 import { expedientesApi, notasApi, pacientesApi, auditApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
@@ -141,7 +141,6 @@ export default function Expediente() {
     }
   });
 
-  // Sign Nota
   const signNotaMutation = useMutation({
     mutationFn: (notaId: string) => notasApi.firmar(notaId),
     onSuccess: () => {
@@ -154,6 +153,18 @@ export default function Expediente() {
       const message = error instanceof Error ? error.message : "Error al firmar la nota";
       showToast(message, "error");
       setIsSignModalOpen(false);
+    }
+  });
+
+  const exportPdfMutation = useMutation({
+    mutationFn: () => {
+      if (!expediente) throw new Error("No hay expediente cargado");
+      return expedientesApi.exportarPdf(expediente.id);
+    },
+    onSuccess: () => showToast("PDF exportado exitosamente", "success"),
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Error al exportar PDF";
+      showToast(message, "error");
     }
   });
 
@@ -322,6 +333,13 @@ export default function Expediente() {
           <h1 className="font-serif animate-fade-in" style={{ marginBottom: 0, fontSize: '2rem', fontWeight: 600, color: 'var(--text-main)' }}>Expediente Clínico</h1>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
+          <button 
+            className="btn btn-outline" 
+            onClick={() => exportPdfMutation.mutate()}
+            disabled={exportPdfMutation.isPending}
+          >
+            <Download size={20} /> {exportPdfMutation.isPending ? 'Generando...' : 'Exportar PDF'}
+          </button>
           <button className="btn btn-outline" onClick={() => window.print()}>
             <Printer size={20} /> Imprimir Resumen
           </button>
