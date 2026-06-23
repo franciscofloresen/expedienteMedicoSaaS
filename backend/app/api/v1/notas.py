@@ -20,6 +20,7 @@ logger = logging.getLogger("medrecord")
 
 router = APIRouter()
 
+
 class NotaCreate(BaseModel):
     expediente_id: UUID
     tipo_nota: str = Field(..., description="evolucion, interconsulta, ingreso, egreso")
@@ -33,11 +34,19 @@ class NotaCreate(BaseModel):
     def validate_nom004_compliance(self) -> "NotaCreate":
         if self.tipo_nota not in ("evolucion", "interconsulta", "ingreso", "egreso"):
             raise ValueError("Tipo de nota inválido según la NOM-004")
-        if self.tipo_nota in ("evolucion", "ingreso", "egreso") and not self.signos_vitales:
-            raise ValueError(f"Los signos vitales son obligatorios para notas de {self.tipo_nota} (NOM-004)")
+        if (
+            self.tipo_nota in ("evolucion", "ingreso", "egreso")
+            and not self.signos_vitales
+        ):
+            raise ValueError(
+                f"Los signos vitales son obligatorios para notas de {self.tipo_nota} (NOM-004)"
+            )
         if self.tipo_nota == "evolucion" and not self.diagnosticos:
-            raise ValueError("El diagnóstico es obligatorio para notas de evolución (NOM-004)")
+            raise ValueError(
+                "El diagnóstico es obligatorio para notas de evolución (NOM-004)"
+            )
         return self
+
 
 class NotaUpdate(BaseModel):
     contenido: dict[str, Any] | None = None
@@ -45,6 +54,7 @@ class NotaUpdate(BaseModel):
     diagnosticos: list[str] | None = None
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
+
 
 @router.get("/")
 async def list_notas(
@@ -82,6 +92,7 @@ async def list_notas(
         for nota, exp, pac in rows
     ]
 
+
 @router.post("/", status_code=201)
 async def create_nota(
     data: NotaCreate,
@@ -103,11 +114,14 @@ async def create_nota(
     # Validation is deferred to the frontend or simplified rules later.
 
     # Serialize all clinical content into the `contenido` Text column
-    contenido_completo = json.dumps({
-        **data.contenido,
-        "diagnosticos": data.diagnosticos,
-        "tratamiento": data.tratamiento,
-    }, ensure_ascii=False)
+    contenido_completo = json.dumps(
+        {
+            **data.contenido,
+            "diagnosticos": data.diagnosticos,
+            "tratamiento": data.tratamiento,
+        },
+        ensure_ascii=False,
+    )
 
     nota = Nota(
         tenant_id=tenant_id,
@@ -146,10 +160,14 @@ async def update_nota(
         raise HTTPException(
             status_code=403,
             detail="La nota ya ha sido firmada y no puede modificarse. "
-                   "Según la NOM-004, las correcciones deben realizarse como notas de adenda."
+            "Según la NOM-004, las correcciones deben realizarse como notas de adenda.",
         )
 
-    if data.contenido is not None or data.diagnosticos is not None or data.tratamiento is not None:
+    if (
+        data.contenido is not None
+        or data.diagnosticos is not None
+        or data.tratamiento is not None
+    ):
         current = json.loads(nota.contenido) if nota.contenido else {}
         if data.contenido is not None:
             current.update(data.contenido)
@@ -205,6 +223,7 @@ async def list_notas_by_expediente(
         for n in notas
     ]
 
+
 @router.post("/{nota_id}/firmar")
 async def firmar_nota(
     nota_id: UUID,
@@ -245,24 +264,29 @@ async def firmar_nota(
     contenido_dict = json.loads(nota.contenido) if nota.contenido else {}
 
     # Build the content that gets signed
-    content_to_sign = json.dumps({
-        "id": str(nota.id),
-        "expediente_id": str(nota.expediente_id),
-        "tipo_nota": nota.tipo_nota,
-        "contenido": contenido_dict,
-        "signos_vitales": nota.signos_vitales,
-        "creado_en": nota.creado_en.isoformat(),
-    }, ensure_ascii=False, sort_keys=True)
+    content_to_sign = json.dumps(
+        {
+            "id": str(nota.id),
+            "expediente_id": str(nota.expediente_id),
+            "tipo_nota": nota.tipo_nota,
+            "contenido": contenido_dict,
+            "signos_vitales": nota.signos_vitales,
+            "creado_en": nota.creado_en.isoformat(),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
 
     # Pull doctor identity directly from the database for strict legal compliance (NOM-004)
     from app.models.tenant import Tenant
+
     stmt_tenant = select(Tenant).where(Tenant.id == tenant_id)
     tenant_row = (await db.execute(stmt_tenant)).scalar_one_or_none()
 
     if not tenant_row:
         raise HTTPException(
             status_code=403,
-            detail="No se encontró el perfil médico asociado para firmar la nota."
+            detail="No se encontró el perfil médico asociado para firmar la nota.",
         )
 
     medico_nombre = tenant_row.nombre_medico
@@ -308,7 +332,7 @@ async def firmar_nota(
         logger.warning("Signing failed for nota %s: %s", nota_id, e)
         raise HTTPException(
             status_code=503,
-            detail="El servicio de firma digital no está disponible en este entorno."
+            detail="El servicio de firma digital no está disponible en este entorno.",
         ) from e
 
 
@@ -340,14 +364,18 @@ async def verificar_firma(
 
     # Reconstruct the signed content exactly as it was at signing time
     contenido_dict = json.loads(nota.contenido) if nota.contenido else {}
-    content_to_verify = json.dumps({
-        "id": str(nota.id),
-        "expediente_id": str(nota.expediente_id),
-        "tipo_nota": nota.tipo_nota,
-        "contenido": contenido_dict,
-        "signos_vitales": nota.signos_vitales,
-        "creado_en": nota.creado_en.isoformat(),
-    }, ensure_ascii=False, sort_keys=True)
+    content_to_verify = json.dumps(
+        {
+            "id": str(nota.id),
+            "expediente_id": str(nota.expediente_id),
+            "tipo_nota": nota.tipo_nota,
+            "contenido": contenido_dict,
+            "signos_vitales": nota.signos_vitales,
+            "creado_en": nota.creado_en.isoformat(),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
 
     # Reconstruct signing metadata
     signing_metadata = {

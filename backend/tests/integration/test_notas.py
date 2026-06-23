@@ -1,11 +1,14 @@
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import uuid4
+
 
 @pytest.mark.asyncio
 async def test_notas_crud(client: AsyncClient, db_session: AsyncSession, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
 
     # 1. Create Patient & Expediente
@@ -29,7 +32,7 @@ async def test_notas_crud(client: AsyncClient, db_session: AsyncSession, seed_te
         "tipo_nota": "evolucion",
         "contenido": {"evolucion": "Mejora progresiva."},
         "diagnosticos": ["Migraña"],
-        "signos_vitales": {"temperatura": 36.5}
+        "signos_vitales": {"temperatura": 36.5},
     }
     res = await client.post("/api/v1/notas/", json=nota_data, headers=headers)
     assert res.status_code == 201
@@ -41,10 +44,10 @@ async def test_notas_crud(client: AsyncClient, db_session: AsyncSession, seed_te
     assert len(res.json()) >= 1
 
     # 4. Update Nota
-    update_data = {
-        "contenido": {"evolucion": "Completamente sano."}
-    }
-    res = await client.put(f"/api/v1/notas/{nota_id}", json=update_data, headers=headers)
+    update_data = {"contenido": {"evolucion": "Completamente sano."}}
+    res = await client.put(
+        f"/api/v1/notas/{nota_id}", json=update_data, headers=headers
+    )
     assert res.status_code == 200
 
     # 5. List Notas by Expediente
@@ -52,11 +55,13 @@ async def test_notas_crud(client: AsyncClient, db_session: AsyncSession, seed_te
     assert res.status_code == 200
     assert len(res.json()) >= 1
 
+
 @pytest.mark.asyncio
 async def test_nota_not_found(client: AsyncClient, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
-    
+
     res = await client.get(f"/api/v1/notas/expediente/{uuid4()}", headers=headers)
     assert res.status_code == 200
     assert res.json() == []

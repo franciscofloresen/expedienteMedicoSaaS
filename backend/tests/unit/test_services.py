@@ -1,4 +1,3 @@
-import os
 from unittest.mock import MagicMock, patch
 
 from app.services.encryption import decrypt_field, encrypt_field
@@ -23,7 +22,9 @@ def test_compute_content_hash():
     hash_hex = compute_content_hash(content_bytes)
 
     # sha256 of "hello world"
-    assert hash_hex == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+    assert (
+        hash_hex == "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+    )
 
 
 @patch("app.services.encryption.settings")
@@ -39,7 +40,7 @@ def test_encryption_decryption_flow(mock_get_kms, mock_settings):
 
     fake_ciphertext = b"fake-ciphertext-blob"
     mock_kms.encrypt.return_value = {"CiphertextBlob": fake_ciphertext}
-    
+
     plaintext = "sensitive clinical data"
     mock_kms.decrypt.return_value = {"Plaintext": plaintext.encode("utf-8")}
 

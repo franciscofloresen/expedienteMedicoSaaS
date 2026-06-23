@@ -1,11 +1,16 @@
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import uuid4
+
 
 @pytest.mark.asyncio
-async def test_pacientes_crud(client: AsyncClient, db_session: AsyncSession, seed_tenant_a):
+async def test_pacientes_crud(
+    client: AsyncClient, db_session: AsyncSession, seed_tenant_a
+):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
 
     # 1. Create Patient
@@ -15,7 +20,7 @@ async def test_pacientes_crud(client: AsyncClient, db_session: AsyncSession, see
         "fecha_nacimiento": "1990-01-01",
         "curp": "AAAA900101HDFXYZ11",
         "telefono": "555-123-4567",
-        "domicilio": "123 Main St"
+        "domicilio": "123 Main St",
     }
     res = await client.post("/api/v1/pacientes/", json=patient_data, headers=headers)
     assert res.status_code == 201
@@ -40,14 +45,18 @@ async def test_pacientes_crud(client: AsyncClient, db_session: AsyncSession, see
 
     # 5. Update Patient
     update_data = {"telefono": "999-888-7777"}
-    res = await client.put(f"/api/v1/pacientes/{patient_id}", json=update_data, headers=headers)
+    res = await client.put(
+        f"/api/v1/pacientes/{patient_id}", json=update_data, headers=headers
+    )
     assert res.status_code == 200
     assert res.json()["status"] == "ok"
+
 
 @pytest.mark.asyncio
 async def test_paciente_not_found(client: AsyncClient, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
-    
+
     res = await client.get(f"/api/v1/pacientes/{uuid4()}", headers=headers)
     assert res.status_code == 404

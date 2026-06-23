@@ -1,23 +1,20 @@
-
 """API v1 — Expedientes Clínicos (NOM-004 §5.4)."""
 
-import io
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.expediente import Expediente
-from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.services.encryption import decrypt_field, encrypt_field
 
 router = APIRouter()
+
 
 class ExpedienteCreate(BaseModel):
     paciente_id: UUID
@@ -26,8 +23,10 @@ class ExpedienteCreate(BaseModel):
         None, description="Antecedentes heredofamiliares, personales patológicos, etc."
     )
 
+
 class ExpedienteUpdate(BaseModel):
     antecedentes: str
+
 
 @router.get("/")
 async def list_expedientes(
@@ -59,6 +58,7 @@ async def list_expedientes(
         for exp, pac in rows
     ]
 
+
 @router.post("/", status_code=201)
 async def create_expediente(
     data: ExpedienteCreate,
@@ -77,19 +77,22 @@ async def create_expediente(
     plan = getattr(request.state, "plan", "basico")
     if plan == "basico":
         from sqlalchemy import func
+
         stmt_count = select(func.count(Expediente.id))
         count = (await db.execute(stmt_count)).scalar_one()
         if count >= 5:
             raise HTTPException(
-                status_code=403, 
-                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte para activar su cuenta Pro."
+                status_code=403,
+                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte para activar su cuenta Pro.",
             )
 
     # Check if expediente already exists
     stmt_exp = select(Expediente).where(Expediente.paciente_id == data.paciente_id)
     result = await db.execute(stmt_exp)
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="El paciente ya tiene un expediente activo")
+        raise HTTPException(
+            status_code=400, detail="El paciente ya tiene un expediente activo"
+        )
 
     antecedentes_cifrado = None
     if data.antecedentes:
@@ -106,6 +109,7 @@ async def create_expediente(
     await db.flush()
 
     return {"id": str(expediente.id), "numero_expediente": expediente.folio}
+
 
 @router.get("/paciente/{paciente_id}")
 async def get_expediente_by_paciente(
@@ -129,15 +133,16 @@ async def get_expediente_by_paciente(
         "paciente_id": str(expediente.paciente_id),
         "numero_expediente": expediente.folio,
         "antecedentes": antecedentes,
-        "creado_en": expediente.creado_en.isoformat()
+        "creado_en": expediente.creado_en.isoformat(),
     }
+
 
 @router.put("/{expediente_id}/antecedentes")
 async def update_antecedentes(
     expediente_id: UUID,
     data: ExpedienteUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Any:
     tenant_id = request.state.tenant_id
 
@@ -152,5 +157,3 @@ async def update_antecedentes(
 
     await db.flush()
     return {"status": "success"}
-
-

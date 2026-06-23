@@ -1,4 +1,3 @@
-
 """
 Database Session Management with RLS Tenant Context
 
@@ -31,14 +30,15 @@ def _get_engine() -> Any:
     global _engine
     if _engine is None:
         from app.core.config import get_database_url
+
         _engine = create_async_engine(
             get_database_url(),
             echo=False,
-            pool_size=5,       # Lambda: keep small (RDS Proxy handles pooling)
+            pool_size=5,  # Lambda: keep small (RDS Proxy handles pooling)
             max_overflow=5,
             pool_timeout=30,
-            pool_recycle=300,   # 5 min — match RDS Proxy idle timeout
-            pool_pre_ping=True, # Verify connection before use
+            pool_recycle=300,  # 5 min — match RDS Proxy idle timeout
+            pool_pre_ping=True,  # Verify connection before use
         )
     return _engine
 
@@ -72,6 +72,7 @@ async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
             tenant_id = "00000000-0000-0000-0000-000000000000"
         else:
             from fastapi import HTTPException
+
             raise HTTPException(status_code=403, detail="Missing tenant context")
 
     factory = _get_session_factory()

@@ -1,4 +1,3 @@
-
 """
 API v1 — Authentication & Registration
 
@@ -21,6 +20,7 @@ logger = logging.getLogger("medrecord.auth")
 router = APIRouter()
 
 # ── Endpoints ──
+
 
 @router.get("/me")
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> Any:
@@ -57,8 +57,10 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         "seguridad": {
             "cifrado_activo": True,
             "kms_key_id": tenant_key.kms_key_id,
-            "ultima_rotacion": tenant_key.rotated_at.isoformat() if tenant_key.rotated_at else None,
-        }
+            "ultima_rotacion": (
+                tenant_key.rotated_at.isoformat() if tenant_key.rotated_at else None
+            ),
+        },
     }
 
 
@@ -66,11 +68,10 @@ class ProfileUpdate(BaseModel):
     cedula: str | None = Field(None, min_length=5, max_length=20)
     especialidad: str | None = None
 
+
 @router.put("/profile")
 async def update_profile(
-    data: ProfileUpdate,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    data: ProfileUpdate, request: Request, db: AsyncSession = Depends(get_db)
 ) -> Any:
     from sqlalchemy import select
 
@@ -97,26 +98,28 @@ async def update_profile(
             import httpx
 
             from app.core.config import settings
+
             async with httpx.AsyncClient() as client:
                 # Update Clerk publicMetadata
                 resp = await client.patch(
                     f"https://api.clerk.com/v1/users/{user_id}/metadata",
                     headers={
                         "Authorization": f"Bearer {settings.clerk_secret_key}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
                     },
                     json={
                         "public_metadata": {
                             "tenant_id": str(tenant_id),
                             "nombre_medico": tenant.nombre_medico,
                             "cedula": tenant.cedula,
-                            "especialidad": tenant.especialidad
+                            "especialidad": tenant.especialidad,
                         }
-                    }
+                    },
                 )
                 resp.raise_for_status()
         except Exception as e:
             import logging
+
             logging.getLogger("medrecord.auth").warning(
                 f"Failed to update Clerk metadata for {user_id}: {e}"
             )
@@ -131,11 +134,10 @@ class OnboardingRequest(BaseModel):
     cedula: str = Field(..., min_length=5, max_length=20)
     especialidad: str | None = None
 
+
 @router.post("/onboarding")
 async def onboarding(
-    data: OnboardingRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
+    data: OnboardingRequest, request: Request, db: AsyncSession = Depends(get_db)
 ) -> Any:
     """
     Onboarding flow: Create a new Tenant and TenantKey for a user who just signed up via Clerk.
@@ -145,7 +147,9 @@ async def onboarding(
     if not user_id:
         raise HTTPException(status_code=401, detail="No authenticated Clerk user found")
 
-    user_email = getattr(request.state, "user_email", f"doctor_{user_id}@medrecord.local")
+    user_email = getattr(
+        request.state, "user_email", f"doctor_{user_id}@medrecord.local"
+    )
 
     import uuid
 
@@ -179,7 +183,7 @@ async def onboarding(
             "cedula": tenant_row.cedula,
             "especialidad": tenant_row.especialidad,
             "email": tenant_row.email,
-            "plan": tenant_row.plan
+            "plan": tenant_row.plan,
         }
     else:
         new_tenant_id = uuid.uuid4()
@@ -189,7 +193,7 @@ async def onboarding(
         # insert the TenantKey which is tenant-scoped.
         await db.execute(
             text("SELECT set_config('app.current_tenant', :tid, true)"),
-            {"tid": str(new_tenant_id)}
+            {"tid": str(new_tenant_id)},
         )
 
         # Create Tenant
@@ -200,7 +204,7 @@ async def onboarding(
             cedula=data.cedula,
             especialidad=data.especialidad or "General",
             email=user_email,
-            plan="basico"
+            plan="basico",
         )
         db.add(new_tenant)
 
@@ -209,7 +213,7 @@ async def onboarding(
             new_key = TenantKey(
                 tenant_id=new_tenant_id,
                 encrypted_dek=b"unused_direct_kms",
-                kms_key_id=settings.kms_encryption_key_id
+                kms_key_id=settings.kms_encryption_key_id,
             )
         else:
             # Create dummy DEK for local dev (in production, we call KMS)
@@ -218,7 +222,7 @@ async def onboarding(
             new_key = TenantKey(
                 tenant_id=new_tenant_id,
                 encrypted_dek=dummy_dek,
-                kms_key_id="mock_kms_key"
+                kms_key_id="mock_kms_key",
             )
         db.add(new_key)
 
@@ -237,7 +241,7 @@ async def onboarding(
                     f"https://api.clerk.com/v1/users/{user_id}/metadata",
                     headers={
                         "Authorization": f"Bearer {settings.clerk_secret_key}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
                     },
                     json={
                         "public_metadata": {
@@ -245,9 +249,9 @@ async def onboarding(
                             "cedula": data.cedula,
                             "nombre_medico": data.nombre_medico,
                             "especialidad": data.especialidad or "General",
-                            "plan": "basico"
+                            "plan": "basico",
                         }
-                    }
+                    },
                 )
                 resp_meta.raise_for_status()
 
@@ -256,12 +260,9 @@ async def onboarding(
                     f"https://api.clerk.com/v1/users/{user_id}",
                     headers={
                         "Authorization": f"Bearer {settings.clerk_secret_key}",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
                     },
-                    json={
-                        "first_name": first_name,
-                        "last_name": last_name
-                    }
+                    json={"first_name": first_name, "last_name": last_name},
                 )
                 resp_profile.raise_for_status()
         except httpx.HTTPStatusError as e:
@@ -276,7 +277,9 @@ async def onboarding(
             ) from e
         except Exception as e:
             logger.error(f"Failed to update Clerk metadata for {user_id}: {e}")
-            raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}") from e
+            raise HTTPException(
+                status_code=500, detail=f"Error interno: {str(e)}"
+            ) from e
 
     if not tenant_row:
         tenant_profile = {
@@ -286,12 +289,12 @@ async def onboarding(
             "cedula": data.cedula,
             "especialidad": data.especialidad or "General",
             "email": user_email,
-            "plan": "basico"
+            "plan": "basico",
         }
 
     return {
         "status": "success" if not tenant_row else "already_onboarded",
         "tenant_id": str(new_tenant_id),
         "tenant": tenant_profile,
-        "message": "Onboarding completado"
+        "message": "Onboarding completado",
     }

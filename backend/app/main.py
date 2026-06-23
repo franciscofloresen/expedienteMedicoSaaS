@@ -101,7 +101,6 @@ app = FastAPI(
 )
 
 
-
 # ── Middleware (order matters: last added = first executed) ──
 
 # Security headers — runs on every response
@@ -125,7 +124,9 @@ app.add_middleware(TenantMiddleware)
 # ── Routes ──
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])
 app.include_router(pacientes.router, prefix="/api/v1/pacientes", tags=["Pacientes"])
-app.include_router(expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"])
+app.include_router(
+    expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"]
+)
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])

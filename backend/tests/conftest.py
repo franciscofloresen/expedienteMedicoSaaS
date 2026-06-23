@@ -47,9 +47,11 @@ def _get_test_engine():
         _test_engine = create_async_engine(db_url, echo=False)
     return _test_engine
 
+
 # Test tenant IDs
 TENANT_A_ID = "11111111-1111-1111-1111-111111111111"
 TENANT_B_ID = "22222222-2222-2222-2222-222222222222"
+
 
 @pytest_asyncio.fixture(scope="session")
 async def setup_database():
@@ -59,34 +61,51 @@ async def setup_database():
         await conn.run_sync(Base.metadata.create_all)
         # Grant permissions to medrecord_app role in the test database
         await conn.execute(text("GRANT USAGE ON SCHEMA public TO medrecord_app"))
-        await conn.execute(text(
-            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO medrecord_app"
-        ))
-        await conn.execute(text(
-            "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
-        ))
+        await conn.execute(
+            text(
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO medrecord_app"
+            )
+        )
+        await conn.execute(
+            text(
+                "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
+            )
+        )
 
         # Enable RLS on core tables
-        for table in ["pacientes", "expedientes", "notas", "citas", "audit_log", "tenant_keys"]:
+        for table in [
+            "pacientes",
+            "expedientes",
+            "notas",
+            "citas",
+            "audit_log",
+            "tenant_keys",
+        ]:
             await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
             await conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))
             # The policy: tenant_id must match the app.current_tenant setting
-            await conn.execute(text(f"""
+            await conn.execute(
+                text(
+                    f"""
                 CREATE POLICY tenant_isolation_policy ON {table}
                 FOR ALL
                 TO medrecord_app
                 USING (tenant_id = current_setting('app.current_tenant', true)::uuid)
                 WITH CHECK (tenant_id = current_setting('app.current_tenant', true)::uuid)
-            """))
+            """
+                )
+            )
 
         # Seed Tenants
         await conn.execute(
-            text("""
+            text(
+                """
                 INSERT INTO tenants (id, nombre_medico, cedula, especialidad, email)
                 VALUES (:id_a, 'Dr. Tenant A', 'CED-A-001', 'General', 'a@test.com'),
                        (:id_b, 'Dr. Tenant B', 'CED-B-001', 'Cardiología', 'b@test.com')
                 ON CONFLICT (id) DO NOTHING
-            """),
+            """
+            ),
             {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
         )
         dek = b"\x00" * 32  # 32-byte mock DEK
@@ -123,8 +142,6 @@ async def db_session(setup_database) -> AsyncGenerator[AsyncSession, None]:
         await session.rollback()
 
 
-
-
 @pytest_asyncio.fixture
 async def client(setup_database) -> AsyncGenerator[AsyncClient, None]:
     """Async HTTP test client for the FastAPI app."""
@@ -141,7 +158,9 @@ async def client_tenant_a(setup_database) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     hdrs = {"X-Tenant-ID": TENANT_A_ID}
     async with AsyncClient(
-        transport=transport, base_url="http://testserver", headers=hdrs,
+        transport=transport,
+        base_url="http://testserver",
+        headers=hdrs,
     ) as ac:
         yield ac
         await asyncio.sleep(0.1)
@@ -153,7 +172,9 @@ async def client_tenant_b(setup_database) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     hdrs = {"X-Tenant-ID": TENANT_B_ID}
     async with AsyncClient(
-        transport=transport, base_url="http://testserver", headers=hdrs,
+        transport=transport,
+        base_url="http://testserver",
+        headers=hdrs,
     ) as ac:
         yield ac
         await asyncio.sleep(0.1)

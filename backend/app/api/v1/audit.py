@@ -9,11 +9,10 @@ from app.models.audit import AuditLog
 
 router = APIRouter()
 
+
 @router.get("/recent")
 async def get_recent_audit_logs(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    limit: int = 20
+    request: Request, db: AsyncSession = Depends(get_db), limit: int = 20
 ) -> Any:
     """Obtiene los logs de auditoría más recientes para el tenant actual."""
     tenant_id = getattr(request.state, "tenant_id", None)
@@ -41,5 +40,3 @@ async def get_recent_audit_logs(
         }
         for log in logs
     ]
-
-

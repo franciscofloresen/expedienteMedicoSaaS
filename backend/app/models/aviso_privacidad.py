@@ -10,9 +10,7 @@ from app.models.base import Base
 
 class AvisoPrivacidad(Base):
     __tablename__ = "avisos_privacidad"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "paciente_id", "version_aviso"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "paciente_id", "version_aviso"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

@@ -23,7 +23,9 @@ PUBLIC_PATHS = {
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         # Skip public paths and CORS preflight OPTIONS requests
         if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
             return await call_next(request)
@@ -47,17 +49,15 @@ class TenantMiddleware(BaseHTTPMiddleware):
             # Clerk puts custom claims in publicMetadata or custom JWT template
             metadata = claims.get("metadata", claims.get("public_metadata", {}))
             tenant_id = (
-                claims.get("tenant_id") or
-                claims.get("custom:tenant_id") or
-                metadata.get("tenant_id")
+                claims.get("tenant_id")
+                or claims.get("custom:tenant_id")
+                or metadata.get("tenant_id")
             )
 
         # Solo permitido en pruebas automatizadas (tests), NUNCA en development o production
         if not tenant_id and settings.environment == "testing":
             tenant_id = request.headers.get("X-Tenant-ID")
             claims = {"sub": "test-user", "email": "test@test.com"}
-
-
 
         if not tenant_id:
             # Allow onboarding path without tenant_id if they have a valid token
@@ -66,16 +66,22 @@ class TenantMiddleware(BaseHTTPMiddleware):
             else:
                 return JSONResponse(
                     status_code=401,
-                    content={"detail": "Token de autenticación requerido o tenant_id faltante"},
+                    content={
+                        "detail": "Token de autenticación requerido o tenant_id faltante"
+                    },
                 )
 
         request.state.tenant_id = tenant_id
         request.state.user_id = claims.get("sub", "dev-user")
-        request.state.user_email = claims.get("email") or metadata.get("email", "dev@test.com")
-        request.state.user_name = claims.get("nombre_medico") or metadata.get("nombre_medico")
+        request.state.user_email = claims.get("email") or metadata.get(
+            "email", "dev@test.com"
+        )
+        request.state.user_name = claims.get("nombre_medico") or metadata.get(
+            "nombre_medico"
+        )
         request.state.user_cedula = claims.get("cedula") or metadata.get("cedula")
-        request.state.user_especialidad = claims.get("especialidad") or metadata.get("especialidad")
+        request.state.user_especialidad = claims.get("especialidad") or metadata.get(
+            "especialidad"
+        )
         request.state.plan = claims.get("plan") or metadata.get("plan") or "basico"
         return await call_next(request)
-
-

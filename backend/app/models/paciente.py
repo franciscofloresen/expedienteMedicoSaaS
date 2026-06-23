@@ -48,7 +48,9 @@ class Paciente(Base):
     # Optional
     curp: Mapped[str | None] = mapped_column(String(18), index=True)
     entidad_nacimiento: Mapped[str | None] = mapped_column(String(50))
-    nacionalidad: Mapped[str | None] = mapped_column(String(50), server_default="Mexicana")
+    nacionalidad: Mapped[str | None] = mapped_column(
+        String(50), server_default="Mexicana"
+    )
     ocupacion: Mapped[str | None] = mapped_column(String(100))
 
     # Contact

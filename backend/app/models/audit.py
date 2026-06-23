@@ -22,6 +22,7 @@ class AuditLog(Base):
     This table is append-only. A database trigger prevents UPDATE and DELETE
     by the application role.
     """
+
     __tablename__ = "audit_log"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)

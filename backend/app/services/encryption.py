@@ -19,11 +19,13 @@ from app.core.config import settings
 
 _kms_client = None
 
+
 def _get_kms_client() -> Any:
     global _kms_client
     if _kms_client is None:
         _kms_client = boto3.client("kms", region_name=settings.aws_region)
     return _kms_client
+
 
 @retry(
     stop=stop_after_attempt(3),
@@ -76,8 +78,10 @@ def decrypt_field(ciphertext_blob: bytes, tenant_id: str) -> str:
             decoded = ciphertext_blob.decode("utf-8")
             if decoded.startswith(f"MOCK-ENCRYPTED-{tenant_id}-"):
                 return decoded.replace(f"MOCK-ENCRYPTED-{tenant_id}-", "", 1)
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger("medrecord.encryption")
+            logger.debug(f"Mock decryption error: {e}")
         return "Decryption Error (Dev Mock)"
 
     kms = _get_kms_client()

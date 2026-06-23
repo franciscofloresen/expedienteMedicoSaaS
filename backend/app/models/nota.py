@@ -5,7 +5,15 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from app.models.expediente import Expediente
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String, Text, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import BYTEA, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -46,7 +54,9 @@ class Nota(Base):
     firma_digital: Mapped[bytes | None] = mapped_column(BYTEA)
     firma_hash_contenido: Mapped[str | None] = mapped_column(String(64))
     firma_kms_key_id: Mapped[str | None] = mapped_column(String(200))
-    firma_algoritmo: Mapped[str | None] = mapped_column(String(30), server_default="ECDSA_SHA_256")
+    firma_algoritmo: Mapped[str | None] = mapped_column(
+        String(30), server_default="ECDSA_SHA_256"
+    )
     firmado_por: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id")
     )

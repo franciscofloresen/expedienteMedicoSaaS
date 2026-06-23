@@ -14,4 +14,5 @@ async def main():
             await session.execute(text("DELETE FROM pacientes"))
             print("Deleted all records from tables to avoid decryption errors.")
 
+
 asyncio.run(main())

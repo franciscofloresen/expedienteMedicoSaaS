@@ -30,7 +30,9 @@ class Cita(Base):
     )
 
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    fecha_inicio: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     fecha_fin: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # Estados: "Programada", "Cancelada", "Completada"

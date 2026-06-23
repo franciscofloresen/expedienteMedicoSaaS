@@ -1,4 +1,3 @@
-
 """
 Audit Middleware — NOM-004 + NOM-024 Compliance
 
@@ -18,8 +17,6 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Any
-
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -32,7 +29,9 @@ SKIP_AUDIT_PATHS = {"/health", "/docs", "/openapi.json", "/favicon.ico"}
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         if request.method == "OPTIONS" or request.url.path in SKIP_AUDIT_PATHS:
             return await call_next(request)
 

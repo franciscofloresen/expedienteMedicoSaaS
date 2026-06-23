@@ -19,6 +19,7 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
 
     # Use seed_tenant_a instead of registering, as auth is now via Clerk
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
 
     # 3. Create Patient
@@ -29,16 +30,14 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
         "curp": "AAAA900101HDFXYZ01",
         "telefono": "555-000-1111",
         "domicilio": "Calle Falsa 123",
-        "ocupacion": "Ingeniera"
+        "ocupacion": "Ingeniera",
     }
     res = await client.post("/api/v1/pacientes/", json=patient_data, headers=headers)
     assert res.status_code == 201
     patient_id = res.json()["id"]
 
     # 4. Create Expediente
-    exp_data = {
-        "paciente_id": patient_id
-    }
+    exp_data = {"paciente_id": patient_id}
     res = await client.post("/api/v1/expedientes/", json=exp_data, headers=headers)
     assert res.status_code == 201
     expediente_id = res.json()["id"]
@@ -52,10 +51,10 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
             "frecuencia_cardiaca": 80,
             "frecuencia_respiratoria": 16,
             "temperatura": 36.5,
-            "tension_arterial": "120/80"
+            "tension_arterial": "120/80",
         },
         "diagnosticos": ["Migraña"],
-        "tratamiento": "Paracetamol"
+        "tratamiento": "Paracetamol",
     }
     res = await client.post("/api/v1/notas/", json=draft_data, headers=headers)
     assert res.status_code == 201
@@ -70,9 +69,13 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
 
     # 6. Update Draft
     update_data = {
-        "contenido": {"evolucion_y_actualizacion_cuadro": "Dolor severo, requiere observación."},
+        "contenido": {
+            "evolucion_y_actualizacion_cuadro": "Dolor severo, requiere observación."
+        },
     }
-    res = await client.put(f"/api/v1/notas/{nota_id}", json=update_data, headers=headers)
+    res = await client.put(
+        f"/api/v1/notas/{nota_id}", json=update_data, headers=headers
+    )
     assert res.status_code == 200
 
     # 7. Sign Note
@@ -88,10 +91,11 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
     assert verify_result["valid"] is True
 
     # Verify note is no longer editable
-    res = await client.put(f"/api/v1/notas/{nota_id}", json=update_data, headers=headers)
+    res = await client.put(
+        f"/api/v1/notas/{nota_id}", json=update_data, headers=headers
+    )
     assert res.status_code == 403
 
     # 8. Verify Audit Log
     # Ya no verificamos la base de datos localmente porque el audit es en pgaudit/CloudTrail.
     pass
-

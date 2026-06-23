@@ -1,11 +1,16 @@
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import uuid4
+
 
 @pytest.mark.asyncio
-async def test_expedientes_flow(client: AsyncClient, db_session: AsyncSession, seed_tenant_a):
+async def test_expedientes_flow(
+    client: AsyncClient, db_session: AsyncSession, seed_tenant_a
+):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
 
     # 1. Create Patient
@@ -19,25 +24,26 @@ async def test_expedientes_flow(client: AsyncClient, db_session: AsyncSession, s
     patient_id = res.json()["id"]
 
     # 2. Create Expediente
-    exp_data = {
-        "paciente_id": patient_id,
-        "antecedentes": "Alergia a la penicilina."
-    }
+    exp_data = {"paciente_id": patient_id, "antecedentes": "Alergia a la penicilina."}
     res = await client.post("/api/v1/expedientes/", json=exp_data, headers=headers)
     assert res.status_code == 201
     expediente_id = res.json()["id"]
 
     # 3. Read Expediente (Check decryption)
-    res = await client.get(f"/api/v1/expedientes/paciente/{patient_id}", headers=headers)
+    res = await client.get(
+        f"/api/v1/expedientes/paciente/{patient_id}", headers=headers
+    )
     assert res.status_code == 200
     exp = res.json()
     assert exp["antecedentes"] == "Alergia a la penicilina."
 
     # 4. Update Expediente
-    update_data = {
-        "antecedentes": "Alergia a la penicilina. Hipertensión."
-    }
-    res = await client.put(f"/api/v1/expedientes/{expediente_id}/antecedentes", json=update_data, headers=headers)
+    update_data = {"antecedentes": "Alergia a la penicilina. Hipertensión."}
+    res = await client.put(
+        f"/api/v1/expedientes/{expediente_id}/antecedentes",
+        json=update_data,
+        headers=headers,
+    )
     assert res.status_code == 200
     assert res.json()["status"] == "success"
 
@@ -54,18 +60,19 @@ async def test_expedientes_flow(client: AsyncClient, db_session: AsyncSession, s
 @pytest.mark.asyncio
 async def test_expediente_invalid_patient(client: AsyncClient, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
-    
-    exp_data = {
-        "paciente_id": str(uuid4())
-    }
+
+    exp_data = {"paciente_id": str(uuid4())}
     res = await client.post("/api/v1/expedientes/", json=exp_data, headers=headers)
     assert res.status_code == 404
+
 
 @pytest.mark.asyncio
 async def test_export_pdf_invalid(client: AsyncClient, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
+
     headers = {"X-Tenant-ID": TENANT_A_ID}
-    
+
     res = await client.get(f"/api/v1/expedientes/{uuid4()}/export", headers=headers)
     assert res.status_code == 404

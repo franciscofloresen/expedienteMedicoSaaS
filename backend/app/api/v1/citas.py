@@ -14,6 +14,7 @@ from app.schemas.cita import CitaCreate, CitaResponse, CitaUpdate
 logger = logging.getLogger("medrecord")
 router = APIRouter()
 
+
 @router.get("/", response_model=List[CitaResponse])
 async def read_citas(
     request: Request,
@@ -30,6 +31,7 @@ async def read_citas(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 @router.post("/", response_model=CitaResponse, status_code=status.HTTP_201_CREATED)
 async def create_cita(
     cita_in: CitaCreate,
@@ -37,16 +39,14 @@ async def create_cita(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     tenant_id = request.state.tenant_id
-    cita = Cita(
-        tenant_id=tenant_id,
-        **cita_in.model_dump()
-    )
+    cita = Cita(tenant_id=tenant_id, **cita_in.model_dump())
     db.add(cita)
     await db.flush()
     await db.refresh(cita)
 
     logger.info(f"Cita creada: {cita.id} para tenant {tenant_id}")
     return cita
+
 
 @router.put("/{cita_id}", response_model=CitaResponse)
 async def update_cita(
@@ -72,6 +72,7 @@ async def update_cita(
 
     logger.info(f"Cita actualizada: {cita.id}")
     return cita
+
 
 @router.delete("/{cita_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cita(

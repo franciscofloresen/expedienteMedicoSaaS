@@ -15,9 +15,7 @@ from app.models.base import Base
 
 class Expediente(Base):
     __tablename__ = "expedientes"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "folio", name="uq_folio_tenant"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "folio", name="uq_folio_tenant"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -49,6 +47,4 @@ class Expediente(Base):
     paciente: Mapped["Paciente"] = relationship(
         "Paciente", back_populates="expedientes"
     )
-    notas: Mapped[List["Nota"]] = relationship(
-        "Nota", back_populates="expediente"
-    )
+    notas: Mapped[List["Nota"]] = relationship("Nota", back_populates="expediente")

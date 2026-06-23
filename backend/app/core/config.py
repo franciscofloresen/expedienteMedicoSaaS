@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Cache TTLs (seconds)
     secrets_cache_ttl: int = 300  # 5 minutes
-    dek_cache_ttl: int = 300      # 5 minutes
+    dek_cache_ttl: int = 300  # 5 minutes
 
     # Local JWT (development only — NEVER hardcode secrets)
     # If empty in dev mode, an ephemeral random secret is generated per process.
@@ -80,7 +80,6 @@ def _settings() -> Settings:
     return get_settings()
 
 
-
 # ── Secrets Manager Cache ──
 
 _secrets_cache: dict[str, tuple[float, dict[str, Any]]] = {}
@@ -89,9 +88,12 @@ _sm_client = None
 
 def _get_sm_client() -> Any:
     import boto3
+
     global _sm_client
     if _sm_client is None:
-        _sm_client = boto3.client("secretsmanager", region_name=get_settings().aws_region)
+        _sm_client = boto3.client(
+            "secretsmanager", region_name=get_settings().aws_region
+        )
     return _sm_client
 
 

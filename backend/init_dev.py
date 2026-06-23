@@ -13,7 +13,9 @@ async def create_dev_tenant():
         async with session.begin():
             # Bypass RLS to insert tenant
             await session.execute(
-                text("SET LOCAL \"app.current_tenant\" = '00000000-0000-0000-0000-000000000000'")
+                text(
+                    "SET LOCAL \"app.current_tenant\" = '00000000-0000-0000-0000-000000000000'"
+                )
             )
 
             tenant_id = "00000000-0000-0000-0000-000000000000"
@@ -27,7 +29,7 @@ async def create_dev_tenant():
                     id=tenant_id,
                     nombre_medico="Dr. Dev",
                     cedula="DEV12345",
-                    email="dev@local.host"
+                    email="dev@local.host",
                 )
                 session.add(t)
 
@@ -40,11 +42,12 @@ async def create_dev_tenant():
                     tk = TenantKey(
                         tenant_id=tenant_id,
                         encrypted_dek=b"mock_encrypted_dek",
-                        kms_key_id="mock_kms_key"
+                        kms_key_id="mock_kms_key",
                     )
                     session.add(tk)
             else:
                 print("Tenant de desarrollo ya existe.")
+
 
 if __name__ == "__main__":
     asyncio.run(create_dev_tenant())

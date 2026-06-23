@@ -13,8 +13,10 @@ class CitaBase(BaseModel):
     estado: str = Field(default="Programada", max_length=50)
     notas: Optional[str] = None
 
+
 class CitaCreate(CitaBase):
     pass
+
 
 class CitaUpdate(BaseModel):
     paciente_id: Optional[UUID] = None
@@ -23,6 +25,7 @@ class CitaUpdate(BaseModel):
     fecha_fin: Optional[datetime] = None
     estado: Optional[str] = Field(None, max_length=50)
     notas: Optional[str] = None
+
 
 class CitaResponse(CitaBase):
     id: UUID

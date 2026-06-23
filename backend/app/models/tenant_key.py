@@ -14,6 +14,7 @@ from app.models.base import Base
 
 class TenantKey(Base):
     """Stores the KMS-encrypted Data Encryption Key (DEK) for envelope encryption."""
+
     __tablename__ = "tenant_keys"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(

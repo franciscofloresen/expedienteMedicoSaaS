@@ -52,6 +52,7 @@ def _get_local_jwt_secret() -> str:
     # Generate ephemeral secret (tokens won't survive Lambda cold start — acceptable in dev)
     if _ephemeral_secret is None:
         import os
+
         _ephemeral_secret = os.urandom(32).hex()
         logger.warning(
             "No JWT_DEV_SECRET configured — using ephemeral secret. "
@@ -153,6 +154,7 @@ def _decode_clerk_jwt(token: str) -> dict[str, Any]:
     try:
         # Convert JWK to PEM for PyJWT
         from jwt.algorithms import RSAAlgorithm
+
         public_key = RSAAlgorithm.from_jwk(key)
 
         claims = pyjwt.decode(

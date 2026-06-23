@@ -1,4 +1,3 @@
-
 """
 Digital Signature Service — ECDSA P-256 via AWS KMS (Production) / Local Key (Development)
 
@@ -64,9 +63,9 @@ def canonical_serialize(content: str, metadata: dict[str, Any]) -> bytes:
         "contenido": content,
         "metadata": {k: str(v) for k, v in sorted(metadata.items())},
     }
-    return json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-        "utf-8"
-    )
+    return json.dumps(
+        canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
 
 
 def compute_content_hash(canonical_bytes: bytes) -> str:

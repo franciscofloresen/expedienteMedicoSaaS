@@ -1,4 +1,3 @@
-
 """API v1 — Pacientes CRUD (NOM-004 §5.3)."""
 
 from datetime import date
@@ -19,6 +18,7 @@ router = APIRouter()
 
 # ── Pydantic Schemas (separate from NOM-004 validator) ──
 
+
 class PacienteCreate(BaseModel):
     """Schema for creating a patient. Backend encrypts the address."""
 
@@ -26,7 +26,10 @@ class PacienteCreate(BaseModel):
     sexo: str = Field(..., pattern="^(M|F|X)$")
     fecha_nacimiento: date
     curp: str | None = Field(
-        None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$"
+        None,
+        min_length=18,
+        max_length=18,
+        pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$",
     )
     entidad_nacimiento: str | None = None
     nacionalidad: str | None = None
@@ -51,7 +54,10 @@ class PacienteUpdate(BaseModel):
     sexo: str | None = Field(None, pattern="^(M|F|X)$")
     fecha_nacimiento: date | None = None
     curp: str | None = Field(
-        None, min_length=18, max_length=18, pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$"
+        None,
+        min_length=18,
+        max_length=18,
+        pattern=r"^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$",
     )
     telefono: str | None = None
     email: str | None = None
@@ -60,8 +66,8 @@ class PacienteUpdate(BaseModel):
     domicilio: str | None = None  # Will be encrypted before storage
 
 
-
 # ── Endpoints ──
+
 
 @router.get("/")
 async def list_pacientes(
@@ -80,7 +86,7 @@ async def list_pacientes(
             or_(
                 Paciente.nombre_completo.ilike(search_term),
                 Paciente.curp.ilike(search_term),
-                Paciente.telefono.ilike(search_term)
+                Paciente.telefono.ilike(search_term),
             )
         )
 
