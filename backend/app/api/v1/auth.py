@@ -165,17 +165,28 @@ async def onboarding(
         if result.scalar_one_or_none():
             return {"status": "already_onboarded", "tenant_id": str(tenant_id)}
 
-    # Check if they already have a tenant by email
-    stmt = select(Tenant).where(Tenant.email == user_email)
+    # Check if they already have a tenant by clerk_id (Idempotency check)
+    stmt = select(Tenant).where(Tenant.clerk_id == user_id)
     existing_tenant = await db.execute(stmt)
     tenant_row = existing_tenant.scalar_one_or_none()
 
     if tenant_row:
         new_tenant_id = tenant_row.id
+        tenant_profile = {
+            "id": str(tenant_row.id),
+            "clerk_id": tenant_row.clerk_id,
+            "nombre_medico": tenant_row.nombre_medico,
+            "cedula": tenant_row.cedula,
+            "especialidad": tenant_row.especialidad,
+            "email": tenant_row.email,
+            "plan": tenant_row.plan
+        }
     else:
         new_tenant_id = uuid.uuid4()
 
-        # We must bypass RLS to create the tenant because we don't have a tenant context yet
+        # We must bypass RLS to create the tenant because we don't have a tenant context yet.
+        # Setting the config strictly to the new_tenant_id allows the application role to
+        # insert the TenantKey which is tenant-scoped.
         await db.execute(
             text("SELECT set_config('app.current_tenant', :tid, true)"),
             {"tid": str(new_tenant_id)}
@@ -184,6 +195,7 @@ async def onboarding(
         # Create Tenant
         new_tenant = Tenant(
             id=new_tenant_id,
+            clerk_id=user_id,
             nombre_medico=data.nombre_medico,
             cedula=data.cedula,
             especialidad=data.especialidad or "General",
@@ -193,12 +205,11 @@ async def onboarding(
         db.add(new_tenant)
 
         if settings.environment != "development":
-            from app.services.encryption import generate_tenant_dek
-            dek_data = generate_tenant_dek(str(new_tenant_id))
+            # Direct KMS is used. No DEK generated. Store CMK ARN for auditing key rotation.
             new_key = TenantKey(
                 tenant_id=new_tenant_id,
-                encrypted_dek=dek_data["encrypted_dek"],
-                kms_key_id=dek_data["kms_key_id"]
+                encrypted_dek=b"unused_direct_kms",
+                kms_key_id=settings.kms_encryption_key_id
             )
         else:
             # Create dummy DEK for local dev (in production, we call KMS)
@@ -233,7 +244,8 @@ async def onboarding(
                             "tenant_id": str(new_tenant_id),
                             "cedula": data.cedula,
                             "nombre_medico": data.nombre_medico,
-                            "especialidad": data.especialidad or "General"
+                            "especialidad": data.especialidad or "General",
+                            "plan": "basico"
                         }
                     }
                 )
@@ -266,8 +278,20 @@ async def onboarding(
             logger.error(f"Failed to update Clerk metadata for {user_id}: {e}")
             raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}") from e
 
+    if not tenant_row:
+        tenant_profile = {
+            "id": str(new_tenant_id),
+            "clerk_id": user_id,
+            "nombre_medico": data.nombre_medico,
+            "cedula": data.cedula,
+            "especialidad": data.especialidad or "General",
+            "email": user_email,
+            "plan": "basico"
+        }
+
     return {
-        "status": "success",
+        "status": "success" if not tenant_row else "already_onboarded",
         "tenant_id": str(new_tenant_id),
+        "tenant": tenant_profile,
         "message": "Onboarding completado"
     }

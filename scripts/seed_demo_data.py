@@ -11,7 +11,7 @@ from app.models.tenant import Tenant
 from app.models.paciente import Paciente
 from app.models.expediente import Expediente
 from app.models.nota import Nota
-from app.api.v1.auth import _hash_password
+
 from app.models.tenant_key import TenantKey
 from sqlalchemy import text
 from datetime import datetime, timezone
@@ -33,7 +33,7 @@ async def seed_data():
                 cedula="MED-12345",
                 especialidad="Medicina General",
                 email="dr.demo@medrecord.mx",
-                password_hash=_hash_password("DemoPassword123!")
+                clerk_id="demo_clerk_id_123"
             )
             session.add(doctor)
             
@@ -108,7 +108,7 @@ async def seed_data():
             )
             session.add(p2)
             
-            print(f"Data seeded successfully for doctor: {doctor.email} | password: DemoPassword123!")
+            print(f"Data seeded successfully for doctor: {doctor.email}")
             
 if __name__ == "__main__":
     asyncio.run(seed_data())

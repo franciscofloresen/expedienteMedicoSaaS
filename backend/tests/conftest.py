@@ -16,7 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Override environment before importing app
-os.environ["ENVIRONMENT"] = "development"
+os.environ["ENVIRONMENT"] = "testing"
 # Priority: DATABASE_URL (set by CI) > TEST_DATABASE_URL > local default
 if "DATABASE_URL" not in os.environ:
     os.environ["DATABASE_URL"] = os.environ.get(

@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,13 +21,23 @@ logger = logging.getLogger("medrecord")
 router = APIRouter()
 
 class NotaCreate(BaseModel):
-    expediente_id: str
+    expediente_id: UUID
     tipo_nota: str = Field(..., description="evolucion, interconsulta, ingreso, egreso")
     contenido: dict[str, Any]
     signos_vitales: dict[str, Any] = Field(default_factory=dict)
     diagnosticos: list[str] = Field(default_factory=list)
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
+
+    @model_validator(mode="after")
+    def validate_nom004_compliance(self) -> "NotaCreate":
+        if self.tipo_nota not in ("evolucion", "interconsulta", "ingreso", "egreso"):
+            raise ValueError("Tipo de nota inválido según la NOM-004")
+        if self.tipo_nota in ("evolucion", "ingreso", "egreso") and not self.signos_vitales:
+            raise ValueError(f"Los signos vitales son obligatorios para notas de {self.tipo_nota} (NOM-004)")
+        if self.tipo_nota == "evolucion" and not self.diagnosticos:
+            raise ValueError("El diagnóstico es obligatorio para notas de evolución (NOM-004)")
+        return self
 
 class NotaUpdate(BaseModel):
     contenido: dict[str, Any] | None = None
@@ -244,11 +254,20 @@ async def firmar_nota(
         "creado_en": nota.creado_en.isoformat(),
     }, ensure_ascii=False, sort_keys=True)
 
-    # TODO: In production, pull doctor identity from tenant/user profile
-    # For now, use placeholder values in dev; real values from JWT claims in prod
-    medico_nombre = getattr(request.state, "user_name", "Dr. Local Dev")
-    medico_cedula = getattr(request.state, "user_cedula", "DEV-00000")
-    medico_especialidad = getattr(request.state, "user_especialidad", "General")
+    # Pull doctor identity directly from the database for strict legal compliance (NOM-004)
+    from app.models.tenant import Tenant
+    stmt_tenant = select(Tenant).where(Tenant.id == tenant_id)
+    tenant_row = (await db.execute(stmt_tenant)).scalar_one_or_none()
+
+    if not tenant_row:
+        raise HTTPException(
+            status_code=403,
+            detail="No se encontró el perfil médico asociado para firmar la nota."
+        )
+
+    medico_nombre = tenant_row.nombre_medico
+    medico_cedula = tenant_row.cedula
+    medico_especialidad = tenant_row.especialidad or "General"
 
     try:
         signature_data = sign_note(

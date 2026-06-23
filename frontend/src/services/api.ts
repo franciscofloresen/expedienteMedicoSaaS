@@ -149,42 +149,7 @@ export const expedientesApi = {
   updateAntecedentes: async (id: string, antecedentes: string): Promise<void> => {
     await api.put(`/expedientes/${id}/antecedentes`, { antecedentes });
   },
-  exportarPdf: async (expedienteId: string): Promise<void> => {
-    let token = '';
-    if (getToken) {
-      token = (await getToken()) || '';
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/expedientes/${expedienteId}/export`, {
-      method: 'GET',
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    });
 
-    if (!response.ok) {
-      throw new Error('Error al generar PDF del expediente');
-    }
-
-    const blob = await response.blob();
-    
-    // Get filename from header or fallback
-    const disposition = response.headers.get('content-disposition');
-    let filename = `expediente_${expedienteId}.pdf`;
-    if (disposition && disposition.includes('filename=')) {
-      const match = disposition.match(/filename="?([^"]+)"?/);
-      if (match && match[1]) filename = match[1];
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  }
 };
 
 export const notasApi = {

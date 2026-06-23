@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Activity, Users, FileText, Settings as SettingsIcon, Menu, X, ShieldCheck, Calendar as CalendarIcon } from 'lucide-react';
 import { UserButton } from '@clerk/react';
 import { ConnectionStatus } from './ConnectionStatus';
+import UpgradeBanner from './UpgradeBanner';
 
 export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -103,6 +104,7 @@ export default function Layout() {
       <main className="main-content">
         <div key={location.pathname} className="fade-in" style={{ width: '100%', height: '100%' }}>
           <ConnectionStatus />
+          <UpgradeBanner />
           <Outlet />
         </div>
       </main>

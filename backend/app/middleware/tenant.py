@@ -52,9 +52,12 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 metadata.get("tenant_id")
             )
 
-        # Fallback for dev demo without Clerk metadata configured
-        if not tenant_id and settings.environment == "development":
+        # Solo permitido en pruebas automatizadas (tests), NUNCA en development o production
+        if not tenant_id and settings.environment == "testing":
             tenant_id = request.headers.get("X-Tenant-ID")
+            claims = {"sub": "test-user", "email": "test@test.com"}
+
+
 
         if not tenant_id:
             # Allow onboarding path without tenant_id if they have a valid token
@@ -69,13 +72,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         request.state.tenant_id = tenant_id
         request.state.user_id = claims.get("sub", "dev-user")
         request.state.user_email = claims.get("email") or metadata.get("email", "dev@test.com")
-        request.state.user_name = claims.get("nombre_medico") or metadata.get(
-            "nombre_medico", "Médico Titular"
-        )
-        request.state.user_cedula = claims.get("cedula") or metadata.get("cedula", "ND")
-        request.state.user_especialidad = claims.get("especialidad") or metadata.get(
-            "especialidad", "General"
-        )
+        request.state.user_name = claims.get("nombre_medico") or metadata.get("nombre_medico")
+        request.state.user_cedula = claims.get("cedula") or metadata.get("cedula")
+        request.state.user_especialidad = claims.get("especialidad") or metadata.get("especialidad")
+        request.state.plan = claims.get("plan") or metadata.get("plan") or "basico"
         return await call_next(request)
 
 

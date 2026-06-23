@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.paciente import Paciente
-from app.models.tenant_key import TenantKey
 from app.services.encryption import decrypt_field, encrypt_field
 
 router = APIRouter()
@@ -114,14 +113,7 @@ async def create_paciente(
     # Encrypt address if provided
     domicilio_cifrado = None
     if paciente_data.domicilio:
-        stmt = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        result = await db.execute(stmt)
-        tenant_key = result.scalar_one_or_none()
-        if not tenant_key:
-            raise HTTPException(status_code=500, detail="Tenant encryption key not configured")
-        domicilio_cifrado = encrypt_field(
-            paciente_data.domicilio, tenant_key.encrypted_dek, tenant_id
-        )
+        domicilio_cifrado = encrypt_field(paciente_data.domicilio, tenant_id)
 
     paciente = Paciente(
         tenant_id=tenant_id,
@@ -163,13 +155,7 @@ async def get_paciente(
     domicilio = None
     if paciente.domicilio_cifrado:
         tenant_id = request.state.tenant_id
-        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        result_key = await db.execute(stmt_key)
-        tenant_key = result_key.scalar_one_or_none()
-        if tenant_key:
-            domicilio = decrypt_field(
-                paciente.domicilio_cifrado, tenant_key.encrypted_dek, tenant_id
-            )
+        domicilio = decrypt_field(paciente.domicilio_cifrado, tenant_id)
 
     return {
         "id": str(paciente.id),
@@ -211,13 +197,7 @@ async def update_paciente(
     if "domicilio" in update_data:
         domicilio_texto = update_data.pop("domicilio")
         if domicilio_texto:
-            stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-            tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
-            if not tenant_key:
-                raise HTTPException(status_code=500, detail="Tenant encryption key not configured")
-            update_data["domicilio_cifrado"] = encrypt_field(
-                domicilio_texto, tenant_key.encrypted_dek, tenant_id
-            )
+            update_data["domicilio_cifrado"] = encrypt_field(domicilio_texto, tenant_id)
         else:
             update_data["domicilio_cifrado"] = None
 

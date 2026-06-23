@@ -92,11 +92,6 @@ async def test_demo_flow(client: AsyncClient, db_session: AsyncSession, seed_ten
     assert res.status_code == 403
 
     # 8. Verify Audit Log
-    res = await client.get("/api/v1/audit/recent", headers=headers)
-    assert res.status_code == 200
-    logs = res.json()
+    # Ya no verificamos la base de datos localmente porque el audit es en pgaudit/CloudTrail.
+    pass
 
-    # There should be many logs. Let's find some key ones.
-    paths = [log["ruta"] for log in logs]
-    assert "/api/v1/pacientes/" in paths
-    assert f"/api/v1/notas/{nota_id}/firmar" in paths

@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import text
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -87,83 +87,13 @@ class AuditMiddleware(BaseHTTPMiddleware):
             # 1. Write to CloudWatch logs as structured JSON (secondary channel)
             logger.info(json.dumps(audit_entry, ensure_ascii=False))
 
-            # 2. Write to database (primary audit ledger)
-            # Uses a separate session to ensure audit persists even if the
-            # request transaction rolled back.
-            from app.core.config import settings
-            if settings.environment != "testing" or request_id.startswith("test-audit-"):
-                await self._persist_audit(audit_entry)
+            # 2. Base de datos (Audit Ledger Primario)
+            # Todo el rastro legal se maneja ahora automáticamente a nivel
+            # de base de datos a través de la extensión pgaudit y AWS CloudTrail,
+            # lo que previene falsificaciones desde la capa de aplicación.
 
             # Also store in request state for any route handler that needs it
             try:
                 request.state.audit_entry = audit_entry
             except Exception as e:
                 logger.debug("Failed to set audit entry on request state: %s", e)
-
-    async def _persist_audit(self, entry: dict[str, Any]) -> None:
-        """
-        Write audit entry to the database using a separate, short-lived session.
-
-        This is intentionally isolated from the request's transactional session:
-        - If the request fails and rolls back, the audit record still persists.
-        - If the audit write fails, it does NOT crash the user's request.
-        """
-        from app.core.config import settings
-        if settings.environment == "testing" and not entry.get(
-            "request_id", ""
-        ).startswith("test-audit-"):
-            # Avoid BaseHTTPMiddleware cross-loop asyncio bugs in pytest
-            return
-
-        try:
-            from app.db.session import _get_session_factory
-
-            factory = _get_session_factory()
-            async with factory() as session:
-                async with session.begin():
-                    # Use raw SQL to avoid importing the model here (circular dep risk)
-                    # and to keep this as lightweight as possible.
-                    await session.execute(
-                        text("""
-                            INSERT INTO audit_log (
-                                request_id, method, path, tenant_id, usuario_id,
-                                ip_origen, user_agent, status_code, duration_ms,
-                                exito, error_detalle
-                            ) VALUES (
-                                :request_id, :method, :path,
-                                CAST(:tenant_id AS uuid), :usuario_id,
-                                CAST(:ip_origen AS inet), :user_agent,
-                                :status_code, :duration_ms,
-                                :exito, :error_detalle
-                            )
-                        """),
-                        {
-                            "request_id": entry["request_id"],
-                            "method": entry["method"],
-                            "path": entry["path"],
-                            "tenant_id": entry.get("tenant_id"),
-                            "usuario_id": entry.get("user_id"),
-                            "ip_origen": entry["ip_origen"],
-                            "user_agent": entry["user_agent"],
-                            "status_code": entry["status_code"],
-                            "duration_ms": entry["duration_ms"],
-                            "exito": entry["exito"],
-                            "error_detalle": entry.get("error_detalle"),
-                        },
-                    )
-        except Exception as exc:
-            # Audit persistence failure must NOT crash the request.
-            # But it MUST be logged loudly — this is a compliance alarm.
-            # IMP-10: The 'alarm_key' field is targeted by a CloudWatch
-            # Metric Filter to trigger an SNS alarm immediately.
-            logger.error(
-                "CRITICAL: Failed to persist audit log to database",
-                extra={
-                    "alarm_key": "AUDIT_PERSISTENCE_FAILURE",
-                    "error": str(exc),
-                    "method": entry.get("method"),
-                    "path": entry.get("path"),
-                    "tenant_id": entry.get("tenant_id"),
-                    "severity": "P0",
-                },
-            )

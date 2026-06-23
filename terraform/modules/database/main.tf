@@ -41,61 +41,106 @@ resource "aws_db_subnet_group" "main" {
   }
 }
 
-# ── RDS Instance (Single-AZ for Dev/Pilot) ──
-resource "aws_db_instance" "main" {
-  identifier        = "medrecord-${var.environment}"
-  engine            = "postgres"
-  engine_version    = "15.15"
-  instance_class    = "db.t4g.micro"
-  allocated_storage = 20
-  storage_type      = "gp3"
+# ── Parameter Group for pgAudit (Aurora Cluster) ──
+resource "aws_rds_cluster_parameter_group" "postgresql_audit" {
+  name   = "medrecord-aurora-audit-pg15-${var.environment}"
+  family = "aurora-postgresql15"
 
-  db_name             = "medrecord"
-  username            = var.db_master_username
-  # Password managed by Secrets Manager (see security module)
+  parameter {
+    name         = "shared_preload_libraries"
+    value        = "pgaudit"
+    apply_method = "pending-reboot"
+  }
+
+  parameter {
+    name         = "pgaudit.log"
+    value        = "read, write"
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name         = "pgaudit.log_catalog"
+    value        = "off"
+    apply_method = "immediate"
+  }
+
+  parameter {
+    name         = "pgaudit.role"
+    value        = "rds_pgaudit"
+    apply_method = "immediate"
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# ── Aurora Serverless v2 Cluster ──
+resource "aws_rds_cluster" "main" {
+  cluster_identifier        = "medrecord-${var.environment}"
+  engine                    = "aurora-postgresql"
+  engine_mode               = "provisioned"
+  engine_version            = "15.12"
+  database_name             = "medrecord"
+  master_username           = var.db_master_username
   manage_master_user_password = true
-
-  # Encryption at rest with KMS
+  
   storage_encrypted = true
   kms_key_id        = var.kms_key_arn
 
-  # Backup
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [var.rds_security_group_id]
+
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.postgresql_audit.name
+
+  serverlessv2_scaling_configuration {
+    min_capacity = 0.5
+    max_capacity = 2.0
+  }
+
   backup_retention_period = 7
-  backup_window           = "03:00-04:00"
+  preferred_backup_window = "03:00-04:00"
   copy_tags_to_snapshot   = true
 
-  # Protection
   deletion_protection       = var.environment == "prod" ? true : false
   skip_final_snapshot       = var.environment == "prod" ? false : true
   final_snapshot_identifier = var.environment == "prod" ? "medrecord-final-${var.environment}" : null
 
-  # Network
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [var.rds_security_group_id]
-
-  # Performance Insights
-  performance_insights_enabled          = true
-  performance_insights_retention_period = 7
-
   tags = {
-    Name        = "medrecord-rds-${var.environment}"
+    Name        = "medrecord-aurora-${var.environment}"
     Environment = var.environment
     Project     = "medrecord"
   }
 }
 
+# ── Aurora Serverless v2 Instance ──
+resource "aws_rds_cluster_instance" "main" {
+  cluster_identifier = aws_rds_cluster.main.id
+  identifier         = "medrecord-instance-${var.environment}"
+  engine             = aws_rds_cluster.main.engine
+  engine_version     = aws_rds_cluster.main.engine_version
+  instance_class     = "db.serverless"
+  
+  db_subnet_group_name = aws_db_subnet_group.main.name
 
+  performance_insights_enabled          = true
+  performance_insights_retention_period = 7
+
+  tags = {
+    Name        = "medrecord-aurora-instance-${var.environment}"
+    Environment = var.environment
+  }
+}
 
 # ── Outputs ──
 output "cluster_endpoint" {
-  value = aws_db_instance.main.endpoint
+  value = aws_rds_cluster.main.endpoint
 }
 
-
 output "cluster_arn" {
-  value = aws_db_instance.main.arn
+  value = aws_rds_cluster.main.arn
 }
 
 output "db_secret_arn" {
-  value = aws_db_instance.main.master_user_secret[0].secret_arn
+  value = aws_rds_cluster.main.master_user_secret[0].secret_arn
 }

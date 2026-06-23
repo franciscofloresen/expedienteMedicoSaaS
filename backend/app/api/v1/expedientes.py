@@ -15,14 +15,12 @@ from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
 from app.models.paciente import Paciente
-from app.models.tenant_key import TenantKey
 from app.services.encryption import decrypt_field, encrypt_field
-from app.services.pdf import generate_expediente_pdf
 
 router = APIRouter()
 
 class ExpedienteCreate(BaseModel):
-    paciente_id: str
+    paciente_id: UUID
     numero_expediente: str | None = None
     antecedentes: str | None = Field(
         None, description="Antecedentes heredofamiliares, personales patológicos, etc."
@@ -75,6 +73,18 @@ async def create_expediente(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
+    # Enforce plan limits
+    plan = getattr(request.state, "plan", "basico")
+    if plan == "basico":
+        from sqlalchemy import func
+        stmt_count = select(func.count(Expediente.id))
+        count = (await db.execute(stmt_count)).scalar_one()
+        if count >= 5:
+            raise HTTPException(
+                status_code=403, 
+                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte para activar su cuenta Pro."
+            )
+
     # Check if expediente already exists
     stmt_exp = select(Expediente).where(Expediente.paciente_id == data.paciente_id)
     result = await db.execute(stmt_exp)
@@ -83,18 +93,12 @@ async def create_expediente(
 
     antecedentes_cifrado = None
     if data.antecedentes:
-        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
-        if not tenant_key:
-            raise HTTPException(status_code=500, detail="Tenant encryption key missing")
-        antecedentes_cifrado = encrypt_field(
-            data.antecedentes, tenant_key.encrypted_dek, tenant_id
-        )
+        antecedentes_cifrado = encrypt_field(data.antecedentes, tenant_id)
 
     expediente = Expediente(
         tenant_id=tenant_id,
         paciente_id=data.paciente_id,
-        folio=data.numero_expediente or f"EXP-{data.paciente_id[:8].upper()}",
+        folio=data.numero_expediente or f"EXP-{str(data.paciente_id)[:8].upper()}",
         antecedentes_cifrado=antecedentes_cifrado,
         creado_por=tenant_id,
     )
@@ -118,12 +122,7 @@ async def get_expediente_by_paciente(
     antecedentes = None
     if expediente.antecedentes_cifrado:
         tenant_id = request.state.tenant_id
-        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
-        if tenant_key:
-            antecedentes = decrypt_field(
-                expediente.antecedentes_cifrado, tenant_key.encrypted_dek, tenant_id
-            )
+        antecedentes = decrypt_field(expediente.antecedentes_cifrado, tenant_id)
 
     return {
         "id": str(expediente.id),
@@ -149,70 +148,9 @@ async def update_antecedentes(
         raise HTTPException(status_code=404, detail="Expediente no encontrado")
 
     if data.antecedentes is not None:
-        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
-        if not tenant_key:
-            raise HTTPException(status_code=500, detail="Tenant encryption key missing")
-
-        expediente.antecedentes_cifrado = encrypt_field(
-            data.antecedentes, tenant_key.encrypted_dek, tenant_id
-        )
+        expediente.antecedentes_cifrado = encrypt_field(data.antecedentes, tenant_id)
 
     await db.flush()
     return {"status": "success"}
 
-@router.get("/{expediente_id}/export")
-async def export_expediente_pdf(
-    expediente_id: UUID,
-    request: Request,
-    db: AsyncSession = Depends(get_db)
-) -> StreamingResponse:
-    tenant_id = request.state.tenant_id
 
-    # Get Expediente & Paciente
-    stmt = (
-        select(Expediente, Paciente)
-        .join(Paciente, Expediente.paciente_id == Paciente.id)
-        .where(Expediente.id == expediente_id)
-    )
-    result = await db.execute(stmt)
-    row = result.first()
-
-    if not row:
-        raise HTTPException(status_code=404, detail="Expediente no encontrado")
-
-    expediente, paciente = row
-
-    # Get Notas
-    stmt_notas = (
-        select(Nota)
-        .where(Nota.expediente_id == expediente_id)
-        .order_by(Nota.creado_en)
-    )
-    notas = (await db.execute(stmt_notas)).scalars().all()
-
-    # Decrypt antecedentes if needed
-    antecedentes = None
-    if expediente.antecedentes_cifrado:
-        stmt_key = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-        tenant_key = (await db.execute(stmt_key)).scalar_one_or_none()
-        if tenant_key:
-            antecedentes = decrypt_field(
-                expediente.antecedentes_cifrado, tenant_key.encrypted_dek, tenant_id
-            )
-
-    # Generate PDF
-    pdf_bytes = generate_expediente_pdf(
-        paciente=paciente,
-        expediente=expediente,
-        antecedentes=antecedentes,
-        notas=notas
-    )
-
-    filename = f"expediente_{paciente.nombre_completo.replace(' ', '_')}.pdf"
-
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-    )

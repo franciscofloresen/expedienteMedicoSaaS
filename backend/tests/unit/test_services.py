@@ -1,7 +1,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
-from app.services.encryption import clear_dek_cache, decrypt_field, encrypt_field
+from app.services.encryption import decrypt_field, encrypt_field
 from app.services.firma import canonical_serialize, compute_content_hash
 
 
@@ -29,33 +29,32 @@ def test_compute_content_hash():
 @patch("app.services.encryption.settings")
 @patch("app.services.encryption._get_kms_client")
 def test_encryption_decryption_flow(mock_get_kms, mock_settings):
-    """Test envelope encryption logic with mocked KMS."""
+    """Test encryption logic with mocked KMS directly."""
     mock_settings.environment = "production"
-    mock_settings.dek_cache_ttl = 300
+    mock_settings.kms_encryption_key_id = "test-key-id"
 
-    # Mock KMS response for decrypt (returns our fake DEK)
+    # Mock KMS response for encrypt and decrypt
     mock_kms = MagicMock()
     mock_get_kms.return_value = mock_kms
 
-    fake_dek = os.urandom(32)  # AES-256 key
-    mock_kms.decrypt.return_value = {"Plaintext": fake_dek}
+    fake_ciphertext = b"fake-ciphertext-blob"
+    mock_kms.encrypt.return_value = {"CiphertextBlob": fake_ciphertext}
+    
+    plaintext = "sensitive clinical data"
+    mock_kms.decrypt.return_value = {"Plaintext": plaintext.encode("utf-8")}
 
     tenant_id = "1234-5678"
-    fake_encrypted_dek = b"fake-encrypted-dek"
-
-    # Clear cache to force KMS call
-    clear_dek_cache()
 
     # 1. Encrypt
-    plaintext = "sensitive clinical data"
-    ciphertext = encrypt_field(plaintext, fake_encrypted_dek, tenant_id)
+    ciphertext = encrypt_field(plaintext, tenant_id)
 
-    # KMS Decrypt should have been called once
-    assert mock_kms.decrypt.call_count == 1
+    # KMS Encrypt should have been called once
+    assert mock_kms.encrypt.call_count == 1
+    assert ciphertext == fake_ciphertext
 
     # 2. Decrypt
-    decrypted = decrypt_field(ciphertext, fake_encrypted_dek, tenant_id)
+    decrypted = decrypt_field(ciphertext, tenant_id)
 
-    # KMS Decrypt should NOT have been called again (cache hit)
+    # KMS Decrypt should have been called once
     assert mock_kms.decrypt.call_count == 1
     assert decrypted == plaintext

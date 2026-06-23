@@ -156,17 +156,7 @@ export default function Expediente() {
     }
   });
 
-  const exportPdfMutation = useMutation({
-    mutationFn: () => {
-      if (!expediente) throw new Error("No hay expediente cargado");
-      return expedientesApi.exportarPdf(expediente.id);
-    },
-    onSuccess: () => showToast("PDF exportado exitosamente", "success"),
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al exportar PDF";
-      showToast(message, "error");
-    }
-  });
+
 
   const handleSubmitNota = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -333,15 +323,8 @@ export default function Expediente() {
           <h1 className="font-serif animate-fade-in" style={{ marginBottom: 0, fontSize: '2rem', fontWeight: 600, color: 'var(--text-main)' }}>Expediente Clínico</h1>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button 
-            className="btn btn-outline" 
-            onClick={() => exportPdfMutation.mutate()}
-            disabled={exportPdfMutation.isPending}
-          >
-            <Download size={20} /> {exportPdfMutation.isPending ? 'Generando...' : 'Exportar PDF'}
-          </button>
-          <button className="btn btn-outline" onClick={() => window.print()}>
-            <Printer size={20} /> Imprimir Resumen
+          <button className="btn btn-outline no-print" onClick={() => window.print()}>
+            <Printer size={20} /> Imprimir / PDF
           </button>
           <button className="btn btn-primary" onClick={() => { setEditingNota(null); setIsSidePanelOpen(true); }}>
             <Plus size={20} /> Nuevo Borrador

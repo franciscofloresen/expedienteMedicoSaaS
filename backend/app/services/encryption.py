@@ -1,29 +1,23 @@
 """
-Envelope Encryption Service — KMS CMK + Per-Tenant DEKs
+Encryption Service — Direct KMS Encryption
 
 Architecture:
-  1 symmetric CMK (AES-256) generates Data Encryption Keys (DEKs)
-  Each tenant gets a unique DEK, stored encrypted in tenant_keys table
-  DEK caching in Lambda memory reduces KMS API calls by ~95%
-
-Cost: $1/month (CMK) + ~$0.03/10K API calls
+  Directly uses AWS KMS to encrypt sensitive fields (e.g., patient addresses,
+  medical background).
+  The KMS Customer Master Key (CMK) provides AES-256-GCM encryption.
+  The tenant_id is used as the EncryptionContext to cryptographically
+  bind the data to the specific tenant, preventing cross-tenant access
+  even if the database is compromised.
 """
 
-import os
-import time
-from typing import Any
+from typing import Any, cast
 
 import boto3
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 
 _kms_client = None
-
-# In-memory DEK cache: tenant_id -> (timestamp, plaintext_dek)
-_dek_cache: dict[str, tuple[float, bytes]] = {}
-
 
 def _get_kms_client() -> Any:
     global _kms_client
@@ -31,129 +25,65 @@ def _get_kms_client() -> Any:
         _kms_client = boto3.client("kms", region_name=settings.aws_region)
     return _kms_client
 
-
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=0.1, min=0.1, max=1),
     reraise=True,
 )
-def generate_tenant_dek(tenant_id: str) -> dict[str, Any]:
+def encrypt_field(plaintext: str, tenant_id: str) -> bytes:
     """
-    Generate a new Data Encryption Key for a tenant.
-
-    Called once during tenant onboarding. The plaintext DEK is NEVER stored —
-    only the encrypted (ciphertext) version is persisted in the database.
-
-    Returns:
-        dict with encrypted_dek (bytes) and kms_key_id (str)
-    """
-    kms = _get_kms_client()
-    response = kms.generate_data_key(
-        KeyId=settings.kms_encryption_key_id,
-        KeySpec="AES_256",
-        EncryptionContext={"tenant_id": tenant_id},
-    )
-
-    # The plaintext is used only for immediate operations, then discarded
-    # The ciphertext blob is stored in the database
-    return {
-        "plaintext_dek": response["Plaintext"],       # Use immediately, then discard
-        "encrypted_dek": response["CiphertextBlob"],   # Store in tenant_keys table
-        "kms_key_id": settings.kms_encryption_key_id,
-    }
-
-
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=0.1, min=0.1, max=1),
-    reraise=True,
-)
-def _decrypt_dek(encrypted_dek: bytes, tenant_id: str) -> bytes:
-    """Decrypt a tenant's DEK using the CMK."""
-    if settings.environment in ("development", "testing"):
-        return encrypted_dek  # En dev/testing usamos la llave en crudo como mock
-
-    kms = _get_kms_client()
-    response = kms.decrypt(
-        CiphertextBlob=encrypted_dek,
-        EncryptionContext={"tenant_id": tenant_id},
-    )
-    return response["Plaintext"]  # type: ignore[no-any-return]
-
-
-def _get_plaintext_dek(encrypted_dek: bytes, tenant_id: str) -> bytes:
-    """
-    Get plaintext DEK with in-memory caching.
-
-    Cache TTL is configurable (default 5 minutes).
-    This reduces KMS Decrypt API calls by ~95% during normal operation.
-    """
-    now = time.time()
-
-    if tenant_id in _dek_cache:
-        cached_at, plaintext = _dek_cache[tenant_id]
-        if now - cached_at < settings.dek_cache_ttl:
-            return plaintext
-
-    plaintext = _decrypt_dek(encrypted_dek, tenant_id)
-    _dek_cache[tenant_id] = (now, plaintext)
-    return plaintext
-
-
-def encrypt_field(plaintext: str, encrypted_dek: bytes, tenant_id: str) -> bytes:
-    """
-    Encrypt a sensitive field using the tenant's DEK.
-
-    Uses AES-256-GCM (authenticated encryption) which provides both
-    confidentiality and integrity. The 12-byte nonce is prepended to
-    the ciphertext for storage.
+    Encrypt a sensitive field directly using AWS KMS.
 
     Args:
         plaintext: The string to encrypt
-        encrypted_dek: The tenant's encrypted DEK (from tenant_keys table)
-        tenant_id: The tenant UUID (used for DEK decryption context)
+        tenant_id: The tenant UUID (used for KMS Encryption Context)
 
     Returns:
-        bytes: nonce (12 bytes) + ciphertext + auth_tag (16 bytes)
+        bytes: The ciphertext blob returned by KMS
     """
-    dek = _get_plaintext_dek(encrypted_dek, tenant_id)
-    nonce = os.urandom(12)  # 96-bit nonce for GCM
-    aesgcm = AESGCM(dek)
-    ciphertext = aesgcm.encrypt(nonce, plaintext.encode("utf-8"), None)
-    return nonce + ciphertext  # nonce is needed for decryption
+    if settings.environment in ("development", "testing"):
+        # For local dev without AWS credentials, just return a mock bytes representation
+        return f"MOCK-ENCRYPTED-{tenant_id}-{plaintext}".encode("utf-8")
+
+    kms = _get_kms_client()
+    response = kms.encrypt(
+        KeyId=settings.kms_encryption_key_id,
+        Plaintext=plaintext.encode("utf-8"),
+        EncryptionContext={"tenant_id": str(tenant_id)},
+    )
+    return cast(bytes, response["CiphertextBlob"])
 
 
-def decrypt_field(ciphertext_with_nonce: bytes, encrypted_dek: bytes, tenant_id: str) -> str:
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.1, min=0.1, max=1),
+    reraise=True,
+)
+def decrypt_field(ciphertext_blob: bytes, tenant_id: str) -> str:
     """
-    Decrypt a sensitive field using the tenant's DEK.
+    Decrypt a sensitive field directly using AWS KMS.
 
     Args:
-        ciphertext_with_nonce: The encrypted data (nonce + ciphertext + tag)
-        encrypted_dek: The tenant's encrypted DEK
+        ciphertext_blob: The encrypted data from KMS
         tenant_id: The tenant UUID
 
     Returns:
         str: The decrypted plaintext
-
-    Raises:
-        cryptography.exceptions.InvalidTag: If data has been tampered with
     """
-    dek = _get_plaintext_dek(encrypted_dek, tenant_id)
-    nonce = ciphertext_with_nonce[:12]
-    ciphertext = ciphertext_with_nonce[12:]
-    aesgcm = AESGCM(dek)
-    plaintext_bytes = aesgcm.decrypt(nonce, ciphertext, None)
-    return plaintext_bytes.decode("utf-8")
+    if settings.environment in ("development", "testing"):
+        try:
+            # Mock decryption logic for local dev
+            decoded = ciphertext_blob.decode("utf-8")
+            if decoded.startswith(f"MOCK-ENCRYPTED-{tenant_id}-"):
+                return decoded.replace(f"MOCK-ENCRYPTED-{tenant_id}-", "", 1)
+        except Exception:
+            pass
+        return "Decryption Error (Dev Mock)"
 
-
-def clear_dek_cache(tenant_id: str | None = None) -> None:
-    """
-    Clear the DEK cache. Called after key rotation.
-
-    Args:
-        tenant_id: Clear only this tenant's cache. None = clear all.
-    """
-    if tenant_id:
-        _dek_cache.pop(tenant_id, None)
-    else:
-        _dek_cache.clear()
+    kms = _get_kms_client()
+    response = kms.decrypt(
+        CiphertextBlob=ciphertext_blob,
+        EncryptionContext={"tenant_id": str(tenant_id)},
+    )
+    plaintext = cast(bytes, response["Plaintext"])
+    return plaintext.decode("utf-8")

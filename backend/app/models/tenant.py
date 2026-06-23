@@ -23,6 +23,7 @@ class Tenant(Base):
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
     )
+    clerk_id: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
     nombre_medico: Mapped[str] = mapped_column(String(200), nullable=False)
     cedula: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     especialidad: Mapped[str | None] = mapped_column(String(100))
