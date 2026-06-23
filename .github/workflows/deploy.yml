@@ -5,7 +5,7 @@ name: CD — Deploy to Staging / Production
 
 on:
   workflow_run:
-    workflows: ["CI — Tests + Security Scan"]
+    workflows: ["CloudMedRecord CI"]
     types: [completed]
     branches: [main]
 
@@ -17,9 +17,9 @@ env:
   AWS_REGION: "us-east-1"
   LAMBDA_FUNCTION_STAGING: "medrecord-api-staging"
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
-  S3_FRONTEND_STAGING: "medrecord-frontend-staging"
-  S3_FRONTEND_PROD: "medrecord-frontend-prod"
-  CLOUDFRONT_DIST_DEV: ""   # Fill after first Terraform apply
+  S3_FRONTEND_STAGING: "medrecord-frontend-staging-${{ secrets.AWS_ACCOUNT_ID }}"
+  S3_FRONTEND_PROD: "medrecord-frontend-prod-${{ secrets.AWS_ACCOUNT_ID }}"
+  CLOUDFRONT_DIST_STAGING: ""   # Fill after first Terraform apply
   CLOUDFRONT_DIST_PROD: ""  # Fill after first Terraform apply
 
 jobs:
