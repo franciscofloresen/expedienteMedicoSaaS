@@ -15,9 +15,9 @@ permissions:
 
 env:
   AWS_REGION: "us-east-1"
-  LAMBDA_FUNCTION_DEV: "medrecord-api-dev"
+  LAMBDA_FUNCTION_STAGING: "medrecord-api-staging"
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
-  S3_FRONTEND_DEV: "medrecord-frontend-dev"
+  S3_FRONTEND_STAGING: "medrecord-frontend-staging"
   S3_FRONTEND_PROD: "medrecord-frontend-prod"
   CLOUDFRONT_DIST_DEV: ""   # Fill after first Terraform apply
   CLOUDFRONT_DIST_PROD: ""  # Fill after first Terraform apply
@@ -101,14 +101,14 @@ jobs:
       - name: Deploy to Lambda (Staging)
         run: |
           aws lambda update-function-code \
-            --function-name ${{ env.LAMBDA_FUNCTION_DEV }} \
+            --function-name ${{ env.LAMBDA_FUNCTION_STAGING }} \
             --zip-file fileb:///tmp/backend.zip \
             --publish
 
       - name: Wait for Lambda update
         run: |
           aws lambda wait function-updated \
-            --function-name ${{ env.LAMBDA_FUNCTION_DEV }}
+            --function-name ${{ env.LAMBDA_FUNCTION_STAGING }}
 
   # ── Deploy Frontend to Staging ──
   deploy-frontend-staging:
@@ -141,19 +141,19 @@ jobs:
 
       - name: Sync to S3 (Staging)
         run: |
-          aws s3 sync frontend/dist/ s3://${{ env.S3_FRONTEND_DEV }}/ \
+          aws s3 sync frontend/dist/ s3://${{ env.S3_FRONTEND_STAGING }}/ \
             --delete \
             --cache-control "public,max-age=31536000,immutable" \
             --exclude "index.html"
           # index.html should not be cached
-          aws s3 cp frontend/dist/index.html s3://${{ env.S3_FRONTEND_DEV }}/index.html \
+          aws s3 cp frontend/dist/index.html s3://${{ env.S3_FRONTEND_STAGING }}/index.html \
             --cache-control "no-cache,no-store,must-revalidate"
 
       - name: Invalidate CloudFront (Staging)
-        if: env.CLOUDFRONT_DIST_DEV != ''
+        if: env.CLOUDFRONT_DIST_STAGING != ''
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ env.CLOUDFRONT_DIST_DEV }} \
+            --distribution-id ${{ env.CLOUDFRONT_DIST_STAGING }} \
             --paths "/*"
 
   # ── Smoke Tests ──
