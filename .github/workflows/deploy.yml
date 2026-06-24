@@ -16,11 +16,8 @@ permissions:
 
 env:
   AWS_REGION: "us-east-1"
-  LAMBDA_FUNCTION_STAGING: "medrecord-api-staging"
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
-  S3_FRONTEND_STAGING: "medrecord-frontend-staging-${{ secrets.AWS_ACCOUNT_ID }}"
   S3_FRONTEND_PROD: "medrecord-frontend-prod-${{ secrets.AWS_ACCOUNT_ID }}"
-  CLOUDFRONT_DIST_STAGING: "E270ZDPOYWJBEY"   # Fill after first Terraform apply
   CLOUDFRONT_DIST_PROD: ""  # Fill after first Terraform apply
 
 jobs:
@@ -32,175 +29,14 @@ jobs:
     steps:
       - run: echo "CI passed, proceeding with deployment"
 
-  # ── Deploy Infrastructure to Staging ──
-  deploy-infrastructure-staging:
-    name: Deploy Infrastructure → Staging
-    runs-on: ubuntu-latest
-    needs: check-ci
-    environment: staging
 
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.7.0
-
-      - name: Bootstrap Backend
-        working-directory: terraform
-        run: ./scripts/bootstrap-backend.sh
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init -backend-config="key=staging/terraform.tfstate"
-
-      - name: Terraform Apply
-        working-directory: terraform
-        run: terraform apply -var-file=staging.tfvars -auto-approve
-
-  # ── Deploy Backend to Staging ──
-  deploy-backend-staging:
-    name: Deploy Backend → Staging
-    runs-on: ubuntu-latest
-    needs: deploy-infrastructure-staging
-    environment: staging
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install -e ".[dev]"
-
-      - name: Package Lambda
-        working-directory: backend
-        run: |
-          mkdir -p /tmp/lambda-package
-          pip install -t /tmp/lambda-package .
-          cp -r app /tmp/lambda-package/
-          cd /tmp/lambda-package && zip -r /tmp/backend.zip . -x "*.pyc" "__pycache__/*"
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy to Lambda (Staging)
-        run: |
-          aws lambda update-function-code \
-            --function-name ${{ env.LAMBDA_FUNCTION_STAGING }} \
-            --zip-file fileb:///tmp/backend.zip \
-            --publish
-
-      - name: Wait for Lambda update
-        run: |
-          aws lambda wait function-updated \
-            --function-name ${{ env.LAMBDA_FUNCTION_STAGING }}
-
-  # ── Deploy Frontend to Staging ──
-  deploy-frontend-staging:
-    name: Deploy Frontend → Staging
-    runs-on: ubuntu-latest
-    needs: deploy-backend-staging
-    environment: staging
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install and Build
-        working-directory: frontend
-        run: |
-          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-staging'].id" --output text)
-          export VITE_API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/v1/api/v1"
-          export VITE_CLERK_PUBLISHABLE_KEY="pk_test_Y3JlYXRpdmUtaWd1YW5hLTgyLmNsZXJrLmFjY291bnRzLmRldiQ"
-          npm ci
-          npm run build
-
-      - name: Sync to S3 (Staging)
-        run: |
-          aws s3 sync frontend/dist/ s3://${{ env.S3_FRONTEND_STAGING }}/ \
-            --delete \
-            --cache-control "public,max-age=31536000,immutable" \
-            --exclude "index.html"
-          # index.html should not be cached
-          aws s3 cp frontend/dist/index.html s3://${{ env.S3_FRONTEND_STAGING }}/index.html \
-            --cache-control "no-cache,no-store,must-revalidate"
-
-      - name: Invalidate CloudFront (Staging)
-        if: env.CLOUDFRONT_DIST_STAGING != ''
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ env.CLOUDFRONT_DIST_STAGING }} \
-            --paths "/*"
-
-  # ── Smoke Tests ──
-  smoke-test:
-    name: Smoke Test (Staging)
-    runs-on: ubuntu-latest
-    needs: deploy-frontend-staging
-    environment: staging
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Health Check
-        run: |
-          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-staging'].id" --output text)
-          API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/v1"
-          
-          # Wait for deployment to stabilize
-          sleep 10
-
-          # Test API health endpoint
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${API_URL}/health" \
-            --max-time 30)
-
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "❌ Health check failed with status: $HTTP_STATUS"
-            exit 1
-          fi
-
-          echo "✅ Health check passed (HTTP $HTTP_STATUS)"
 
   # ── Plan Infrastructure for Production ──
   plan-infrastructure-production:
     name: Plan Infrastructure → Production
     runs-on: ubuntu-latest
-    needs: smoke-test
+    needs: check-ci
     environment: production
 
     steps:
