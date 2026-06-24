@@ -53,9 +53,7 @@ export default function Expediente() {
   // Create Expediente
   const createExpedienteMutation = useMutation({
     mutationFn: async () => {
-      // Registrar auditoría de consentimiento primero
-      await auditApi.registrarConsentimiento(id!);
-      // Crear expediente
+      // Crear expediente (implica consentimiento)
       return expedientesApi.create({ paciente_id: id! });
     },
     onSuccess: () => {
@@ -398,17 +396,13 @@ export default function Expediente() {
                <button 
                  className="btn btn-outline" 
                  style={{ width: '100%', marginTop: '0.75rem', justifyContent: 'center', fontSize: '0.85rem' }}
-                 onClick={async () => {
-                   try {
-                     await auditApi.registrarConsentimiento(paciente!.id);
-                     showToast("Consentimiento registrado en auditoría", "success");
-                   } catch (e) {
-                     showToast("Error al registrar", "error");
-                   }
+                 onClick={() => {
+                   window.print();
+                   showToast("Se ha impreso el formato", "success");
                  }}
                >
                  <ShieldCheck size={16} color="var(--primary)" />
-                 Imprimir / Registrar Consentimiento
+                 Imprimir Formato Físico
                </button>
             </div>
           </div>
