@@ -168,4 +168,10 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             print(err)
             return {"statusCode": 500, "body": f"Migrations failed: {err}"}
 
+    import asyncio
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     return _asgi_handler(event, context)
