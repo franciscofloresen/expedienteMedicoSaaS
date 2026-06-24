@@ -232,7 +232,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan-prod
-          path: terraform/tfplan
+          path: |
+            terraform/tfplan
+            terraform/modules/compute/dummy.zip
 
   # ── Apply Infrastructure to Production (Manual Approval) ──
   apply-infrastructure-production:
