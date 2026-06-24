@@ -376,7 +376,7 @@ dialog.modal-dialog::backdrop {
 }
 
 .sidebar {
-  width: 260px;
+  width: 290px;
   margin: 2rem 0 2rem 2rem;
   display: flex;
   flex-direction: column;
