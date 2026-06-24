@@ -60,7 +60,7 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             if v.startswith("["):
                 import json
-                return json.loads(v)
+                return json.loads(v)  # type: ignore
             return [i.strip() for i in v.split(",")]
         if isinstance(v, list):
             return v
