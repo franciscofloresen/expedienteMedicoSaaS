@@ -68,12 +68,15 @@ class AuditMiddleware(BaseHTTPMiddleware):
             tenant_id = getattr(request.state, "tenant_id", None)
             user_id = getattr(request.state, "user_id", None)
 
+            user_email = getattr(request.state, "user_email", None)
+
             audit_entry = {
                 "request_id": request_id,
                 "method": request.method,
                 "path": request.url.path,
                 "tenant_id": str(tenant_id) if tenant_id else None,
                 "user_id": str(user_id) if user_id else None,
+                "user_email": str(user_email) if user_email else None,
                 "ip_origen": client_ip,
                 "user_agent": user_agent,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
