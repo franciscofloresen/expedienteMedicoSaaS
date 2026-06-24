@@ -6,7 +6,7 @@ import sys
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.db.session import SessionLocal
+from app.db.session import _get_session_factory
 from app.models.tenant import Tenant
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 async def upgrade_tenant(email: str, plan: str = "pro"):
     """Actualiza el plan de un Tenant en BD y en Clerk (idempotente)."""
-    async with SessionLocal() as db:
+    factory = _get_session_factory()
+    async with factory() as db:
         stmt = select(Tenant).where(Tenant.email == email)
         result = await db.execute(stmt)
         tenant = result.scalar_one_or_none()
