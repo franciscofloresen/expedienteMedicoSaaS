@@ -30,7 +30,7 @@ export default function Onboarding() {
       if (res.status === 'success' || res.status === 'already_onboarded') {
         showToast('Perfil configurado correctamente', 'success');
         // Force Clerk SDK to fetch a NEW token that includes the newly assigned tenant_id
-        // @ts-ignore - Clerk is injected into window by the SDK
+        // @ts-expect-error - Clerk is injected into window by the SDK
         await window.Clerk?.session?.getToken({ skipCache: true });
         window.location.href = '/app';
       }
