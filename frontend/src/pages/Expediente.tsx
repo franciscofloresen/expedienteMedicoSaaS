@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Calendar, Printer, Activity, RefreshCcw } from 'lucide-react';
-import { expedientesApi, notasApi, pacientesApi, auditApi } from '../services/api';
+import { expedientesApi, notasApi, pacientesApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
