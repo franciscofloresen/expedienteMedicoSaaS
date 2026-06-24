@@ -181,10 +181,10 @@ export const citasApi = {
     const params: any = {};
     if (start_date) params.start_date = start_date;
     if (end_date) params.end_date = end_date;
-    return api.get('/citas', params);
+    return api.get('/citas/', params);
   },
   create: async (data: CitaBase): Promise<Cita> => {
-    return api.post('/citas', data);
+    return api.post('/citas/', data);
   },
   update: async (id: string, data: Partial<CitaBase>): Promise<Cita> => {
     return api.put(`/citas/${id}`, data);
