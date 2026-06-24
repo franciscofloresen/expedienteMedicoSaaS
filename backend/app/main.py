@@ -149,7 +149,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     if isinstance(event, dict) and event.get("run_migrations"):
         import traceback
+
         from alembic.config import Config
+
         from alembic import command
 
         print("Running Alembic migrations programmatically...")
@@ -165,8 +167,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return {"statusCode": 500, "body": f"Migrations failed: {err}"}
 
     if isinstance(event, dict) and event.get("upgrade_tenant"):
-        import traceback
         import asyncio
+        import traceback
+
         from scripts.upgrade_tenant import upgrade_tenant
 
         email = event["upgrade_tenant"]
