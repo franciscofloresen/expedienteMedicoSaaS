@@ -61,6 +61,27 @@ class TenantMiddleware(BaseHTTPMiddleware):
             tenant_id = request.headers.get("X-Tenant-ID")
             claims = {"sub": "test-user", "email": "test@test.com"}
 
+        # Ponytail: Fallback to DB lookup if tenant_id is missing from Clerk metadata
+        if not tenant_id and claims.get("sub"):
+            try:
+                from sqlalchemy import select
+
+                from app.db.session import _get_session_factory
+                from app.models.tenant import Tenant
+                factory = _get_session_factory()
+                async with factory() as session:
+                    result = await session.execute(select(Tenant).where(Tenant.clerk_id == claims["sub"]))
+                    tenant = result.scalar_one_or_none()
+                    if tenant:
+                        tenant_id = str(tenant.id)
+                        metadata["cedula"] = tenant.cedula
+                        metadata["especialidad"] = tenant.especialidad
+                        metadata["nombre_medico"] = tenant.nombre_medico
+                        metadata["plan"] = tenant.plan
+            except Exception as e:
+                import logging
+                logging.getLogger("medrecord.security").error(f"Error fetching tenant from DB: {e}")
+
         if not tenant_id:
             # Allow onboarding path without tenant_id if they have a valid token
             if request.url.path == "/api/v1/auth/onboarding" and claims:
