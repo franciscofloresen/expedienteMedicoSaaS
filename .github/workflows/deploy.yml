@@ -63,7 +63,12 @@ jobs:
 
       - name: Terraform Plan
         working-directory: terraform
-        run: terraform plan -var-file=prod.tfvars -out=tfplan
+        run: |
+          ISSUER_DOMAIN=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3 | base64 -d | sed 's/\$$//')
+          export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
+          export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
+          export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
+          terraform plan -var-file=prod.tfvars -out=tfplan
 
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
@@ -113,7 +118,12 @@ jobs:
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply tfplan
+        run: |
+          ISSUER_DOMAIN=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3 | base64 -d | sed 's/\$$//')
+          export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
+          export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
+          export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
+          terraform apply tfplan
 
   # ── Deploy Backend to Production ──
   deploy-backend-production:
@@ -184,7 +194,7 @@ jobs:
         run: |
           API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-prod'].id" --output text)
           export VITE_API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/v1/api/v1"
-          export VITE_CLERK_PUBLISHABLE_KEY="pk_test_Y3JlYXRpdmUtaWd1YW5hLTgyLmNsZXJrLmFjY291bnRzLmRldiQ"
+          export VITE_CLERK_PUBLISHABLE_KEY="${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}"
           npm ci
           npm run build
 
