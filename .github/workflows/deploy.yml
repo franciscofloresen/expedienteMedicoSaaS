@@ -159,6 +159,8 @@ jobs:
           mkdir -p /tmp/lambda-package
           pip install -t /tmp/lambda-package .
           cp -r app /tmp/lambda-package/
+          cp -r alembic /tmp/lambda-package/
+          cp alembic.ini /tmp/lambda-package/
           cd /tmp/lambda-package && zip -r /tmp/backend.zip . -x "*.pyc" "__pycache__/*"
 
       - name: Configure AWS Credentials
@@ -178,6 +180,15 @@ jobs:
         run: |
           aws lambda wait function-updated \
             --function-name ${{ env.LAMBDA_FUNCTION_PROD }}
+
+      - name: Run Database Migrations
+        run: |
+          aws lambda invoke --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
+            --payload '{"run_migrations": true}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/migration_result.json
+          cat /tmp/migration_result.json
+          grep -q "200" /tmp/migration_result.json || exit 1
 
   # ── Deploy Frontend to Production ──
   deploy-frontend-production:
