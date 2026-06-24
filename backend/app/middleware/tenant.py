@@ -41,6 +41,8 @@ class TenantMiddleware(BaseHTTPMiddleware):
             try:
                 claims = decode_jwt(token)
             except Exception as e:
+                import logging
+                logging.getLogger("medrecord.security").error(f"JWT Validation Error: {e}")
                 return JSONResponse(
                     status_code=401,
                     content={"detail": f"Token inválido o expirado: {e}"},
