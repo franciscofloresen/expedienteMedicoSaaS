@@ -78,6 +78,7 @@ module "compute" {
   s3_audit_bucket          = module.storage.audit_bucket_name
   s3_consent_bucket        = module.storage.consent_bucket_name
   waf_acl_arn              = module.security.waf_acl_arn
+  frontend_url             = "https://${module.cdn.cloudfront_domain_name}"
 }
 
 # ── Observability (Alarms, SNS) ──
