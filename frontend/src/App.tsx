@@ -6,7 +6,6 @@ import Pacientes from './pages/Pacientes';
 import Expediente from './pages/Expediente';
 import ExpedientesList from './pages/ExpedientesList';
 import NotasList from './pages/NotasList';
-import Auditoria from './pages/Auditoria';
 import ErrorBoundary from './components/ErrorBoundary';
 import Settings from './pages/Settings';
 import Landing from './pages/Landing';
@@ -50,7 +49,6 @@ function App() {
                     <Route path="agenda" element={<Agenda />} />
                     <Route path="expedientes" element={<ExpedientesList />} />
                     <Route path="notas" element={<NotasList />} />
-                    <Route path="auditoria" element={<Auditoria />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="pacientes/:id" element={<Expediente />} />
                   </Route>

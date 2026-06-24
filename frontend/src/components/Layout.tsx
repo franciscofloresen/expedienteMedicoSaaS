@@ -76,14 +76,7 @@ export default function Layout() {
             <Activity size={20} className="nav-icon" />
             Notas Médicas
           </NavLink>
-          <NavLink 
-            to="/app/auditoria" 
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <ShieldCheck size={20} className="nav-icon" />
-            Auditoría
-          </NavLink>
+
         </nav>
         
         <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
