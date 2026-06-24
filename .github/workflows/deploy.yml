@@ -160,6 +160,7 @@ jobs:
           pip install -t /tmp/lambda-package .
           cp -r app /tmp/lambda-package/
           cp -r alembic /tmp/lambda-package/
+          cp -r scripts /tmp/lambda-package/
           cp alembic.ini /tmp/lambda-package/
           cd /tmp/lambda-package && zip -r /tmp/backend.zip . -x "*.pyc" "__pycache__/*"
 
