@@ -64,8 +64,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
         # Ponytail: Fallback to DB lookup if tenant_id is missing from Clerk metadata
         if not tenant_id and claims.get("sub"):
             try:
-                from app.db.session import _get_session_factory
                 from sqlalchemy import select
+
+                from app.db.session import _get_session_factory
                 from app.models.tenant import Tenant
                 factory = _get_session_factory()
                 async with factory() as session:
