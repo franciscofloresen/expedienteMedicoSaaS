@@ -19,7 +19,7 @@ env:
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
   S3_FRONTEND_STAGING: "medrecord-frontend-staging-${{ secrets.AWS_ACCOUNT_ID }}"
   S3_FRONTEND_PROD: "medrecord-frontend-prod-${{ secrets.AWS_ACCOUNT_ID }}"
-  CLOUDFRONT_DIST_STAGING: ""   # Fill after first Terraform apply
+  CLOUDFRONT_DIST_STAGING: "E270ZDPOYWJBEY"   # Fill after first Terraform apply
   CLOUDFRONT_DIST_PROD: ""  # Fill after first Terraform apply
 
 jobs:
@@ -120,6 +120,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -130,14 +136,10 @@ jobs:
       - name: Install and Build
         working-directory: frontend
         run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-staging'].id" --output text)
+          export VITE_API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/staging/api/v1"
           npm ci
           npm run build
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
-          aws-region: ${{ env.AWS_REGION }}
 
       - name: Sync to S3 (Staging)
         run: |
@@ -163,14 +165,25 @@ jobs:
     needs: deploy-frontend-staging
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Health Check
         run: |
+          API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-staging'].id" --output text)
+          API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/staging"
+          
           # Wait for deployment to stabilize
           sleep 10
 
           # Test API health endpoint
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://${{ vars.STAGING_API_URL }}/health" \
+            "${API_URL}/health" \
             --max-time 30)
 
           if [ "$HTTP_STATUS" != "200" ]; then
