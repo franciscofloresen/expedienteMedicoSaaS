@@ -29,8 +29,8 @@ export default function Onboarding() {
       
       if (res.status === 'success' || res.status === 'already_onboarded') {
         showToast('Perfil configurado correctamente', 'success');
-        // Clerk token metadata takes a moment to update. 
-        // Force a reload so Clerk SDK fetches the new token with tenant_id metadata
+        // Force Clerk SDK to fetch a NEW token that includes the newly assigned tenant_id
+        await window.Clerk?.session?.getToken({ skipCache: true });
         window.location.href = '/app';
       }
     } catch (err: any) {
