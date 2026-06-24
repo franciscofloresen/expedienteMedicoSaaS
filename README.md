@@ -57,6 +57,19 @@ La UI estará en `http://localhost:5173`.
   - `backend/scripts/upgrade_tenant.py`: Asciende a un doctor a plan "Pro" (BD + Clerk).
 - `terraform/`: Infraestructura como código real (API Gateway, Lambda, RDS).
 
+## ⚖️ Marco Legal y Cumplimiento
+
+Este sistema está diseñado nativamente para cumplir con la legislación mexicana:
+
+- **NOM-004-SSA3-2012 (Expediente Clínico):** Forza campos de identificación básicos, prohíbe el borrado de expedientes o notas clínicas (inmutabilidad médica) y garantiza la retención obligatoria por 5 años.
+- **NOM-024-SSA3-2012 (Sistemas de Información Electrónica para la Salud):** Cumple con la trazabilidad y seguridad tecnológica:
+  - Autenticación fuerte (JWT vía Clerk).
+  - Control de acceso a nivel de fila en BD (PostgreSQL Row-Level Security) para aislar datos entre médicos.
+  - Auditoría inmanipulable de cada acción (CloudWatch).
+  - Firmas electrónicas criptográficas no repudiables (AWS KMS ECDSA).
+- **LFPDPPP (Datos Personales):** Soporte para gestionar el Consentimiento Informado y el Aviso de Privacidad. La base de datos y la transmisión de información viajan siempre cifradas.
+- **Decreto de Digitalización (Enero 2026):** Al ser 100% electrónico, en la nube y bajo la normativa de la NOM-024, cubre la nueva obligación nacional de interoperabilidad y abandono del papel.
+
 ## 💡 Diseño "Lazy Senior Dev" (YAGNI)
 
 - **Cero Panel de Administración Web:** Administrar planes de médicos o auditar logs se hace directo desde scripts de terminal rápidos y eficientes. No necesitamos mantener UI de administrador.
