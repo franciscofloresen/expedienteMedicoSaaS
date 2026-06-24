@@ -61,6 +61,17 @@ jobs:
         working-directory: terraform
         run: terraform init -backend-config="key=prod/terraform.tfstate"
 
+      - name: Validate Clerk Secrets
+        run: |
+          if [ -z "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" ]; then
+            echo "❌ ERROR: VITE_CLERK_PUBLISHABLE_KEY is missing from GitHub Secrets!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLERK_SECRET_KEY }}" ]; then
+            echo "❌ ERROR: CLERK_SECRET_KEY is missing from GitHub Secrets!"
+            exit 1
+          fi
+
       - name: Terraform Plan
         working-directory: terraform
         run: |
