@@ -34,6 +34,8 @@ node_modules/
 .terraform/
 *.tfstate
 *.tfstate.*
+*.state
+*.backup
 *.tfplan
 crash.log
 override.tf
@@ -61,6 +63,7 @@ coverage.xml
 # ── Build artifacts ──
 *.zip
 *.tar.gz
+terraform/modules/compute/dummy.zip
 lambda_package/
 
 # ── Docs ──

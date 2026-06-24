@@ -162,8 +162,6 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             print("Migrations applied successfully!")
             return {"statusCode": 200, "body": "Migrations successful!"}
         except Exception:
-            import traceback
-
             err = traceback.format_exc()
             print(err)
             return {"statusCode": 500, "body": f"Migrations failed: {err}"}
