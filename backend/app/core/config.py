@@ -77,11 +77,6 @@ def get_settings() -> Settings:
     return Settings()
 
 
-# Lazy accessor — avoids module-level instantiation that can fail
-# before environment variables are set (e.g., Lambda cold start).
-def _settings() -> Settings:
-    return get_settings()
-
 
 # ── Secrets Manager Cache ──
 
