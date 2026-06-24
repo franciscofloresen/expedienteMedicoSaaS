@@ -64,7 +64,8 @@ jobs:
       - name: Terraform Plan
         working-directory: terraform
         run: |
-          ISSUER_DOMAIN=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3 | base64 -d | sed 's/\$$//')
+          B64_KEY=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3)
+          ISSUER_DOMAIN=$(python3 -c "import base64, sys; print(base64.b64decode(sys.argv[1] + '=' * (-len(sys.argv[1]) % 4)).decode('utf-8').strip('$'))" "$B64_KEY")
           export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
           export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
           export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
@@ -119,7 +120,8 @@ jobs:
       - name: Terraform Apply
         working-directory: terraform
         run: |
-          ISSUER_DOMAIN=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3 | base64 -d | sed 's/\$$//')
+          B64_KEY=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3)
+          ISSUER_DOMAIN=$(python3 -c "import base64, sys; print(base64.b64decode(sys.argv[1] + '=' * (-len(sys.argv[1]) % 4)).decode('utf-8').strip('$'))" "$B64_KEY")
           export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
           export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
           export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
