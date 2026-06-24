@@ -139,6 +139,7 @@ jobs:
         run: |
           API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-staging'].id" --output text)
           export VITE_API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/v1/api/v1"
+          export VITE_CLERK_PUBLISHABLE_KEY="pk_test_Y3JlYXRpdmUtaWd1YW5hLTgyLmNsZXJrLmFjY291bnRzLmRldiQ"
           npm ci
           npm run build
 
@@ -347,6 +348,7 @@ jobs:
         run: |
           API_ID=$(aws apigateway get-rest-apis --query "items[?name=='medrecord-api-prod'].id" --output text)
           export VITE_API_URL="https://${API_ID}.execute-api.${{ env.AWS_REGION }}.amazonaws.com/v1/api/v1"
+          export VITE_CLERK_PUBLISHABLE_KEY="pk_test_Y3JlYXRpdmUtaWd1YW5hLTgyLmNsZXJrLmFjY291bnRzLmRldiQ"
           npm ci
           npm run build
 
