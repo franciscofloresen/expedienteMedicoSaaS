@@ -103,10 +103,16 @@ app = FastAPI(
 
 # ── Middleware (order matters: last added = first executed) ──
 
-# Security headers — runs on every response
+# 4. Tenant isolation — runs closest to the app (extracts tenant_id, auth)
+app.add_middleware(TenantMiddleware)
+
+# 3. Audit log — logs every request (NOM-004 + NOM-024)
+app.add_middleware(AuditMiddleware)
+
+# 2. Security headers — runs early
 app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS — CRIT-04: explicit header whitelist (was allow_headers=["*"])
+# 1. CORS — CRIT-04: MUST be added LAST so it executes FIRST and catches 401s from TenantMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -114,12 +120,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
-
-# Audit log — logs every request (NOM-004 + NOM-024)
-app.add_middleware(AuditMiddleware)
-
-# Tenant isolation — extracts tenant_id from JWT, sets RLS context
-app.add_middleware(TenantMiddleware)
 
 # ── Routes ──
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])
