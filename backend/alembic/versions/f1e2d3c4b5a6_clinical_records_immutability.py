@@ -26,15 +26,15 @@ def upgrade() -> None:
     $$ LANGUAGE plpgsql;
     """)
 
+    op.execute("DROP TRIGGER IF EXISTS prevent_notas_deletion ON notas;")
     op.execute("""
-    DROP TRIGGER IF EXISTS prevent_notas_deletion ON notas;
     CREATE TRIGGER prevent_notas_deletion
     BEFORE DELETE ON notas
     FOR EACH ROW EXECUTE FUNCTION prevent_clinical_deletion();
     """)
 
+    op.execute("DROP TRIGGER IF EXISTS prevent_expedientes_deletion ON expedientes;")
     op.execute("""
-    DROP TRIGGER IF EXISTS prevent_expedientes_deletion ON expedientes;
     CREATE TRIGGER prevent_expedientes_deletion
     BEFORE DELETE ON expedientes
     FOR EACH ROW EXECUTE FUNCTION prevent_clinical_deletion();
