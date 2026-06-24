@@ -53,6 +53,10 @@ variable "waf_acl_arn" {
   type = string
 }
 
+variable "frontend_url" {
+  type = string
+}
+
 # ── IAM Role for Lambda ──
 resource "aws_iam_role" "lambda_exec" {
   name = "medrecord-lambda-exec-${var.environment}"
@@ -179,6 +183,7 @@ resource "aws_lambda_function" "api" {
       S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
       S3_AUDIT_BUCKET       = var.s3_audit_bucket
       S3_CONSENT_BUCKET     = var.s3_consent_bucket
+      CORS_ORIGINS          = "${var.frontend_url},http://localhost:5173"
     }
   }
 
