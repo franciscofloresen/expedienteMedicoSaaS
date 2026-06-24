@@ -157,7 +157,7 @@ export default function Pacientes() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Notas Firmadas Hoy</span>
-            <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1 }}>12</span>
+            <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1 }}>0</span>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function Pacientes() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Estado Legal</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1.2, marginTop: '0.2rem' }}>Cumplimiento NOM-004 (100%)</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1.2, marginTop: '0.2rem' }}>Cumplimiento NOM-004</span>
           </div>
         </div>
       </div>
