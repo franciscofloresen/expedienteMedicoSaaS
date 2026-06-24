@@ -16,7 +16,6 @@ import Agenda from './pages/Agenda';
 
 import { ToastProvider } from './contexts/ToastContext';
 import { useAuth } from '@clerk/react';
-import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { setTokenFetcher } from './services/api';
 
