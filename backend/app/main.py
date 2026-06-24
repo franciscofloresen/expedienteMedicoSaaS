@@ -176,7 +176,12 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         plan = event.get("plan", "pro")
         print(f"Upgrading tenant {email} to {plan} in production...")
         try:
-            asyncio.run(upgrade_tenant(email, plan))
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(upgrade_tenant(email, plan))
             return {"statusCode": 200, "body": f"Successfully upgraded {email} to {plan}"}
         except Exception:
             err = traceback.format_exc()
