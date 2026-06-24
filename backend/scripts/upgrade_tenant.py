@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-async def upgrade_tenant(email: str, plan: str = "pro"):
+async def upgrade_tenant(email: str, plan: str = "pro") -> None:
     """Actualiza el plan de un Tenant en BD y en Clerk (idempotente)."""
     factory = _get_session_factory()
     async with factory() as db:
@@ -84,7 +84,7 @@ async def upgrade_tenant(email: str, plan: str = "pro"):
             sys.exit(1)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Actualizar manualmente un médico a plan Pro"
     )
