@@ -54,7 +54,7 @@ export default function NotasList() {
       </header>
 
       <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Estado</th>
@@ -80,7 +80,7 @@ export default function NotasList() {
             ) : (
               filteredNotas.map((nota: any) => (
                 <tr key={nota.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s' }}>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label="Estado" style={{ padding: '1rem' }}>
                     {nota.firmada ? (
                       <span className="badge badge-success" style={{ display: 'inline-flex', gap: '0.25rem' }}>
                         <ShieldCheck size={12} /> Firmada
@@ -91,22 +91,22 @@ export default function NotasList() {
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 500, textTransform: 'uppercase', fontSize: '0.9rem' }}>
+                  <td data-label="Tipo de Nota" style={{ padding: '1rem', fontWeight: 500, textTransform: 'uppercase', fontSize: '0.9rem' }}>
                     {nota.tipo_nota}
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 500 }}>
+                  <td data-label="Paciente" style={{ padding: '1rem', fontWeight: 500 }}>
                     {nota.paciente_nombre}
                   </td>
-                  <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
+                  <td data-label="Expediente" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
                     {nota.expediente_folio}
                   </td>
-                  <td style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <td data-label="Fecha" style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                       <Calendar size={14} />
                       {new Date(nota.creado_en).toLocaleDateString()}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     <button 
                       className="btn btn-outline" 
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 

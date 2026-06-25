@@ -711,25 +711,46 @@ dialog.modal-dialog::backdrop {
   }
 
   /* Table to Cards on Mobile */
-  table {
+  table, thead, tbody, tr, th, td {
     display: block !important;
+    width: 100% !important;
     min-width: 0 !important;
   }
   thead {
     display: none !important;
   }
-  tbody, tr, td {
-    display: block !important;
-    width: 100% !important;
-  }
   tr {
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--border-light) !important;
-    padding-bottom: 1rem;
+    margin-bottom: 1rem !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 1rem !important;
+    background: var(--bg-card) !important;
+    box-shadow: var(--shadow-sm) !important;
   }
   td {
     padding: 0.5rem 0 !important;
-    text-align: left !important;
+    text-align: right !important;
+    border-bottom: 1px dashed var(--border-light) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  td:last-child {
+    border-bottom: none !important;
+  }
+  td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .glass-card[style*="overflow-x"] {
+    overflow-x: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
   }
   
   /* Fix nav buttons on Landing */

@@ -21,7 +21,7 @@ export default function ExpedientesList() {
       </header>
 
       <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
               <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Folio</th>
@@ -46,22 +46,22 @@ export default function ExpedientesList() {
             ) : (
               expedientes.map((exp: any) => (
                 <tr key={exp.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s' }}>
-                  <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
+                  <td data-label="Folio" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
                     {exp.folio}
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 500 }}>
+                  <td data-label="Paciente" style={{ padding: '1rem', fontWeight: 500 }}>
                     {exp.paciente_nombre}
                   </td>
-                  <td style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
+                  <td data-label="CURP" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
                     {exp.paciente_curp || 'N/A'}
                   </td>
-                  <td style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <td data-label="Fecha de Apertura" style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                       <Calendar size={14} />
                       {new Date(exp.creado_en).toLocaleDateString()}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     <button 
                       className="btn btn-primary" 
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
