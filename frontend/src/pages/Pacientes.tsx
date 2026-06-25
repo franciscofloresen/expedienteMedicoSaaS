@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { Edit2, Trash2, Search, Users, FileCheck, ShieldCheck } from 'lucide-react';
+import { Edit2, Trash2, Search, Users, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
@@ -39,8 +39,9 @@ export default function Pacientes() {
       showToast('Paciente registrado exitosamente', 'success');
       closeFormModal();
     },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al registrar el paciente";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (error: any) => {
+      const message = error.response?.data?.detail || (error instanceof Error ? error.message : "Error al registrar el paciente");
       showToast(message, 'error');
     }
   });
@@ -151,15 +152,7 @@ export default function Pacientes() {
           </div>
         </div>
 
-        <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', animationDelay: '0.1s' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '12px', color: 'var(--success)' }}>
-            <FileCheck size={32} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="text-muted" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600 }}>Notas Firmadas Hoy</span>
-            <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: 1 }}>0</span>
-          </div>
-        </div>
+
 
         <div className="glass-card animate-fade-in" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', animationDelay: '0.2s' }}>
           <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', padding: '1rem', borderRadius: '12px', color: 'white' }}>
@@ -254,7 +247,7 @@ export default function Pacientes() {
         onClose={closeFormModal} 
         title={editingPaciente ? 'Editar Paciente' : 'Registrar Nuevo Paciente'}
       >
-        <form id="paciente-form" onSubmit={handleSubmit} noValidate>
+        <form id="paciente-form" key={isFormModalOpen ? 'open' : 'closed'} onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label" htmlFor="nombre_completo">Nombre Completo (NOM-004)</label>
             <input 
@@ -324,6 +317,9 @@ export default function Pacientes() {
                 id="telefono"
                 name="telefono" 
                 className="form-input" 
+                pattern="\d{10}"
+                title="Debe contener 10 dígitos"
+                onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '')}
                 defaultValue={editingPaciente?.telefono} 
               />
             </div>

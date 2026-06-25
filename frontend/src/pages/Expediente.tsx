@@ -7,6 +7,7 @@ import { expedientesApi, notasApi, pacientesApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
+import { useEffect } from 'react';
 import Modal from '../components/Modal';
 
 
@@ -48,6 +49,14 @@ export default function Expediente() {
     queryFn: () => notasApi.getByExpedienteId(expediente?.id as string),
     enabled: !!expediente?.id
   });
+
+  useEffect(() => {
+    if (window.location.hash && notas.length > 0) {
+      setTimeout(() => {
+        document.getElementById(window.location.hash.substring(1))?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [notas]);
 
   // Create Expediente
   const createExpedienteMutation = useMutation({
@@ -427,7 +436,8 @@ export default function Expediente() {
               >
                 {notas.map((nota: Nota) => (
                   <div 
-                    key={nota.id} 
+                    key={nota.id}
+                    id={`nota-${nota.id}`}
                     className="fade-in"
                     style={{ 
                     border: nota.firmada ? '1px solid var(--border-light)' : '1px solid rgba(0, 122, 255, 0.3)', 
@@ -625,7 +635,7 @@ export default function Expediente() {
             </div>
             <div className="form-group">
               <label className="form-label">TA (ej. 120/80)</label>
-              <input type="text" name="ta" className="form-input" placeholder="120/80" required defaultValue={editingNota?.signos_vitales?.tension_arterial} />
+              <input type="text" name="ta" className="form-input" placeholder="120/80" required pattern="\d{2,3}/\d{2,3}" title="Ej. 120/80" onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/[^\d/]/g, '')} defaultValue={editingNota?.signos_vitales?.tension_arterial} />
             </div>
           </div>
 

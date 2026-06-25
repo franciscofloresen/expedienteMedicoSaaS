@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lucide-react';
 import { UserProfile } from '@clerk/react';
-import { authApi } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import UpgradeBanner from '../components/UpgradeBanner';
+import { authApi } from '../services/api';
 
 export default function Settings() {
   const { showToast } = useToast();
@@ -13,14 +14,15 @@ export default function Settings() {
   const [editCedula, setEditCedula] = useState('');
   const [editEspecialidad, setEditEspecialidad] = useState('');
 
-  const { data: profile, isLoading, isError } = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile, isLoading, isError } = useQuery<any>({
     queryKey: ['profile'],
     queryFn: authApi.getProfile,
     retry: 1
   });
 
   const updateMutation = useMutation({
-    mutationFn: authApi.updateProfile,
+    mutationFn: (data: { cedula: string; especialidad: string }) => authApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showToast('Datos actualizados correctamente', 'success');
@@ -50,6 +52,8 @@ export default function Settings() {
         <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Configuración de la Clínica</h1>
         <p className="text-muted" style={{ marginTop: '0.5rem' }}>Gestiona tu perfil profesional y la seguridad de tus datos.</p>
       </header>
+      
+      <UpgradeBanner />
 
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}>Cargando perfil...</div>

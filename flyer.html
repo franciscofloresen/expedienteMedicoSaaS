@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudMedRecord — Flyer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            /* Paleta Clean / iOS Style */
+            --primary: #007aff;
+            /* Azul iOS */
+            --primary-hover: #0066d6;
+            --primary-light: rgba(0, 122, 255, 0.08);
+            --accent: #5856d6;
+            /* Índigo */
+
+            /* Neutrales y Fondos */
+            --bg-app: #f5f5f7;
+            /* Gris claro Apple */
+            --bg-card: rgba(255, 255, 255, 0.85);
+            /* Glassmorphism */
+            --border-color: rgba(0, 0, 0, 0.08);
+
+            /* Tipografía */
+            --dark: #1d1d1f;
+            /* Texto Principal */
+            --text: #1d1d1f;
+            --muted: #86868b;
+            /* Texto Secundario */
+            --white: #FFFFFF;
+            --gold: #D4A843;
+        }
+
+        html,
+        body {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #e5e5ea;
+            /* Gris exterior para contraste del canvas */
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            background: var(--bg-app);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: var(--bg-app);
+            padding: 32px 40px 28px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-bg-arc {
+            position: absolute;
+            right: -60px;
+            top: -80px;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            border: 40px solid var(--primary-light);
+            pointer-events: none;
+        }
+
+        .header-bg-arc2 {
+            position: absolute;
+            right: 20px;
+            top: -40px;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 28px solid rgba(0, 122, 255, 0.03);
+            pointer-events: none;
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Nuevo estilo de Logo */
+        .logo-mark {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+        }
+
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .logo-title {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--dark);
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .logo-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .logo-badge {
+            margin-left: auto;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        .hero-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-text {
+            flex: 1;
+        }
+
+        .hero-eyebrow {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .hero-headline {
+            font-family: 'DM Serif Display', serif;
+            font-size: 30px;
+            line-height: 1.15;
+            color: var(--dark);
+            margin-bottom: 14px;
+        }
+
+        .hero-headline em {
+            font-style: italic;
+            color: var(--primary);
+        }
+
+        .hero-sub {
+            font-size: 12.5px;
+            line-height: 1.65;
+            color: var(--text);
+            max-width: 340px;
+        }
+
+        /* Cryptographic seal SVG */
+        .seal-wrap {
+            flex-shrink: 0;
+            width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 4px;
+        }
+
+        /* ── NORM STRIP ── */
+        .norm-strip {
+            background: var(--white);
+            padding: 12px 40px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .norm-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.02em;
+        }
+
+        .norm-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #D1D5DB;
+        }
+
+        /* ── BODY ── */
+        .body-section {
+            flex: 1;
+            padding: 32px 40px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+        }
+
+        /* ── THE DIFFERENTIATOR ── */
+        .diff-block {
+            background: var(--white);
+            border-left: 3px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            padding: 16px 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .diff-label {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .diff-text {
+            font-family: 'DM Serif Display', serif;
+            font-size: 15px;
+            line-height: 1.45;
+            color: var(--text);
+        }
+
+        .diff-text strong {
+            color: var(--dark);
+        }
+
+        /* ── THREE PILLARS ── */
+        .pillars {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+        }
+
+        .pillar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px 16px;
+            position: relative;
+            backdrop-filter: blur(16px);
+            /* Glassmorphism effect */
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+        }
+
+        .pillar-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .pillar-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .pillar-body {
+            font-size: 10.5px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .pillar-tag {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        /* ── COMPARISON ── */
+        .compare-section {}
+
+        .section-label {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .compare-table thead tr {
+            background: var(--white);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compare-table thead th {
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            color: var(--dark);
+        }
+
+        .compare-table thead th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .compare-table thead th:last-child {
+            border-radius: 0 8px 0 0;
+            text-align: center;
+        }
+
+        .compare-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compare-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .compare-table tbody td {
+            padding: 10px 12px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+
+        .compare-table tbody td:last-child {
+            text-align: center;
+        }
+
+        .compare-table tbody tr.highlight-row {
+            background: var(--bg-card);
+            backdrop-filter: blur(8px);
+        }
+
+        .compare-table tbody tr.highlight-row td:first-child {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .check {
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .cross {
+            color: #d2d2d7;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .check-gold {
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* ── CTA ── */
+        .cta-block {
+            background: var(--primary);
+            border-radius: 16px;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.25);
+        }
+
+        .cta-text {
+            flex: 1;
+        }
+
+        .cta-headline {
+            font-family: 'DM Serif Display', serif;
+            font-size: 18px;
+            color: var(--white);
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .cta-sub {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+        }
+
+        .cta-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .cta-price {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: right;
+        }
+
+        .cta-price strong {
+            color: var(--white);
+            font-size: 17px;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            padding: 16px 40px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-app);
+        }
+
+        .footer-left {
+            font-size: 9.5px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .footer-contact {
+            font-size: 9.5px;
+            color: var(--muted);
+            text-align: right;
+            line-height: 1.8;
+        }
+
+        .footer-contact a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* ── PRINT ── */
+        @media print {
+
+            html,
+            body {
+                background: white;
+            }
+
+            .page {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-bg-arc"></div>
+            <div class="header-bg-arc2"></div>
+
+            <div class="logo-row">
+                <!-- Logo mark SVG actualizado -->
+                <svg class="logo-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="48" height="48" rx="12" fill="url(#logoGrad)" />
+                    <!-- Línea de pulso cardíaco -->
+                    <path d="M 14 26 L 18 26 L 20 18 L 24 32 L 28 22 L 30 26 L 34 26" stroke="white" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#007aff" /> <!-- Azul iOS -->
+                            <stop offset="1" stop-color="#5856d6" /> <!-- Índigo -->
+                        </linearGradient>
+                    </defs>
+                </svg>
+
+                <!-- Textos del Logo actualizados -->
+                <div class="logo-text-group">
+                    <div class="logo-title">CloudMedRecord</div>
+                    <div class="logo-subtitle">Clínico</div>
+                </div>
+
+                <span class="logo-badge">Beta 2026</span>
+            </div>
+
+            <div class="hero-layout">
+                <div class="hero-text">
+                    <div class="hero-eyebrow">Expediente Clínico Electrónico · NOM-004 · NOM-024</div>
+                    <h1 class="hero-headline">
+                        Su expediente<br>es su <em>defensa legal.</em><br>¿El suyo lo protege?
+                    </h1>
+                    <p class="hero-sub">
+                        Desde enero de 2026 el ECE es obligatorio en México. CloudMedRecord es el único sistema donde
+                        cada nota que firma queda protegida con firma criptográfica verificable — no solo con una marca
+                        de tiempo.
+                    </p>
+                </div>
+
+                <!-- Cryptographic Seal actualizado a --primary -->
+                <div class="seal-wrap">
+                    <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Outer arcs -->
+                        <circle cx="55" cy="55" r="50" stroke="#007aff" stroke-width="1" stroke-opacity="0.2"
+                            stroke-dasharray="4 3" />
+                        <circle cx="55" cy="55" r="42" stroke="#007aff" stroke-width="1.5" stroke-opacity="0.3"
+                            stroke-dasharray="6 4" />
+                        <circle cx="55" cy="55" r="34" stroke="#007aff" stroke-width="2" stroke-opacity="0.5" />
+                        <!-- Inner circle -->
+                        <circle cx="55" cy="55" r="24" fill="#007aff" fill-opacity="0.05" stroke="#007aff"
+                            stroke-width="1.5" />
+                        <!-- Shield/checkmark inside -->
+                        <path d="M55 38C55 38 44 43 44 51V58L55 63L66 58V51C66 43 55 38 55 38Z" stroke="#007aff"
+                            stroke-width="1.8" fill="none" stroke-linejoin="round" />
+                        <path d="M50 53L53.5 57L61 49" stroke="#5856d6" stroke-width="2.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <!-- Tick marks on outer ring -->
+                        <g stroke="#007aff" stroke-width="1.5" stroke-opacity="0.6">
+                            <line x1="55" y1="4" x2="55" y2="10" />
+                            <line x1="55" y1="100" x2="55" y2="106" />
+                            <line x1="4" y1="55" x2="10" y2="55" />
+                            <line x1="100" y1="55" x2="106" y2="55" />
+                            <line x1="16.3" y1="16.3" x2="20.5" y2="20.5" />
+                            <line x1="89.5" y1="89.5" x2="93.7" y2="93.7" />
+                            <line x1="93.7" y1="16.3" x2="89.5" y2="20.5" />
+                            <line x1="20.5" y1="89.5" x2="16.3" y2="93.7" />
+                        </g>
+                        <!-- Label -->
+                        <text x="55" y="84" text-anchor="middle" font-family="Inter, sans-serif" font-size="6"
+                            font-weight="700" letter-spacing="1.5" fill="#007aff" opacity="0.8">FIRMA VERIFICABLE</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- NORM STRIP -->
+        <div class="norm-strip">
+            <div class="norm-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1L8.8 4.6L12.8 5.2L9.9 8L10.6 12L7 10.1L3.4 12L4.1 8L1.2 5.2L5.2 4.6L7 1Z"
+                        fill="#007aff" opacity="0.8" />
+                </svg>
+                NOM-004-SSA3-2012
+            </div>
+            <div class="norm-dot"></div>
+            <div class="norm-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1L8.8 4.6L12.8 5.2L9.9 8L10.6 12L7 10.1L3.4 12L4.1 8L1.2 5.2L5.2 4.6L7 1Z"
+                        fill="#007aff" opacity="0.8" />
+                </svg>
+                NOM-024-SSA3-2012
+            </div>
+            <div class="norm-dot"></div>
+            <div class="norm-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="2" y="2" width="10" height="10" rx="2" fill="#007aff" opacity="0.15" />
+                    <path d="M4.5 7L6 8.5L9.5 5" stroke="#007aff" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                LFPDPPP Compliant
+            </div>
+            <div class="norm-dot"></div>
+            <div class="norm-item">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="6" fill="#007aff" opacity="0.15" />
+                    <path d="M4.5 7L6 8.5L9.5 5" stroke="#007aff" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                Decreto Digitalización 2026
+            </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="body-section">
+
+            <!-- Differentiator quote -->
+            <div class="diff-block">
+                <div class="diff-label">La diferencia que importa cuando más importa</div>
+                <div class="diff-text">
+                    Si un paciente impugna su expediente, CloudMedRecord puede demostrar
+                    <strong>matemáticamente</strong> que esa nota es exactamente lo que usted firmó y que nadie la
+                    modificó después. Eso es lo que la NOM-024 exige y lo que ningún sistema de papel —ni la mayoría de
+                    sistemas digitales— puede ofrecer.
+                </div>
+            </div>
+
+            <!-- Three pillars -->
+            <div class="pillars">
+                <div class="pillar">
+                    <div class="pillar-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path
+                                d="M9 2L11.2 6.5L16 7.2L12.5 10.6L13.4 15.5L9 13.1L4.6 15.5L5.5 10.6L2 7.2L6.8 6.5L9 2Z"
+                                stroke="#007aff" stroke-width="1.5" stroke-linejoin="round" fill="none" />
+                        </svg>
+                    </div>
+                    <div class="pillar-title">Firma ECDSA verificable</div>
+                    <div class="pillar-body">Cada nota incluye su nombre, cédula y especialidad dentro del hash firmado.
+                        Inimpugnable en un litigio médico.</div>
+                    <span class="pillar-tag">No-repudio real</span>
+                </div>
+                <div class="pillar">
+                    <div class="pillar-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <rect x="2" y="5" width="14" height="10" rx="2" stroke="#007aff" stroke-width="1.5"
+                                fill="none" />
+                            <path d="M6 5V4a3 3 0 016 0v1" stroke="#007aff" stroke-width="1.5" stroke-linecap="round" />
+                            <circle cx="9" cy="10" r="1.5" fill="#007aff" />
+                        </svg>
+                    </div>
+                    <div class="pillar-title">Registros inmutables</div>
+                    <div class="pillar-body">Una vez firmada, ninguna nota puede borrarse ni modificarse — ni por el
+                        sistema, ni por el administrador.</div>
+                    <span class="pillar-tag">NOM-004 §7.2</span>
+                </div>
+                <div class="pillar">
+                    <div class="pillar-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M9 2C9 2 3 5 3 10v4l6 2 6-2v-4c0-5-6-8-6-8Z" stroke="#007aff" stroke-width="1.5"
+                                fill="none" stroke-linejoin="round" />
+                            <path d="M6.5 10L8 11.5L11.5 8" stroke="#007aff" stroke-width="1.5"
+                                stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <div class="pillar-title">Infraestructura AWS</div>
+                    <div class="pillar-body">Cifrado AES-256, auditoría de accesos, backups automáticos y retención de 5
+                        años. Documentado y verificable.</div>
+                    <span class="pillar-tag">CloudTrail + KMS</span>
+                </div>
+            </div>
+
+            <!-- Comparison table -->
+            <div class="compare-section">
+                <div class="section-label">Comparativa con otros sistemas del mercado</div>
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>Característica</th>
+                            <th>Mi-Consultorio</th>
+                            <th>SaludTotal</th>
+                            <th>Medilink</th>
+                            <th style="color:var(--primary);">CloudMedRecord</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="highlight-row">
+                            <td>Firma ECDSA verificable (NOM-024)</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="check-gold">✓</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td>Inmutabilidad a nivel base de datos</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="check-gold">✓</td>
+                        </tr>
+                        <tr>
+                            <td>Cifrado de columnas sensibles (KMS)</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="check">✓</td>
+                        </tr>
+                        <tr>
+                            <td>Aislamiento multi-consultorio (RLS)</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="check">✓</td>
+                            <td class="check">✓</td>
+                        </tr>
+                        <tr>
+                            <td>Cumplimiento NOM-004 completo</td>
+                            <td class="check">✓</td>
+                            <td class="check">✓</td>
+                            <td class="check">✓</td>
+                            <td class="check">✓</td>
+                        </tr>
+                        <tr>
+                            <td>Retención 5 años documentada</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="cross">—</td>
+                            <td class="check">✓</td>
+                        </tr>
+                        <tr>
+                            <td>Precio de entrada</td>
+                            <td>$299/mes</td>
+                            <td>$259/mes</td>
+                            <td>$450/mes + impl.</td>
+                            <td style="font-weight:700;color:var(--dark);">Desde $299/mes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- CTA -->
+            <div class="cta-block">
+                <div class="cta-text">
+                    <div class="cta-headline">Demo gratuita de 20 minutos.<br>Listo para usar el mismo día.</div>
+                    <div class="cta-sub">Sin costo de implementación. Sin compromisos anuales. Primer mes gratis para
+                        médicos beta.</div>
+                </div>
+                <div class="cta-right">
+                    <div class="cta-price">Después:<br><strong>$299 MXN/mes</strong></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="footer-left">
+                CloudMedRecord · Sistema de Expediente Clínico Electrónico<br>
+                Cumple NOM-004-SSA3-2012 · NOM-024-SSA3-2012 · LFPDPPP · Decreto 2026
+            </div>
+            <div class="footer-contact">
+                <a href="mailto:franciscofloresenr@gmail.com">franciscofloresenr@gmail.com</a><br>
+                Tel / WA: 312 194 0941
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
