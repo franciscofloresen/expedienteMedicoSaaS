@@ -709,4 +709,30 @@ dialog.modal-dialog::backdrop {
   .toast {
     min-width: 100% !important;
   }
+
+  /* Table to Cards on Mobile */
+  table {
+    display: block !important;
+  }
+  thead {
+    display: none !important;
+  }
+  tbody, tr, td {
+    display: block !important;
+    width: 100% !important;
+  }
+  tr {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light) !important;
+    padding-bottom: 1rem;
+  }
+  td {
+    padding: 0.5rem 0 !important;
+    text-align: left !important;
+  }
+  
+  /* Fix nav buttons on Landing */
+  nav {
+    flex-wrap: wrap;
+  }
 }
