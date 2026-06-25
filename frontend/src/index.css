@@ -655,3 +655,58 @@ dialog.modal-dialog::backdrop {
     transform: translateY(15px);
   }
 }
+
+/* --- PONYTAIL: GLOBAL MOBILE RESPONSIVE PATCH --- */
+@media (max-width: 768px) {
+  /* Fix headers that use inline flex */
+  header[style*="display: flex"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  header[style*="display: flex"] > div {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  /* Search inputs stretch full width */
+  input[type="text"][placeholder*="Buscar"] {
+    width: 100% !important;
+  }
+  
+  /* Buttons stretch full width */
+  .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Fix inline grids (Stats cards, Forms) */
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ensure modals don't overflow */
+  dialog.modal-dialog {
+    max-width: 95% !important;
+    margin: 10px auto !important;
+  }
+  
+  /* Table wrappers */
+  .glass-card[style*="overflow"] {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+  
+  /* Adjust toasts */
+  .toast-container {
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+  }
+  .toast {
+    min-width: 100% !important;
+  }
+}
