@@ -713,6 +713,7 @@ dialog.modal-dialog::backdrop {
   /* Table to Cards on Mobile */
   table {
     display: block !important;
+    min-width: 0 !important;
   }
   thead {
     display: none !important;

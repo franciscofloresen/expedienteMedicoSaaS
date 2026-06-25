@@ -27,7 +27,7 @@ const localizer = dateFnsLocalizer({
 
 export default function Agenda() {
   const queryClient = useQueryClient();
-  const [view, setView] = useState<View>(Views.WEEK);
+  const [view, setView] = useState<View>(window.innerWidth < 768 ? Views.AGENDA : Views.WEEK);
   const [date, setDate] = useState(new Date());
   
   const [isModalOpen, setIsModalOpen] = useState(false);
