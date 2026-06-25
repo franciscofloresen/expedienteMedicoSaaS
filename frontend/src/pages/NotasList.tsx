@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ShieldCheck, Edit3, Calendar, ExternalLink } from 'lucide-react';
+import { Activity, ShieldCheck, Edit3, Calendar } from 'lucide-react';
 import { notasApi } from '../services/api';
 
 export default function NotasList() {

@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { Edit2, Trash2, Search, Users, FileCheck, ShieldCheck } from 'lucide-react';
+import { Edit2, Trash2, Search, Users, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
@@ -39,6 +39,7 @@ export default function Pacientes() {
       showToast('Paciente registrado exitosamente', 'success');
       closeFormModal();
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       const message = error.response?.data?.detail || (error instanceof Error ? error.message : "Error al registrar el paciente");
       showToast(message, 'error');
