@@ -311,7 +311,7 @@ export default function Expediente() {
   }
 
   return (
-    <div style={{ position: 'relative', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }} className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '12px' }} onClick={() => navigate('/app')}>
