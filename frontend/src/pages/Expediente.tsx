@@ -329,9 +329,9 @@ export default function Expediente() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', flex: 1 }}>
         {/* Columna Izquierda: Datos del Paciente */}
-        <div className="glass-card animate-fade-in" style={{ alignSelf: 'start', overflowY: 'auto', maxHeight: '100%', padding: '2rem' }}>
+        <div className="glass-card animate-fade-in" style={{ alignSelf: 'start', padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1.5rem' }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(88, 86, 214, 0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 700, color: 'var(--primary)' }}>
               {paciente?.nombre_completo.charAt(0)}
@@ -408,7 +408,7 @@ export default function Expediente() {
         </div>
 
         {/* Columna Derecha: Historial de Notas */}
-        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1.5rem 1.5rem 0 1.5rem', background: 'transparent', boxShadow: 'none', border: 'none' }}>
+        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', display: 'flex', flexDirection: 'column', padding: '1.5rem 1.5rem 0 1.5rem', background: 'transparent', boxShadow: 'none', border: 'none' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <Activity size={24} color="var(--primary)" />
             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Historial Clínico</h3>
@@ -560,8 +560,9 @@ export default function Expediente() {
       <div style={{
         position: 'fixed',
         top: 0,
-        right: isSidePanelOpen ? 0 : '-600px',
-        width: '500px',
+        right: isSidePanelOpen ? 0 : '-100%',
+        width: '100%',
+        maxWidth: '500px',
         height: '100vh',
         backgroundColor: 'var(--bg-card)',
         backdropFilter: 'blur(16px)',
