@@ -4,6 +4,7 @@ import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lu
 import { UserProfile } from '@clerk/react';
 import { useToast } from '../hooks/useToast';
 import UpgradeBanner from '../components/UpgradeBanner';
+import { authApi } from '../services/api';
 
 export default function Settings() {
   const { showToast } = useToast();
@@ -13,14 +14,14 @@ export default function Settings() {
   const [editCedula, setEditCedula] = useState('');
   const [editEspecialidad, setEditEspecialidad] = useState('');
 
-  const { data: profile, isLoading, isError } = useQuery({
+  const { data: profile, isLoading, isError } = useQuery<any>({
     queryKey: ['profile'],
     queryFn: authApi.getProfile,
     retry: 1
   });
 
   const updateMutation = useMutation({
-    mutationFn: authApi.updateProfile,
+    mutationFn: (data: { cedula: string; especialidad: string }) => authApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showToast('Datos actualizados correctamente', 'success');
