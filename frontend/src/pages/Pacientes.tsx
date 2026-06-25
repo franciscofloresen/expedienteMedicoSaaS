@@ -175,7 +175,7 @@ export default function Pacientes() {
       <h2 style={{ fontSize: '1.2rem', marginBottom: '1rem', marginTop: '1rem' }} className="animate-fade-in">Pacientes Recientes</h2>
 
       <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto', padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: 'rgba(0,0,0,0.02)' }}>
               <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre del Paciente</th>
@@ -207,21 +207,21 @@ export default function Pacientes() {
                   onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
                   onClick={() => navigate(`/app/pacientes/${p.id}`)}
                 >
-                  <td style={{ padding: '1.25rem 1.5rem' }}>
+                  <td data-label="Paciente" style={{ padding: '1.25rem 1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(0, 122, 255, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '1.1rem' }}>
                         {p.nombre_completo.charAt(0)}
                       </div>
-                      <div>
+                      <div style={{ textAlign: 'left' }}>
                         <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{p.nombre_completo}</div>
                         {p.email && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{p.email}</div>}
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-main)', fontWeight: 500 }}>{p.curp || '-'}</td>
-                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.sexo}</td>
-                  <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.fecha_nacimiento}</td>
-                  <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                  <td data-label="CURP" style={{ padding: '1.25rem 1.5rem', color: 'var(--text-main)', fontWeight: 500 }}>{p.curp || '-'}</td>
+                  <td data-label="Sexo" style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.sexo}</td>
+                  <td data-label="Fecha Nac." style={{ padding: '1.25rem 1.5rem', color: 'var(--text-muted)' }}>{p.fecha_nacimiento}</td>
+                  <td data-label="Acciones" style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                       <button 
                         className="btn btn-outline" 

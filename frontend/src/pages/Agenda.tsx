@@ -133,7 +133,7 @@ export default function Agenda() {
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '100%', minHeight: '600px', minWidth: '800px' }}
+            style={{ height: '100%', minHeight: '600px' }}
             view={view}
             onView={(newView) => setView(newView)}
             date={date}
