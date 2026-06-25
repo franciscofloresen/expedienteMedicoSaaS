@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lucide-react';
 import { UserProfile } from '@clerk/react';
-import { authApi } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import UpgradeBanner from '../components/UpgradeBanner';
 
 export default function Settings() {
   const { showToast } = useToast();
@@ -50,6 +50,8 @@ export default function Settings() {
         <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Configuración de la Clínica</h1>
         <p className="text-muted" style={{ marginTop: '0.5rem' }}>Gestiona tu perfil profesional y la seguridad de tus datos.</p>
       </header>
+      
+      <UpgradeBanner />
 
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}>Cargando perfil...</div>

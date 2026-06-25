@@ -79,7 +79,10 @@ export default function NotasList() {
               </td></tr>
             ) : (
               filteredNotas.map((nota: any) => (
-                <tr key={nota.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s' }}>
+                <tr key={nota.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s', cursor: 'pointer' }}
+                    onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                    onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onClick={() => navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`)}>
                   <td data-label="Estado" style={{ padding: '1rem' }}>
                     {nota.firmada ? (
                       <span className="badge badge-success" style={{ display: 'inline-flex', gap: '0.25rem' }}>
@@ -108,11 +111,11 @@ export default function NotasList() {
                   </td>
                   <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
                     <button 
-                      className="btn btn-outline" 
+                      className="btn btn-primary" 
                       style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
-                      onClick={() => navigate(`/app/pacientes/${nota.paciente_id}`)}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`); }}
                     >
-                      <ExternalLink size={16} /> Ver Nota
+                      Ver Nota
                     </button>
                   </td>
                 </tr>
