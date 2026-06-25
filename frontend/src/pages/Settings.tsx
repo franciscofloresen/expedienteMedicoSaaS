@@ -14,6 +14,7 @@ export default function Settings() {
   const [editCedula, setEditCedula] = useState('');
   const [editEspecialidad, setEditEspecialidad] = useState('');
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile, isLoading, isError } = useQuery<any>({
     queryKey: ['profile'],
     queryFn: authApi.getProfile,
