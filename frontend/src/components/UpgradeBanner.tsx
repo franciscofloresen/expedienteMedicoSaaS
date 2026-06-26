@@ -32,15 +32,16 @@ export default function UpgradeBanner() {
           Estás en el Plan Básico (Límite: 5 Expedientes)
         </h4>
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-          Para desbloquear expedientes ilimitados y funciones avanzadas, por favor contacta a soporte para activar tu cuenta Pro.
+          Para desbloquear expedientes ilimitados, contacta a soporte: franciscofloresenr@gmail.com o WhatsApp +523121940941
+          {/* ponytail: simplificado al máximo */}
         </p>
       </div>
       <button 
         className="btn btn-primary"
-        onClick={() => window.open('mailto:soporte@cloudmedrecord.com?subject=Activar Cuenta Pro', '_blank')}
+        onClick={() => window.open('https://wa.me/523121940941', '_blank')}
         style={{ whiteSpace: 'nowrap', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
       >
-        Contactar Soporte
+        WhatsApp
       </button>
     </div>
   );
