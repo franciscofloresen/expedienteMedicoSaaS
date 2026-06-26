@@ -105,12 +105,11 @@
             z-index: 1;
         }
 
-        /* Nuevo estilo de Logo */
         .logo-mark {
             width: 44px;
             height: 44px;
             flex-shrink: 0;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+            box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
             border-radius: 12px;
         }
 
@@ -226,7 +225,7 @@
             width: 5px;
             height: 5px;
             border-radius: 50%;
-            background: #D1D5DB;
+            background: #d2d2d7;
         }
 
         /* ── BODY ── */
@@ -449,16 +448,17 @@
         }
 
         .cta-price {
-            font-size: 13px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.9);
             text-align: right;
+            line-height: 1.4;
         }
 
         .cta-price strong {
             color: var(--white);
             font-size: 17px;
             display: block;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         /* ── FOOTER ── */
@@ -514,7 +514,7 @@
             <div class="header-bg-arc2"></div>
 
             <div class="logo-row">
-                <!-- Logo mark SVG actualizado -->
+                <!-- Logo mark SVG -->
                 <svg class="logo-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect width="48" height="48" rx="12" fill="url(#logoGrad)" />
                     <!-- Línea de pulso cardíaco -->
@@ -528,7 +528,7 @@
                     </defs>
                 </svg>
 
-                <!-- Textos del Logo actualizados -->
+                <!-- Textos del Logo -->
                 <div class="logo-text-group">
                     <div class="logo-title">CloudMedRecord</div>
                     <div class="logo-subtitle">Clínico</div>
@@ -550,7 +550,7 @@
                     </p>
                 </div>
 
-                <!-- Cryptographic Seal actualizado a --primary -->
+                <!-- Cryptographic Seal -->
                 <div class="seal-wrap">
                     <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <!-- Outer arcs -->
@@ -741,7 +741,12 @@
                             <td>$299/mes</td>
                             <td>$259/mes</td>
                             <td>$450/mes + impl.</td>
-                            <td style="font-weight:700;color:var(--dark);">Desde $299/mes</td>
+                            <td style="line-height: 1.3;">
+                                <span
+                                    style="font-weight:700; color:var(--primary); font-size: 12px;">$299<small>/mes</small></span>
+                                <span style="font-size: 9.5px; color:var(--dark); font-weight:600;">(Beta)</span><br>
+                                <span style="color:var(--muted); font-size: 9.5px;">Pro: $499/mes</span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -755,7 +760,10 @@
                         médicos beta.</div>
                 </div>
                 <div class="cta-right">
-                    <div class="cta-price">Después:<br><strong>$299 MXN/mes</strong></div>
+                    <div class="cta-price">
+                        Precio Pro: <del style="opacity: 0.8;">$499 MXN</del><br>
+                        <strong>Beta: $299 MXN/mes</strong>
+                    </div>
                 </div>
             </div>
 

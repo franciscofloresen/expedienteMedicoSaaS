@@ -12,7 +12,7 @@ Dr./Dra. **[NOMBRE_MEDICO]**
 Cédula Profesional: **[CEDULA]**  
 Especialidad: **[ESPECIALIDAD]**  
 Domicilio del consultorio: **[DOMICILIO]**  
-Correo electrónico de contacto: **[EMAIL]**  
+Correo electrónico de contacto: **franciscofloresenr@gmail.com** (o WhatsApp +523121940941)  
 
 ---
 

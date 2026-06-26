@@ -83,7 +83,7 @@ async def create_expediente(
         if count >= 5:
             raise HTTPException(
                 status_code=403,
-                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte para activar su cuenta Pro.",
+                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte (franciscofloresenr@gmail.com o WhatsApp +523121940941) para activar su cuenta Pro.",
             )
 
     # Check if expediente already exists
