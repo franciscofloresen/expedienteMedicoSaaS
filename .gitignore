@@ -71,3 +71,12 @@ docs/breach_protocol.md
 cmds.txt
 PRODUCTION_DEBT.md
 future.md
+
+# ── Ops and Business ──
+staging_real.state
+scripts/audit.sh
+scripts/upgrade_pro.sh
+sales.md
+finalPrompt.md
+flyer.html
+test_log.txt
