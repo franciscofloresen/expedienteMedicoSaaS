@@ -68,6 +68,11 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['expediente', id] });
       client.invalidateQueries({ queryKey: ['auditLogs'] }); // Refrescar bitácora en dashboard
       showToast("Expediente creado y consentimiento registrado", "success");
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (err: any) => {
+      const message = err.response?.data?.detail || err.message || "Error al crear el expediente";
+      showToast(message, "error");
     }
   });
 
