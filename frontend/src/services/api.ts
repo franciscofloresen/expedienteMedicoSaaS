@@ -200,6 +200,6 @@ export const recetasApi = {
     return [];
   },
   create: async (data: any): Promise<any> => {
-    return api.post('/recetas/', data);
+    return api.post('/recetas', data);
   }
 };
