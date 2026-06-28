@@ -32,20 +32,16 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     from app.models.tenant import Tenant
-    from app.models.tenant_key import TenantKey
 
     stmt = (
-        select(Tenant, TenantKey)
-        .join(TenantKey, Tenant.id == TenantKey.tenant_id)
+        select(Tenant)
         .where(Tenant.id == tenant_id)
     )
     result = await db.execute(stmt)
-    row = result.first()
+    tenant = result.scalar_one_or_none()
 
-    if not row:
+    if not tenant:
         raise HTTPException(status_code=404, detail="User profile not found")
-
-    tenant, tenant_key = row
 
     return {
         "tenant_id": str(tenant.id),
@@ -54,13 +50,6 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         "cedula": tenant.cedula,
         "especialidad": tenant.especialidad,
         "plan": tenant.plan,
-        "seguridad": {
-            "cifrado_activo": True,
-            "kms_key_id": tenant_key.kms_key_id,
-            "ultima_rotacion": (
-                tenant_key.rotated_at.isoformat() if tenant_key.rotated_at else None
-            ),
-        },
     }
 
 
@@ -154,11 +143,10 @@ async def onboarding(
     import uuid
 
     import httpx
-    from sqlalchemy import select, text
+    from sqlalchemy import select
 
     from app.core.config import settings
     from app.models.tenant import Tenant
-    from app.models.tenant_key import TenantKey
 
     # Check if they already have a tenant
     tenant_id = getattr(request.state, "tenant_id", None)
@@ -188,14 +176,6 @@ async def onboarding(
     else:
         new_tenant_id = uuid.uuid4()
 
-        # We must bypass RLS to create the tenant because we don't have a tenant context yet.
-        # Setting the config strictly to the new_tenant_id allows the application role to
-        # insert the TenantKey which is tenant-scoped.
-        await db.execute(
-            text("SELECT set_config('app.current_tenant', :tid, true)"),
-            {"tid": str(new_tenant_id)},
-        )
-
         # Create Tenant
         new_tenant = Tenant(
             id=new_tenant_id,
@@ -207,24 +187,6 @@ async def onboarding(
             plan="basico",
         )
         db.add(new_tenant)
-
-        if settings.environment != "development":
-            # Direct KMS is used. No DEK generated. Store CMK ARN for auditing key rotation.
-            new_key = TenantKey(
-                tenant_id=new_tenant_id,
-                encrypted_dek=b"unused_direct_kms",
-                kms_key_id=settings.kms_encryption_key_id,
-            )
-        else:
-            # Create dummy DEK for local dev (in production, we call KMS)
-            dummy_dek = b"mock_dek_for_onboarding_32_bytes"
-
-            new_key = TenantKey(
-                tenant_id=new_tenant_id,
-                encrypted_dek=dummy_dek,
-                kms_key_id="mock_kms_key",
-            )
-        db.add(new_key)
 
         await db.commit()
 

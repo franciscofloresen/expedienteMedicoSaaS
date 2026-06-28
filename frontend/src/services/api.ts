@@ -170,11 +170,6 @@ export const notasApi = {
   }
 };
 
-export const auditApi = {
-  getRecent: async (limit: number = 20): Promise<any[]> => {
-    return api.get('/audit/recent', { limit });
-  }
-};
 
 export const citasApi = {
   getAll: async (start_date?: string, end_date?: string): Promise<Cita[]> => {

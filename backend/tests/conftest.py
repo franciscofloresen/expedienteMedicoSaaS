@@ -78,8 +78,6 @@ async def setup_database():
             "expedientes",
             "notas",
             "citas",
-            "audit_log",
-            "tenant_keys",
         ]:
             await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
             await conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))
@@ -108,22 +106,7 @@ async def setup_database():
             ),
             {"id_a": TENANT_A_ID, "id_b": TENANT_B_ID},
         )
-        dek = b"\x00" * 32  # 32-byte mock DEK
-        await conn.execute(
-            text(
-                "INSERT INTO tenant_keys"
-                " (tenant_id, kms_key_id, encrypted_dek)"
-                " VALUES (:id_a, 'mock-kms-a', :dek_a),"
-                " (:id_b, 'mock-kms-b', :dek_b)"
-                " ON CONFLICT (tenant_id) DO NOTHING"
-            ),
-            {
-                "id_a": TENANT_A_ID,
-                "id_b": TENANT_B_ID,
-                "dek_a": dek,
-                "dek_b": dek,
-            },
-        )
+
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

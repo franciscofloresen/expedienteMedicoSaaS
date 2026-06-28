@@ -4,7 +4,6 @@ from sqlalchemy import select, text
 
 from app.db.session import _get_session_factory
 from app.models.tenant import Tenant
-from app.models.tenant_key import TenantKey
 
 
 async def create_dev_tenant():
@@ -32,19 +31,6 @@ async def create_dev_tenant():
                     email="dev@local.host",
                 )
                 session.add(t)
-
-                # Check if key exists
-                stmt_k = select(TenantKey).where(TenantKey.tenant_id == tenant_id)
-                res_k = await session.execute(stmt_k)
-                if not res_k.scalar_one_or_none():
-                    print("Creando llave de cifrado de desarrollo...")
-                    # Cifrado falso solo para pruebas
-                    tk = TenantKey(
-                        tenant_id=tenant_id,
-                        encrypted_dek=b"mock_encrypted_dek",
-                        kms_key_id="mock_kms_key",
-                    )
-                    session.add(tk)
             else:
                 print("Tenant de desarrollo ya existe.")
 
