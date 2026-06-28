@@ -29,8 +29,7 @@ async def create_receta(
         indicaciones_generales=data.indicaciones_generales
     )
     db.add(receta)
-    await db.commit()
-    await db.refresh(receta)
+    await db.flush()
 
     return {
         "id": str(receta.id),
