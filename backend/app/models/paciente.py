@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     String,
+    Text,
     UniqueConstraint,
     text,
 )
@@ -60,6 +61,12 @@ class Paciente(Base):
     # Insurance
     aseguradora: Mapped[str | None] = mapped_column(String(100))
     num_poliza: Mapped[str | None] = mapped_column(String(50))
+
+    # Medical / Emergency
+    contacto_emergencia: Mapped[str | None] = mapped_column(String(200))
+    telefono_emergencia: Mapped[str | None] = mapped_column(String(20))
+    tipo_sangre: Mapped[str | None] = mapped_column(String(5))
+    alergias: Mapped[str | None] = mapped_column(Text)
 
     # Encrypted fields
     domicilio_cifrado: Mapped[bytes | None] = mapped_column(BYTEA)

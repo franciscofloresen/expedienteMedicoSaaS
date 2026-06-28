@@ -9,6 +9,8 @@ import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
+import Cie10Search from '../components/Cie10Search';
+import { recetasApi } from '../services/api';
 
 
 export default function Expediente() {
@@ -24,7 +26,12 @@ export default function Expediente() {
   const [notaToSign, setNotaToSign] = useState<Nota | null>(null);
 
   const [isAntecedentesModalOpen, setIsAntecedentesModalOpen] = useState(false);
-
+  
+  // Receta state
+  const [isRecetaModalOpen, setIsRecetaModalOpen] = useState(false);
+  const [activeNotaForReceta, setActiveNotaForReceta] = useState<Nota | null>(null);
+  const [recetaText, setRecetaText] = useState('');
+  
   // Autosave Draft
   const { draft, hasDraft, draftAge, saveDraft, clearDraft, lastSaveSecondsAgo } = useAutosave<any>(`nota-${id}`);
 
@@ -69,7 +76,6 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['auditLogs'] }); // Refrescar bitácora en dashboard
       showToast("Expediente creado y consentimiento registrado", "success");
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       const message = err.response?.data?.detail || err.message || "Error al crear el expediente";
       showToast(message, "error");
@@ -175,9 +181,10 @@ export default function Expediente() {
 
     const formData = new FormData(e.currentTarget);
     
-    const contenido = {
-      evolucion_y_actualizacion_cuadro: formData.get('evolucion') as string,
-    };
+    const contenido = {};
+    const motivo_consulta = formData.get('motivo_consulta') as string;
+    const exploracion_fisica = formData.get('exploracion_fisica') as string;
+    const plan_tratamiento = formData.get('plan_tratamiento') as string;
     
     const signos_vitales = {
       frecuencia_cardiaca: Number(formData.get('fc')),
@@ -193,7 +200,11 @@ export default function Expediente() {
           contenido,
           signos_vitales,
           diagnosticos: [formData.get('diagnostico') as string],
-          tratamiento: formData.get('tratamiento') as string
+          tratamiento: plan_tratamiento,
+          motivo_consulta,
+          exploracion_fisica,
+          plan_tratamiento,
+          diagnostico_cie10: formData.get('diagnostico_cie10') as string || undefined,
         }
       });
     } else {
@@ -203,7 +214,11 @@ export default function Expediente() {
         contenido,
         signos_vitales,
         diagnosticos: [formData.get('diagnostico') as string],
-        tratamiento: formData.get('tratamiento') as string
+        tratamiento: plan_tratamiento,
+        motivo_consulta,
+        exploracion_fisica,
+        plan_tratamiento,
+        diagnostico_cie10: formData.get('diagnostico_cie10') as string || undefined,
       });
     }
   };
@@ -216,9 +231,11 @@ export default function Expediente() {
       fr: formData.get('fr'),
       temp: formData.get('temp'),
       ta: formData.get('ta'),
-      evolucion: formData.get('evolucion'),
+      motivo_consulta: formData.get('motivo_consulta'),
+      exploracion_fisica: formData.get('exploracion_fisica'),
       diagnostico: formData.get('diagnostico'),
-      tratamiento: formData.get('tratamiento')
+      diagnostico_cie10: formData.get('diagnostico_cie10'),
+      plan_tratamiento: formData.get('plan_tratamiento')
     });
   };
 
@@ -239,15 +256,38 @@ export default function Expediente() {
     setVal('fr', draft.fr);
     setVal('temp', draft.temp);
     setVal('ta', draft.ta);
-    setVal('evolucion', draft.evolucion);
+    setVal('motivo_consulta', draft.motivo_consulta);
+    setVal('exploracion_fisica', draft.exploracion_fisica);
     setVal('diagnostico', draft.diagnostico);
-    setVal('tratamiento', draft.tratamiento);
+    setVal('diagnostico_cie10', draft.diagnostico_cie10);
+    setVal('plan_tratamiento', draft.plan_tratamiento);
     showToast("Borrador recuperado", "success");
   };
 
   const confirmSign = (nota: Nota) => {
     setNotaToSign(nota);
     setIsSignModalOpen(true);
+  };
+
+  const createRecetaMutation = useMutation({
+    mutationFn: async (data: { nota_id: string; texto: string }) => {
+      // Ponytail: Keep it simple. Store as single text block inside the jsonb array for MVP.
+      return recetasApi.create({
+        nota_id: data.nota_id,
+        medicamentos: [{ descripcion: data.texto }],
+        indicaciones_generales: "Impreso"
+      });
+    },
+    onSuccess: () => {
+      // Trigger print after save
+      setTimeout(() => window.print(), 100);
+      showToast("Receta generada con éxito", "success");
+    }
+  });
+
+  const handlePrintReceta = () => {
+    if (!activeNotaForReceta) return;
+    createRecetaMutation.mutate({ nota_id: activeNotaForReceta.id, texto: recetaText });
   };
 
   if (isLoadingExpediente) return <div>Cargando expediente...</div>;
@@ -343,7 +383,7 @@ export default function Expediente() {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', flex: 1 }}>
+      <div className={isRecetaModalOpen ? "no-print" : ""} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', flex: 1 }}>
         {/* Columna Izquierda: Datos del Paciente */}
         <div className="glass-card animate-fade-in" style={{ alignSelf: 'start', padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1.5rem' }}>
@@ -367,6 +407,15 @@ export default function Expediente() {
               </div>
               <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
                 <Calendar size={16} className="text-muted" /> {paciente?.fecha_nacimiento}
+              </div>
+              <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <span style={{ fontWeight: 500 }}>Sangre:</span> {paciente?.tipo_sangre || 'No reg.'}
+              </div>
+              <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: paciente?.alergias ? 'var(--error)' : 'inherit' }}>
+                <span style={{ fontWeight: 500 }}>Alergias:</span> {paciente?.alergias || 'Ninguna'}
+              </div>
+              <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <span style={{ fontWeight: 500 }}>Emergencia:</span> {paciente?.contacto_emergencia || 'No reg.'} {paciente?.telefono_emergencia ? `(${paciente.telefono_emergencia})` : ''}
               </div>
             </div>
 
@@ -519,9 +568,18 @@ export default function Expediente() {
                       
                       <div>
                         <strong className="text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>Evolución Clínica:</strong>
-                        <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                          {formatContenido(nota.contenido)}
-                        </p>
+                        <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                          {nota.motivo_consulta && (
+                            <><strong>Motivo de Consulta:</strong><br/>{nota.motivo_consulta}<br/><br/></>
+                          )}
+                          {nota.exploracion_fisica && (
+                            <><strong>Exploración Física:</strong><br/>{nota.exploracion_fisica}<br/><br/></>
+                          )}
+                          {nota.plan_tratamiento && (
+                            <><strong>Plan / Tratamiento:</strong><br/>{nota.plan_tratamiento}<br/><br/></>
+                          )}
+                          {!nota.motivo_consulta && formatContenido(nota.contenido)}
+                        </div>
                       </div>
                     </div>
 
@@ -546,7 +604,14 @@ export default function Expediente() {
                             style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', color: '#166534', borderColor: '#bbf7d0' }}
                             onClick={() => window.print()}
                           >
-                            <Printer size={14} style={{ marginRight: '0.3rem' }} /> Imprimir
+                            <Printer size={14} style={{ marginRight: '0.3rem' }} /> Imprimir Nota
+                          </button>
+                          <button 
+                            className="btn btn-primary no-print" 
+                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+                            onClick={() => { setActiveNotaForReceta(nota); setIsRecetaModalOpen(true); }}
+                          >
+                            <FileSignature size={14} style={{ marginRight: '0.3rem' }} /> Generar Receta
                           </button>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', color: '#14532d' }}>
@@ -646,18 +711,32 @@ export default function Expediente() {
 
           <h4 style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Contenido Clínico</h4>
           <div className="form-group">
-            <label className="form-label">Evolución Clínica</label>
-            <textarea name="evolucion" className="form-input" rows={4} required minLength={10} placeholder="Describa la evolución..." defaultValue={editingNota?.contenido?.evolucion_y_actualizacion_cuadro}></textarea>
+            <label className="form-label">Motivo de Consulta y Evolución</label>
+            <textarea name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva..." defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro}></textarea>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Exploración Física</label>
+            <textarea name="exploracion_fisica" className="form-input" rows={3} placeholder="Describa los hallazgos objetivos..." defaultValue={editingNota?.exploracion_fisica}></textarea>
           </div>
           
           <div className="form-group">
-            <label className="form-label">Diagnóstico Principal</label>
+            <label className="form-label">Diagnóstico (Texto libre)</label>
             <input type="text" name="diagnostico" className="form-input" required minLength={5} defaultValue={editingNota?.contenido?.diagnosticos?.[0]} />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tratamiento / Plan</label>
-            <textarea name="tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.contenido?.tratamiento}></textarea>
+            <label className="form-label">Diagnóstico CIE-10</label>
+            <Cie10Search 
+              name="diagnostico_cie10" 
+              defaultValue={editingNota?.diagnostico_cie10 || draft?.diagnostico_cie10} 
+              onSelect={(code) => console.log('Seleccionado:', code)} 
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Plan / Tratamiento</label>
+            <textarea name="plan_tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.plan_tratamiento || editingNota?.contenido?.tratamiento}></textarea>
           </div>
 
           <div style={{ marginTop: '3rem', display: 'flex', gap: '1rem' }}>
@@ -740,6 +819,72 @@ export default function Expediente() {
           </div>
         </form>
       </Modal>
+      {/* Receta Modal */}
+      <Modal
+        isOpen={isRecetaModalOpen}
+        onClose={() => setIsRecetaModalOpen(false)}
+        title="Generar Receta"
+        footer={
+          <>
+            <button className="btn btn-outline" onClick={() => setIsRecetaModalOpen(false)}>
+              Cancelar
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={handlePrintReceta}
+              disabled={!recetaText || createRecetaMutation.isPending}
+            >
+              <Printer size={16} style={{ marginRight: '0.5rem' }} /> 
+              {createRecetaMutation.isPending ? 'Guardando...' : 'Guardar e Imprimir'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label className="form-label">Medicamentos e Indicaciones</label>
+          <textarea 
+            className="form-input" 
+            rows={8} 
+            value={recetaText}
+            onChange={(e) => setRecetaText(e.target.value)}
+            placeholder="Escriba aquí los medicamentos, dosis e indicaciones..."
+          />
+        </div>
+      </Modal>
+
+      {/* Hidden area only visible during printing for the Receta */}
+      {isRecetaModalOpen && activeNotaForReceta && (
+        <div id="print-receta-only" style={{ display: 'none' }} className="print-only">
+          <div style={{ padding: '2rem', border: '1px solid #000', height: '100%' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
+              <h2>{activeNotaForReceta.medico_nombre}</h2>
+              <p>Médico {activeNotaForReceta.medico_especialidad} | Cédula: {activeNotaForReceta.medico_cedula}</p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
+              <div>
+                <p><strong>Paciente:</strong> {paciente?.nombre_completo}</p>
+                <p><strong>Edad/Sexo:</strong> {paciente?.fecha_nacimiento} / {paciente?.sexo}</p>
+                <p><strong>Alergias:</strong> {paciente?.alergias || 'Ninguna'}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p><strong>Fecha:</strong> {new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            <div style={{ minHeight: '400px' }}>
+              <h3 style={{ borderBottom: '1px solid #ccc', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Rx</h3>
+              <p style={{ whiteSpace: 'pre-wrap', fontSize: '1.1rem', lineHeight: '1.6' }}>{recetaText}</p>
+            </div>
+
+            <div style={{ marginTop: '4rem', textAlign: 'center' }}>
+              <div style={{ borderTop: '1px solid #000', width: '300px', margin: '0 auto', paddingTop: '0.5rem' }}>
+                Firma del Médico
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -110,6 +110,10 @@ export default function Pacientes() {
       email: (formData.get('email') as string) || undefined,
       domicilio: (formData.get('domicilio') as string) || undefined,
       ocupacion: (formData.get('ocupacion') as string) || undefined,
+      contacto_emergencia: (formData.get('contacto_emergencia') as string) || undefined,
+      telefono_emergencia: (formData.get('telefono_emergencia') as string) || undefined,
+      tipo_sangre: (formData.get('tipo_sangre') as string) || undefined,
+      alergias: (formData.get('alergias') as string) || undefined,
     };
     
     if (editingPaciente) {
@@ -356,6 +360,59 @@ export default function Pacientes() {
                 name="ocupacion" 
                 className="form-input" 
                 defaultValue={editingPaciente?.ocupacion} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="contacto_emergencia">Contacto de Emergencia</label>
+              <input 
+                type="text" 
+                id="contacto_emergencia"
+                name="contacto_emergencia" 
+                className="form-input" 
+                defaultValue={editingPaciente?.contacto_emergencia} 
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label" htmlFor="telefono_emergencia">Teléfono de Emergencia</label>
+              <input 
+                type="tel" 
+                id="telefono_emergencia"
+                name="telefono_emergencia" 
+                className="form-input" 
+                pattern="\d{10}"
+                title="Debe contener 10 dígitos"
+                onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '')}
+                defaultValue={editingPaciente?.telefono_emergencia} 
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="tipo_sangre">Tipo de Sangre</label>
+              <input 
+                type="text" 
+                id="tipo_sangre"
+                name="tipo_sangre" 
+                className="form-input" 
+                placeholder="Ej. O+"
+                defaultValue={editingPaciente?.tipo_sangre} 
+              />
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label" htmlFor="alergias">Alergias Conocidas</label>
+              <input 
+                type="text" 
+                id="alergias"
+                name="alergias" 
+                className="form-input" 
+                placeholder="Ej. Penicilina, polen"
+                defaultValue={editingPaciente?.alergias} 
               />
             </div>
           </div>
