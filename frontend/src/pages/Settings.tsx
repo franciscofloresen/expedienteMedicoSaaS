@@ -173,11 +173,8 @@ export default function Settings() {
                     </span>
                   </h3>
                   <p className="text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
-                    Todos los antecedentes y notas médicas de tus pacientes están encriptados con AES-256 (Envelope Encryption) asegurando el cumplimiento de privacidad.
+                    Todos los antecedentes y notas médicas de tus pacientes están protegidos con cifrado de base de datos (TDE) asegurando el cumplimiento de la NOM-024.
                   </p>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)', backgroundColor: 'var(--bg-card)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)', display: 'inline-block' }}>
-                    KMS Key ID: {profile.seguridad.kms_key_id}
-                  </div>
                 </div>
               </div>
 
