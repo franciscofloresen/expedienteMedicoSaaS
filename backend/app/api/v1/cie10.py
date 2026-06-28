@@ -9,7 +9,7 @@ from app.models.cie10 import CIE10
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 async def search_cie10(q: str, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Search CIE-10 codes by code or description (top 500 for beta).

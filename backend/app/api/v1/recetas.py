@@ -16,7 +16,7 @@ class RecetaCreate(BaseModel):
     medicamentos: list[dict[str, Any]]
     indicaciones_generales: str | None = None
 
-@router.post("/")
+@router.post("")
 async def create_receta(
     data: RecetaCreate, request: Request, db: AsyncSession = Depends(get_db)
 ) -> Any:
