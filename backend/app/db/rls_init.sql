@@ -18,6 +18,9 @@ ALTER TABLE expedientes FORCE ROW LEVEL SECURITY;
 ALTER TABLE notas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notas FORCE ROW LEVEL SECURITY;
 
+ALTER TABLE recetas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recetas FORCE ROW LEVEL SECURITY;
+
 
 -- ── Tenant isolation policies ──
 -- Each policy filters rows by matching tenant_id with the
@@ -43,6 +46,12 @@ BEGIN
         CREATE POLICY tenant_isolation_notas ON notas
             USING (tenant_id = current_setting('app.current_tenant')::uuid);
     END IF;
+
+    -- Recetas
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'tenant_isolation_recetas') THEN
+        CREATE POLICY tenant_isolation_recetas ON recetas
+            USING (tenant_id = current_setting('app.current_tenant')::uuid);
+    END IF;
 END $$;
 
 -- ── Application Role ──
@@ -64,6 +73,7 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO medrecord_app;
 REVOKE DELETE ON pacientes FROM medrecord_app;
 REVOKE DELETE ON expedientes FROM medrecord_app;
 REVOKE DELETE ON notas FROM medrecord_app;
+REVOKE DELETE ON recetas FROM medrecord_app;
 
 -- Grant future tables too
 ALTER DEFAULT PRIVILEGES IN SCHEMA public

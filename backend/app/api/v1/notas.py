@@ -29,6 +29,9 @@ class NotaCreate(BaseModel):
     diagnosticos: list[str] = Field(default_factory=list)
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
+    motivo_consulta: str | None = None
+    exploracion_fisica: str | None = None
+    plan_tratamiento: str | None = None
 
     @model_validator(mode="after")
     def validate_nom004_compliance(self) -> "NotaCreate":
@@ -54,6 +57,9 @@ class NotaUpdate(BaseModel):
     diagnosticos: list[str] | None = None
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
+    motivo_consulta: str | None = None
+    exploracion_fisica: str | None = None
+    plan_tratamiento: str | None = None
 
 
 @router.get("/")
@@ -130,6 +136,10 @@ async def create_nota(
         contenido=contenido_completo,
         signos_vitales=data.signos_vitales,
         diagnostico_cie10=data.diagnostico_cie10,
+        motivo_consulta=data.motivo_consulta,
+        exploracion_fisica=data.exploracion_fisica,
+        plan_tratamiento=data.plan_tratamiento,
+        estado="draft",
         creado_por=tenant_id,
         es_editable=True,
     )
@@ -182,6 +192,13 @@ async def update_nota(
 
     if data.diagnostico_cie10 is not None:
         nota.diagnostico_cie10 = data.diagnostico_cie10
+
+    if data.motivo_consulta is not None:
+        nota.motivo_consulta = data.motivo_consulta
+    if data.exploracion_fisica is not None:
+        nota.exploracion_fisica = data.exploracion_fisica
+    if data.plan_tratamiento is not None:
+        nota.plan_tratamiento = data.plan_tratamiento
 
     await db.flush()
 
@@ -269,6 +286,10 @@ async def firmar_nota(
             "id": str(nota.id),
             "expediente_id": str(nota.expediente_id),
             "tipo_nota": nota.tipo_nota,
+            "motivo_consulta": nota.motivo_consulta,
+            "exploracion_fisica": nota.exploracion_fisica,
+            "plan_tratamiento": nota.plan_tratamiento,
+            "diagnostico_cie10": nota.diagnostico_cie10,
             "contenido": contenido_dict,
             "signos_vitales": nota.signos_vitales,
             "creado_en": nota.creado_en.isoformat(),
@@ -316,6 +337,7 @@ async def firmar_nota(
 
         # Lock the note — NOM-004: signed notes are immutable
         nota.es_editable = False
+        nota.estado = "signed"
 
         await db.flush()
 
@@ -369,6 +391,10 @@ async def verificar_firma(
             "id": str(nota.id),
             "expediente_id": str(nota.expediente_id),
             "tipo_nota": nota.tipo_nota,
+            "motivo_consulta": nota.motivo_consulta,
+            "exploracion_fisica": nota.exploracion_fisica,
+            "plan_tratamiento": nota.plan_tratamiento,
+            "diagnostico_cie10": nota.diagnostico_cie10,
             "contenido": contenido_dict,
             "signos_vitales": nota.signos_vitales,
             "creado_en": nota.creado_en.isoformat(),

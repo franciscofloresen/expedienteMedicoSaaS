@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.v1 import auth, citas, expedientes, notas, pacientes
+from app.api.v1 import auth, cie10, citas, expedientes, notas, pacientes, recetas
 from app.core.config import settings
 from app.middleware.tenant import TenantMiddleware
 
@@ -125,6 +125,8 @@ app.include_router(
 )
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
+app.include_router(cie10.router, prefix="/api/v1/cie10", tags=["CIE-10"])
+app.include_router(recetas.router, prefix="/api/v1/recetas", tags=["Recetas"])
 
 
 @app.get("/health")

@@ -48,6 +48,12 @@ class Nota(Base):
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
     diagnostico_cie10: Mapped[str | None] = mapped_column(String(10))
 
+    # Encounter fields
+    motivo_consulta: Mapped[str | None] = mapped_column(Text)
+    exploracion_fisica: Mapped[str | None] = mapped_column(Text)
+    plan_tratamiento: Mapped[str | None] = mapped_column(Text)
+    estado: Mapped[str] = mapped_column(String(20), server_default="draft")
+
     signos_vitales: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     # Signature
