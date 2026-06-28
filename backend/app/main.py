@@ -14,9 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.v1 import audit, auth, citas, expedientes, notas, pacientes
+from app.api.v1 import auth, citas, expedientes, notas, pacientes
 from app.core.config import settings
-from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
 
 # ── Structured JSON Logging ──
@@ -106,9 +105,6 @@ app = FastAPI(
 # 4. Tenant isolation — runs closest to the app (extracts tenant_id, auth)
 app.add_middleware(TenantMiddleware)
 
-# 3. Audit log — logs every request (NOM-004 + NOM-024)
-app.add_middleware(AuditMiddleware)
-
 # 2. Security headers — runs early
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -128,7 +124,6 @@ app.include_router(
     expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"]
 )
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
-app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
 
 

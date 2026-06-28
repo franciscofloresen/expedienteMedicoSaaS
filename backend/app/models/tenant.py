@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from app.models.cita import Cita
     from app.models.paciente import Paciente
-    from app.models.tenant_key import TenantKey
 
 from sqlalchemy import Boolean, DateTime, String, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -36,9 +35,6 @@ class Tenant(Base):
     )
 
     # Relationships
-    tenant_key: Mapped["TenantKey"] = relationship(
-        "TenantKey", back_populates="tenant", uselist=False
-    )
     pacientes: Mapped[List["Paciente"]] = relationship(
         "Paciente", foreign_keys="Paciente.tenant_id", back_populates="tenant"
     )
