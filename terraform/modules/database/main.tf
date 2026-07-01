@@ -78,7 +78,7 @@ resource "aws_db_parameter_group" "postgresql_audit" {
 resource "aws_db_instance" "main" {
   identifier                  = "medrecord-${var.environment}"
   engine                      = "postgres"
-  engine_version              = "15.13"
+  engine_version              = "15.17"
   instance_class              = "db.t4g.small"
   
   allocated_storage           = 20
