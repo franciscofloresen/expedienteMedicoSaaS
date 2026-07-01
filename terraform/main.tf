@@ -78,7 +78,7 @@ module "compute" {
   s3_audit_bucket          = module.storage.audit_bucket_name
   s3_consent_bucket        = module.storage.consent_bucket_name
   waf_acl_arn              = module.security.waf_acl_arn
-  frontend_url             = module.cdn.cloudfront_domain_name
+  frontend_url             = var.custom_domain != "" ? var.custom_domain : module.cdn.cloudfront_domain_name
   clerk_secret_key         = var.clerk_secret_key
   clerk_issuer_url         = var.clerk_issuer_url
   clerk_jwks_url           = var.clerk_jwks_url
