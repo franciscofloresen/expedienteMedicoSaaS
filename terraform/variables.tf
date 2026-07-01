@@ -28,3 +28,15 @@ variable "clerk_jwks_url" {
   description = "Clerk JWKS URL"
   type        = string
 }
+
+variable "custom_domain" {
+  description = "Custom domain for the frontend application (e.g. app.cloudmedrecord.com or cloudmedrecord.com)"
+  type        = string
+  default     = ""
+}
+
+variable "acm_certificate_arn" {
+  description = "ARN of the ACM certificate in us-east-1"
+  type        = string
+  default     = ""
+}

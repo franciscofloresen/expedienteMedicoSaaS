@@ -15,6 +15,16 @@ variable "s3_bucket_id" {
   type = string
 }
 
+variable "acm_certificate_arn" {
+  type    = string
+  default = ""
+}
+
+variable "domain_aliases" {
+  type    = list(string)
+  default = []
+}
+
 resource "aws_cloudfront_origin_access_control" "oac" {
   name                              = "medrecord-oac-${var.environment}"
   description                       = "OAC for SPA S3 bucket"
@@ -33,6 +43,7 @@ resource "aws_cloudfront_distribution" "spa" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
+  aliases             = var.domain_aliases
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -73,7 +84,10 @@ resource "aws_cloudfront_distribution" "spa" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.acm_certificate_arn == "" ? true : false
+    acm_certificate_arn            = var.acm_certificate_arn != "" ? var.acm_certificate_arn : null
+    ssl_support_method             = var.acm_certificate_arn != "" ? "sni-only" : null
+    minimum_protocol_version       = var.acm_certificate_arn != "" ? "TLSv1.2_2021" : "TLSv1"
   }
   
   tags = {
