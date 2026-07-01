@@ -46,7 +46,7 @@ class Nota(Base):
 
     tipo_nota: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
-    diagnostico_cie10: Mapped[str | None] = mapped_column(String(10))
+    diagnostico_cie10: Mapped[str | None] = mapped_column(String(255))
 
     # Encounter fields
     motivo_consulta: Mapped[str | None] = mapped_column(Text)
