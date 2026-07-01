@@ -90,7 +90,7 @@ module "observability" {
   environment          = var.environment
   alarm_email          = var.alarm_email
   db_cluster_id        = "medrecord-${var.environment}"
-  health_check_fqdn    = ""  # No custom domain in dev
+  health_check_fqdn    = var.custom_domain
   lambda_function_name = "medrecord-api-${var.environment}"
   api_name             = "medrecord-api-${var.environment}"
   depends_on           = [module.compute]
@@ -102,6 +102,8 @@ module "cdn" {
   environment                    = var.environment
   s3_bucket_regional_domain_name = module.storage.frontend_bucket_regional_domain_name
   s3_bucket_id                   = module.storage.frontend_bucket_id
+  acm_certificate_arn            = var.acm_certificate_arn
+  domain_aliases                 = var.custom_domain != "" ? [var.custom_domain] : []
 }
 
 # ── Outputs ──
