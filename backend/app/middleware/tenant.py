@@ -76,7 +76,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
         request.state.tenant_id = tenant_id
         request.state.user_id = claims.get("sub", "dev-user")
         request.state.user_email = claims.get("email") or metadata.get(
-            "email", "dev@test.com"
+            "email", f"{claims.get('sub', 'dev')}@test.local"
         )
         request.state.user_name = claims.get("nombre_medico") or metadata.get(
             "nombre_medico"
