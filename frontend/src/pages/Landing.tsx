@@ -22,9 +22,8 @@ export default function Landing() {
         WebkitBackdropFilter: 'blur(10px)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ background: 'transparent', color: 'white', display: 'flex' }}>
-            <Activity size={28} />
-          </div>
+          {/* ponytail: simple img tag for logo instead of icon component */}
+          <img src="/faviconC.png" alt="Logo" style={{ height: '32px', width: 'auto' }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 600, color: 'white', lineHeight: 1 }}>CloudMedRecord</span>
             <span className="tracking-widest" style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginTop: '0.1rem' }}>Clinical System</span>
@@ -100,19 +99,16 @@ export default function Landing() {
             </p>
 
             <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>
-              <Link to="/register" style={{ color: 'var(--text-main)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Crear Clínica</Link>
+              <SignUpButton mode="modal">
+                <button style={{ background: 'transparent', border: 'none', borderBottom: '1px solid transparent', color: 'var(--text-main)', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', padding: 0, paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Crear Clínica</button>
+              </SignUpButton>
               <Link to="/privacidad" style={{ color: 'var(--primary)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}>Cumplimiento Legal</Link>
             </div>
           </div>
 
         </div>
 
-        {/* Scroll Indicator */}
-        <div 
-          style={{ position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', zIndex: 20, color: 'white', opacity: 0.7 }}
-        >
-          <ArrowDown size={24} />
-        </div>
+
       </section>
 
       {/* Banner de Características "Luxury" */}
