@@ -68,7 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Pragma"] = "no-cache"
 
         # HSTS — only in production (behind TLS)
-        if settings.environment == "production":
+        if settings.environment == "prod":
             response.headers["Strict-Transport-Security"] = (
                 "max-age=63072000; includeSubDomains; preload"
             )
@@ -95,7 +95,7 @@ app = FastAPI(
     description="Expediente Clínico Electrónico — NOM-004 + NOM-024",
     version="0.1.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.environment != "production" else None,
+    docs_url="/docs" if settings.environment != "prod" else None,
     redoc_url=None,
 )
 
