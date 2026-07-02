@@ -1,4 +1,4 @@
-environment = "production"
+environment = "prod"
 region      = "us-east-1"
 alarm_email = "admin@example.com"
 custom_domain       = "cloudmedrecord-h5.com"

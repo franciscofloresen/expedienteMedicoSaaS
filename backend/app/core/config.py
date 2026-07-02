@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Environment — SECURITY: defaults to 'production' (fail-closed).
     # You MUST explicitly set ENVIRONMENT=development in .env.local for local dev.
-    environment: str = "production"
+    environment: str = "prod"
     log_level: str = "INFO"
     aws_region: str = "us-east-1"
 
