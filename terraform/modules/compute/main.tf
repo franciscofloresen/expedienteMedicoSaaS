@@ -183,7 +183,7 @@ resource "aws_lambda_function" "api" {
       S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
       S3_AUDIT_BUCKET       = var.s3_audit_bucket
       S3_CONSENT_BUCKET     = var.s3_consent_bucket
-      CORS_ORIGINS          = "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
+      CORS_ORIGINS          = var.environment == "production" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
       CLERK_SECRET_KEY      = var.clerk_secret_key
       CLERK_ISSUER_URL      = var.clerk_issuer_url
       CLERK_JWKS_URL        = var.clerk_jwks_url

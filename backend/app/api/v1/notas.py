@@ -312,6 +312,10 @@ async def firmar_nota(
 
     medico_nombre = tenant_row.nombre_medico
     medico_cedula = tenant_row.cedula
+
+    if not medico_cedula or not medico_cedula.strip():
+        raise HTTPException(status_code=400, detail="Cédula profesional requerida para firmar")
+
     medico_especialidad = tenant_row.especialidad or "General"
 
     try:

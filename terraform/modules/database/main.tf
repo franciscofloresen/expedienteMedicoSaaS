@@ -97,8 +97,6 @@ resource "aws_db_instance" "main" {
 
   parameter_group_name        = aws_db_parameter_group.postgresql_audit.name
 
-  # TODO: Long-term retention (NOM-004) requires an Aurora/RDS snapshot export strategy to S3 with a lifecycle policy of 1825 days (5 years).
-  # TODO: The S3 snapshot export + lifecycle policy of 1825 days MUST be implemented before the first paying customer goes live. This is a strict legal requirement, not a future optimization.
   backup_retention_period     = 35
   backup_window               = "03:00-04:00"
   copy_tags_to_snapshot       = true
