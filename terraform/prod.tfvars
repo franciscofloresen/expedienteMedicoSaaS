@@ -1,5 +1,5 @@
 environment = "prod"
 region      = "us-east-1"
 alarm_email = "admin@example.com"
-custom_domain       = "cloudmedrecord-h5.com"
+custom_domain       = "cloudmedrecord.com"
 acm_certificate_arn = "arn:aws:acm:us-east-1:107759015501:certificate/3a498362-9d95-465a-a201-c5329a3f26e3"
