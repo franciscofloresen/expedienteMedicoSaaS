@@ -160,7 +160,7 @@ resource "aws_iam_role_policy" "lambda_export_policy" {
 # Lambda Function payload
 data "archive_file" "lambda_export_zip" {
   type        = "zip"
-  output_path = "$${path.module}/export_lambda.zip"
+  output_path = "export_lambda.zip"
 
   source {
     content  = <<EOF

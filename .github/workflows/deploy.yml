@@ -89,7 +89,7 @@ jobs:
           path: |
             terraform/tfplan
             terraform/modules/compute/dummy.zip
-            terraform/modules/database/export_lambda.zip
+            terraform/export_lambda.zip
 
   # ── Apply Infrastructure to Production (Manual Approval) ──
   apply-infrastructure-production:
