@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Zap, FileText, Activity, ArrowDown } from 'lucide-react';
+import { ShieldCheck, Zap, FileText } from 'lucide-react';
 import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
 
 export default function Landing() {
