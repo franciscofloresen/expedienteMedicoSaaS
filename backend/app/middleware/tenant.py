@@ -5,10 +5,10 @@ Extracts tenant_id from the Clerk JWT token and sets the PostgreSQL
 session variable `app.current_tenant` for Row-Level Security.
 """
 
+from fastapi import HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from fastapi import HTTPException
 
 from app.core.config import settings
 from app.core.security import decode_jwt
@@ -75,7 +75,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 )
 
         request.state.tenant_id = tenant_id
-        
+
         user_id = claims.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Token inválido: falta claim 'sub'")
