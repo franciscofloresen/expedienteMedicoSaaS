@@ -8,6 +8,7 @@ session variable `app.current_tenant` for Row-Level Security.
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
+from fastapi import HTTPException
 
 from app.core.config import settings
 from app.core.security import decode_jwt
@@ -74,7 +75,11 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 )
 
         request.state.tenant_id = tenant_id
-        request.state.user_id = claims.get("sub", "dev-user")
+        
+        user_id = claims.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token inválido: falta claim 'sub'")
+        request.state.user_id = user_id
         request.state.user_email = claims.get("email") or metadata.get(
             "email", f"{claims.get('sub', 'dev')}@test.local"
         )

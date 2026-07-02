@@ -53,7 +53,7 @@ module "storage" {
   kms_key_arn = module.security.encryption_key_arn
 }
 
-# ── Database (Aurora Serverless v2) ──
+# ── Database (RDS PostgreSQL) ──
 module "database" {
   source                   = "./modules/database"
   environment              = var.environment

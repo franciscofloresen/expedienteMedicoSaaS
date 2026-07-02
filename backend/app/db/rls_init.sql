@@ -21,6 +21,9 @@ ALTER TABLE notas FORCE ROW LEVEL SECURITY;
 ALTER TABLE recetas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recetas FORCE ROW LEVEL SECURITY;
 
+ALTER TABLE citas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE citas FORCE ROW LEVEL SECURITY;
+
 
 -- ── Tenant isolation policies ──
 -- Each policy filters rows by matching tenant_id with the
