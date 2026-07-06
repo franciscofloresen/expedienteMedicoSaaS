@@ -148,6 +148,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     if isinstance(event, dict) and event.get("run_migrations"):
         from alembic.config import Config
+
         from alembic import command
 
         logger.info("Running Alembic migrations programmatically...")
@@ -163,6 +164,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     if isinstance(event, dict) and event.get("upgrade_tenant"):
         import asyncio
+
         from scripts.upgrade_tenant import upgrade_tenant
 
         email = event["upgrade_tenant"]
