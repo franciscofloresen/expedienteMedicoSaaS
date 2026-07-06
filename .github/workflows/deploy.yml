@@ -194,6 +194,14 @@ jobs:
           cat /tmp/migration_result.json
           grep -q "200" /tmp/migration_result.json || exit 1
 
+      - name: Install dependencies for Smoke Test
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run Smoke Test
+        working-directory: backend
+        run: PYTHONPATH=. python3 scripts/smoke_test.py
+
   # ── Deploy Frontend to Production ──
   deploy-frontend-production:
     name: Deploy Frontend → Production
@@ -241,7 +249,3 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ env.CLOUDFRONT_DIST_PROD }} \
             --paths "/*"
-
-      - name: Run Smoke Test
-        working-directory: backend
-        run: PYTHONPATH=. python3 scripts/smoke_test.py
