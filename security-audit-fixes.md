@@ -76,3 +76,20 @@ All issues outlined in the `critical.md` and `prodAudit.md` audit reports have b
    - Fixed out-of-order imports in `backend/app/main.py` using `ruff check --fix` and enforced clean code styling.
 4. **Branch Cleanup**
    - Cleaned up the repository by deleting 22 fully-merged temporary `chore/`, `fix/`, and `feature/` branches both locally and remotely.
+
+---
+
+## Reviewer Notes & Open Items 📝
+
+While the immediate vulnerabilities are resolved, the following items remain open as accepted limitations or require manual follow-up before scaling real traffic:
+
+1. **Rotate Clerk Secret Key (Manual Action)**
+   - The exposed `sk_live_*` key must be manually rotated in the Clerk dashboard since it previously existed on disk in Terraform state files.
+2. **Lambda Environment Variables**
+   - `CLERK_SECRET_KEY` is currently passed as a plaintext Lambda environment variable. It is recommended to move this to AWS Secrets Manager in the future (similar to the DB password).
+3. **JWT Audience Validation**
+   - JWT validation currently uses `verify_aud=False`. There is no `aud`/`azp` check on the Clerk tokens, which is a mild security gap to address.
+4. **AWS Account Concurrency Limit**
+   - We removed the Lambda `reserved_concurrent_executions` because this AWS account has a hard cap of 10 concurrent executions. We must request an AWS limit increase (quota bump) before receiving real traffic.
+5. **Documentation/Variable Drift**
+   - The `aurora_migration.md` runbook and variables like `db_cluster_id` still reference "Aurora", even though the database is now a standard RDS `aws_db_instance`. These should be renamed in a future tech-debt sprint.
