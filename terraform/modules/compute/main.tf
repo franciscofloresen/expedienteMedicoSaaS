@@ -164,7 +164,7 @@ resource "aws_lambda_function" "api" {
   runtime       = "python3.12"
   timeout       = 30
   memory_size   = 1024
-  reserved_concurrent_executions = 50
+  reserved_concurrent_executions = 20
 
   filename         = data.archive_file.dummy.output_path
   source_code_hash = data.archive_file.dummy.output_base64sha256
