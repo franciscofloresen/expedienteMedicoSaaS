@@ -196,7 +196,7 @@ jobs:
 
       - name: Install dependencies for Smoke Test
         working-directory: backend
-        run: pip install -r requirements.txt
+        run: pip install .
 
       - name: Run Smoke Test
         working-directory: backend
