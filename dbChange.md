@@ -1,9 +1,10 @@
 # Migración: Aurora Serverless v2 → RDS PostgreSQL db.t4g.small
 
 ## Contexto
-Estamos en beta con poco tráfico. Aurora Serverless v2 cuesta ~$43/mes
-mínimo incluso sin uso. Migramos a RDS PostgreSQL estándar db.t4g.small
+Estamos en beta con poco tráfico. Se evaluó Aurora Serverless v2, pero costaba ~$43/mes
+mínimo incluso sin uso. En su lugar, utilizamos RDS PostgreSQL estándar db.t4g.small
 (~$25/mes) sin cambiar nada en el backend — mismo engine, mismo PostgreSQL 15.
+La base de datos desplegada actualmente es `aws_db_instance` y NO un clúster de Aurora.
 
 ## IMPORTANTE antes de empezar
 1. Tomar un snapshot manual de Aurora AHORA antes de cualquier cambio:

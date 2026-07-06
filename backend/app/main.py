@@ -144,34 +144,32 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Custom handler to allow running Alembic migrations securely inside the VPC
     before routing normal HTTP traffic to FastAPI.
     """
-    if isinstance(event, dict) and event.get("run_migrations"):
-        import traceback
+    logger = logging.getLogger("medrecord.handler")
 
+    if isinstance(event, dict) and event.get("run_migrations"):
         from alembic.config import Config
 
         from alembic import command
 
-        print("Running Alembic migrations programmatically...")
+        logger.info("Running Alembic migrations programmatically...")
         try:
             alembic_cfg = Config("alembic.ini")
             command.upgrade(alembic_cfg, "head")
 
-            print("Migrations applied successfully!")
+            logger.info("Migrations applied successfully!")
             return {"statusCode": 200, "body": "Migrations successful!"}
-        except Exception:
-            err = traceback.format_exc()
-            print(err)
-            return {"statusCode": 500, "body": f"Migrations failed: {err}"}
+        except Exception as e:
+            logger.error("Migrations failed", exc_info=True)
+            return {"statusCode": 500, "body": f"Migrations failed: {e}"}
 
     if isinstance(event, dict) and event.get("upgrade_tenant"):
         import asyncio
-        import traceback
 
         from scripts.upgrade_tenant import upgrade_tenant
 
         email = event["upgrade_tenant"]
         plan = event.get("plan", "pro")
-        print(f"Upgrading tenant {email} to {plan} in production...")
+        logger.info(f"Upgrading tenant {email} to {plan} in production...")
         try:
             try:
                 loop = asyncio.get_event_loop()
@@ -180,10 +178,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 asyncio.set_event_loop(loop)
             loop.run_until_complete(upgrade_tenant(email, plan))
             return {"statusCode": 200, "body": f"Successfully upgraded {email} to {plan}"}
-        except Exception:
-            err = traceback.format_exc()
-            print(err)
-            return {"statusCode": 500, "body": f"Failed to upgrade tenant: {err}"}
+        except Exception as e:
+            logger.error(f"Failed to upgrade tenant {email}", exc_info=True)
+            return {"statusCode": 500, "body": f"Failed to upgrade tenant: {e}"}
 
     import asyncio
     try:

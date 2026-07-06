@@ -164,6 +164,7 @@ resource "aws_lambda_function" "api" {
   runtime       = "python3.12"
   timeout       = 30
   memory_size   = 1024
+  reserved_concurrent_executions = 50
 
   filename         = data.archive_file.dummy.output_path
   source_code_hash = data.archive_file.dummy.output_base64sha256
@@ -183,7 +184,7 @@ resource "aws_lambda_function" "api" {
       S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
       S3_AUDIT_BUCKET       = var.s3_audit_bucket
       S3_CONSENT_BUCKET     = var.s3_consent_bucket
-      CORS_ORIGINS          = var.environment == "production" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
+      CORS_ORIGINS          = var.environment == "prod" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
       CLERK_SECRET_KEY      = var.clerk_secret_key
       CLERK_ISSUER_URL      = var.clerk_issuer_url
       CLERK_JWKS_URL        = var.clerk_jwks_url
@@ -350,4 +351,15 @@ output "api_gateway_arn" {
 
 output "lambda_function_name" {
   value = aws_lambda_function.api.function_name
+}
+
+resource "aws_api_gateway_method_settings" "all" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name  = aws_api_gateway_stage.api.stage_name
+  method_path = "*/*"
+
+  settings {
+    throttling_rate_limit  = 100
+    throttling_burst_limit = 50
+  }
 }

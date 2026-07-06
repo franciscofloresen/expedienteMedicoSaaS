@@ -45,7 +45,6 @@ class Settings(BaseSettings):
 
     # Cache TTLs (seconds)
     secrets_cache_ttl: int = 300  # 5 minutes
-    dek_cache_ttl: int = 300  # 5 minutes
 
     # Local JWT (development only — NEVER hardcode secrets)
     # If empty in dev mode, an ephemeral random secret is generated per process.

@@ -69,6 +69,8 @@ async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
         if request.url.path == "/api/v1/auth/onboarding":
             # For onboarding, we don't have a tenant yet.
             # We use a dummy UUID. The route handler will override this when creating the tenant.
+            # NOTE: This is safe because the `tenants` table itself has no `tenant_isolation` RLS policy,
+            # so the INSERT can proceed without being blocked by this dummy UUID.
             tenant_id = "00000000-0000-0000-0000-000000000000"
         else:
             from fastapi import HTTPException
