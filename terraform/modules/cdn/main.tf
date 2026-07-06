@@ -77,6 +77,20 @@ resource "aws_cloudfront_distribution" "spa" {
     response_page_path    = "/index.html"
   }
 
+  custom_error_response {
+    error_code            = 502
+    response_code         = 200
+    error_caching_min_ttl = 300
+    response_page_path    = "/index.html"
+  }
+
+  custom_error_response {
+    error_code            = 503
+    response_code         = 200
+    error_caching_min_ttl = 300
+    response_page_path    = "/index.html"
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"

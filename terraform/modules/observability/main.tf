@@ -166,7 +166,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_cpu" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    DBClusterIdentifier = var.db_cluster_id
+    DBInstanceIdentifier = var.db_cluster_id
   }
 
   alarm_actions = [aws_sns_topic.alarms.arn]

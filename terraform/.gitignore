@@ -4,6 +4,12 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
+*.state
+state*.json
+
+# Terraform plan output and junk files
+plan.out
+empty*.py
 
 # Crash log files
 crash.log

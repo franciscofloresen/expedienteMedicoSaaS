@@ -17,9 +17,6 @@ from app.core.security import decode_jwt
 PUBLIC_PATHS = {
     "/health",
     "/docs",
-    "/openapi.json",
-    "/api/v1/auth/register",
-    "/api/v1/auth/login",
 }
 
 
