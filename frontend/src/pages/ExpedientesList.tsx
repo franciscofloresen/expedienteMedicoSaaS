@@ -1,8 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Calendar, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { expedientesApi } from '../services/api';
+
+function EmptyExpedientes() {
+  return (
+    <div className="empty-state">
+      <svg className="empty-illustration" width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M28 24a6 6 0 0 1 6-6h18l8 8h26a6 6 0 0 1 6 6v34a6 6 0 0 1-6 6H34a6 6 0 0 1-6-6V24Z" stroke="var(--color-border)" strokeWidth="2" fill="var(--color-surface-2)" />
+        <path d="M42 46h36M42 56h24" stroke="var(--color-muted)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+        <circle cx="88" cy="26" r="3" fill="var(--color-primary)" />
+      </svg>
+      <div className="empty-state-title">No hay expedientes activos</div>
+      <p className="empty-state-hint">Los expedientes se crean desde la ficha de cada paciente, después de registrar su consentimiento.</p>
+    </div>
+  );
+}
 
 export default function ExpedientesList() {
   const navigate = useNavigate();
@@ -14,67 +28,69 @@ export default function ExpedientesList() {
 
   return (
     <>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>
-          Directorio de Expedientes
-        </h1>
+      <header className="page-header" style={{ marginBottom: '1.5rem' }}>
+        <h1 className="page-title">Expedientes</h1>
+        <p className="page-subtitle">Directorio de expedientes clínicos activos</p>
       </header>
 
-      <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Folio</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Paciente</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>CURP</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Fecha de Apertura</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500, textAlign: 'right' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isError ? (
-              <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--error)' }}>
-                <p>Error de conexión al cargar expedientes.</p>
-              </td></tr>
-            ) : isLoading ? (
-              <tr><td colSpan={5} style={{ padding: '1rem', textAlign: 'center' }}>Cargando directorio...</td></tr>
-            ) : expedientes.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '3rem', textAlign: 'center' }} className="text-muted">
-                <FileText size={48} style={{ opacity: 0.5, margin: '0 auto 1rem auto' }} />
-                No hay expedientes activos en la clínica.
-              </td></tr>
-            ) : (
-              expedientes.map((exp: any) => (
-                <tr key={exp.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s' }}>
-                  <td data-label="Folio" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
+      <div className="table-card fade-in">
+        {isError ? (
+          <div className="empty-state">
+            <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>Error de conexión</div>
+            <p className="empty-state-hint">No fue posible cargar los expedientes.</p>
+          </div>
+        ) : isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+            <div className="spinner" />
+          </div>
+        ) : expedientes.length === 0 ? (
+          <EmptyExpedientes />
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Folio</th>
+                <th>Paciente</th>
+                <th>CURP</th>
+                <th>Apertura</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expedientes.map((exp: any) => (
+                <tr
+                  key={exp.id}
+                  className="row-link"
+                  onClick={() => navigate(`/app/pacientes/${exp.paciente_id}`)}
+                >
+                  <td data-label="Folio" className="mono" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
                     {exp.folio}
                   </td>
-                  <td data-label="Paciente" style={{ padding: '1rem', fontWeight: 500 }}>
+                  <td data-label="Paciente" style={{ fontWeight: 500 }}>
                     {exp.paciente_nombre}
                   </td>
-                  <td data-label="CURP" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
+                  <td data-label="CURP" className="mono" style={{ color: 'var(--color-muted)' }}>
                     {exp.paciente_curp || 'N/A'}
                   </td>
-                  <td data-label="Fecha de Apertura" style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <Calendar size={14} />
-                      {new Date(exp.creado_en).toLocaleDateString()}
+                  <td data-label="Apertura" style={{ color: 'var(--color-muted)' }}>
+                    {new Date(exp.creado_en).toLocaleDateString()}
+                  </td>
+                  <td data-label="Acciones">
+                    <div className="cell-actions">
+                      <button
+                        className="btn btn-outline"
+                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem' }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/app/pacientes/${exp.paciente_id}`); }}
+                      >
+                        <ExternalLink size={14} /> Abrir
+                      </button>
                     </div>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button 
-                      className="btn btn-primary" 
-                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
-                      onClick={() => navigate(`/app/pacientes/${exp.paciente_id}`)}
-                    >
-                      <ExternalLink size={16} /> Abrir
-                    </button>
-                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );

@@ -114,9 +114,16 @@ export default function Settings() {
               <UserProfile 
                 appearance={{
                   variables: {
-                    colorPrimary: '#007aff',
+                    colorPrimary: '#00C2B8',
+                    colorPrimaryForeground: '#04211F',
                     fontFamily: "'Inter', sans-serif",
-                    colorBackground: 'transparent',
+                    colorBackground: '#161B22',
+                    colorForeground: '#E6EDF3',
+                    colorMutedForeground: '#7D8590',
+                    colorInput: '#0D1117',
+                    colorInputForeground: '#E6EDF3',
+                    colorNeutral: '#E6EDF3',
+                    colorBorder: '#21262D',
                   },
                   elements: {
                     rootBox: {

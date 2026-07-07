@@ -32,15 +32,15 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
   });
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="autocomplete">
       <div style={{ position: 'relative' }}>
-        <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none' }} />
         <input
           type="text"
           name={name}
           className="form-input"
           style={{ paddingLeft: '2.25rem' }}
-          placeholder="Buscar enfermedad o código CIE-10 (ej. J00)"
+          placeholder="Buscar enfermedad o código (ej. J00)"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -49,36 +49,23 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)} // delay to allow click
           autoComplete="off"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
         />
       </div>
 
       {isOpen && query.length >= 2 && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          marginTop: '0.25rem',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-md)',
-          zIndex: 10,
-          maxHeight: '250px',
-          overflowY: 'auto'
-        }}>
+        <div className="autocomplete-menu" role="listbox">
           {isLoading ? (
-            <div style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Buscando...</div>
+            <div className="autocomplete-empty">Buscando…</div>
           ) : results.length > 0 ? (
             results.map((item: CIE10) => (
               <div
                 key={item.code}
-                style={{ 
-                  padding: '0.75rem 1rem', 
-                  borderBottom: '1px solid var(--border-light)', 
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
+                className="autocomplete-option"
+                role="option"
+                aria-selected={false}
                 onMouseDown={(e) => e.preventDefault()} // Prevent blur before click
                 onClick={() => {
                   const val = `${item.code} - ${item.description}`;
@@ -86,15 +73,14 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
                   setIsOpen(false);
                   onSelect(item.code, item.description);
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-app)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                <strong>{item.code}</strong> {item.description}
-                {item.category && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.category}</div>}
+                <span className="code">{item.code}</span>
+                {item.description}
+                {item.category && <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{item.category}</div>}
               </div>
             ))
           ) : (
-            <div style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>No se encontraron resultados</div>
+            <div className="autocomplete-empty">No se encontraron resultados</div>
           )}
         </div>
       )}

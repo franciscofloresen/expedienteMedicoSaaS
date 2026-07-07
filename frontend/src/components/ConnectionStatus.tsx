@@ -31,21 +31,7 @@ export const ConnectionStatus: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        backgroundColor: '#fef2f2', // light red
-        color: '#991b1b', // dark red
-        padding: '0.75rem',
-        textAlign: 'center',
-        fontWeight: 500,
-        fontSize: '0.875rem',
-        borderBottom: '1px solid #fecaca',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}
-      role="alert"
-    >
+    <div className="offline-banner" role="alert">
       ⚠️ Sin conexión a internet. Los cambios se guardarán localmente en su dispositivo.
     </div>
   );

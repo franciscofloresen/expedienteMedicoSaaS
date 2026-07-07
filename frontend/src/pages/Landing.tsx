@@ -37,7 +37,7 @@ export default function Landing() {
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button style={{ backgroundColor: 'var(--primary)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-dark)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>
+              <button style={{ backgroundColor: 'var(--primary)', color: '#04211F', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>
                 Crear Cuenta
               </button>
             </SignUpButton>
@@ -71,16 +71,16 @@ export default function Landing() {
         <div style={{ position: 'relative', zIndex: 20, textAlign: 'center', padding: '0 5%' }}>
           
           <div
-            style={{ 
-              backgroundColor: 'rgba(255, 255, 255, 0.85)', 
+            style={{
+              backgroundColor: 'rgba(13, 17, 23, 0.82)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               padding: '4rem 3rem',
               borderRadius: '24px',
               maxWidth: '900px',
               margin: '0 auto',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.5)'
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(230, 237, 243, 0.12)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
@@ -112,7 +112,7 @@ export default function Landing() {
       </section>
 
       {/* Banner de Características "Luxury" */}
-      <section style={{ backgroundColor: '#ffffff', color: 'var(--text-main)', padding: '5rem 0', position: 'relative', zIndex: 30 }}>
+      <section style={{ backgroundColor: 'var(--color-surface)', color: 'var(--text-main)', borderTop: '1px solid var(--color-border)', padding: '5rem 0', position: 'relative', zIndex: 30 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 5%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem', textAlign: 'center' }}>
           
           <div 
