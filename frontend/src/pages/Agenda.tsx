@@ -106,22 +106,22 @@ export default function Agenda() {
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 4rem)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ height: 'calc(100vh - 10rem)', minHeight: '600px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-main)', fontWeight: 600 }}>Agenda Médica</h1>
-          <p style={{ margin: 0, color: 'var(--text-muted)' }}>Monitorea y administra tus citas</p>
+          <h1 className="page-title">Agenda</h1>
+          <p className="page-subtitle">Monitorea y administra tus citas</p>
         </div>
-        <button 
+        <button
+          className="btn btn-primary"
           onClick={() => { setSelectedCita(null); setIsModalOpen(true); }}
-          style={{ backgroundColor: 'var(--primary)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}
         >
-          + Nueva Cita
+          + Nueva cita
         </button>
       </div>
 
-      <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', borderRadius: '12px', padding: '1.5rem', boxShadow: 'var(--shadow-sm)', overflow: 'auto' }}>
+      <div style={{ flex: 1, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', overflow: 'auto' }}>
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
             Cargando agenda...

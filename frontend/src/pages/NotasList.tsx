@@ -2,8 +2,22 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ShieldCheck, Edit3, Calendar } from 'lucide-react';
+import { ShieldCheck, Edit3 } from 'lucide-react';
 import { notasApi } from '../services/api';
+
+function EmptyNotas() {
+  return (
+    <div className="empty-state">
+      <svg className="empty-illustration" width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="36" y="12" width="48" height="64" rx="6" stroke="var(--color-border)" strokeWidth="2" fill="var(--color-surface-2)" />
+        <path d="M46 30h28M46 42h28M46 54h16" stroke="var(--color-muted)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+        <path d="M78 62l6 6 10-12" stroke="var(--color-gold)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+      <div className="empty-state-title">Sin notas médicas</div>
+      <p className="empty-state-hint">No hay notas que coincidan con el filtro actual. Las notas se crean desde el expediente de cada paciente.</p>
+    </div>
+  );
+}
 
 export default function NotasList() {
   const navigate = useNavigate();
@@ -22,107 +36,95 @@ export default function NotasList() {
 
   return (
     <>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
-          <h1 className="page-title animate-fade-in" style={{ marginBottom: 0 }}>Notas Médicas</h1>
-          <p className="text-muted" style={{ marginTop: '0.5rem' }}>Directorio global de notas y borradores.</p>
+          <h1 className="page-title">Notas médicas</h1>
+          <p className="page-subtitle">Directorio global de notas y borradores</p>
         </div>
-        
-        <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-card)', padding: '0.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-          <button 
-            className={`btn ${filter === 'todas' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ padding: '0.4rem 1rem', border: filter === 'todas' ? 'none' : '1px solid transparent' }}
-            onClick={() => setFilter('todas')}
-          >
+
+        <div className="segmented" role="tablist" aria-label="Filtrar notas">
+          <button className={filter === 'todas' ? 'active' : undefined} onClick={() => setFilter('todas')}>
             Todas
           </button>
-          <button 
-            className={`btn ${filter === 'borradores' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ padding: '0.4rem 1rem', border: filter === 'borradores' ? 'none' : '1px solid transparent' }}
-            onClick={() => setFilter('borradores')}
-          >
-            Solo Borradores
+          <button className={filter === 'borradores' ? 'active' : undefined} onClick={() => setFilter('borradores')}>
+            Borradores
           </button>
-          <button 
-            className={`btn ${filter === 'firmadas' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ padding: '0.4rem 1rem', border: filter === 'firmadas' ? 'none' : '1px solid transparent' }}
-            onClick={() => setFilter('firmadas')}
-          >
+          <button className={filter === 'firmadas' ? 'active' : undefined} onClick={() => setFilter('firmadas')}>
             Firmadas
           </button>
         </div>
       </header>
 
-      <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s', overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Estado</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Tipo de Nota</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Paciente</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Expediente</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>Fecha</th>
-              <th style={{ padding: '1rem', color: 'var(--text-muted)', fontWeight: 500, textAlign: 'right' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isError ? (
-              <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--error)' }}>
-                <p>Error de conexión al cargar las notas.</p>
-              </td></tr>
-            ) : isLoading ? (
-              <tr><td colSpan={6} style={{ padding: '1rem', textAlign: 'center' }}>Cargando notas...</td></tr>
-            ) : filteredNotas.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center' }} className="text-muted">
-                <Activity size={48} style={{ opacity: 0.5, margin: '0 auto 1rem auto' }} />
-                No hay notas médicas que coincidan con el filtro actual.
-              </td></tr>
-            ) : (
-              filteredNotas.map((nota: any) => (
-                <tr key={nota.id} style={{ borderBottom: '1px solid var(--border-light)', transition: 'background-color 0.2s', cursor: 'pointer' }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    onClick={() => navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`)}>
-                  <td data-label="Estado" style={{ padding: '1rem' }}>
+      <div className="table-card fade-in">
+        {isError ? (
+          <div className="empty-state">
+            <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>Error de conexión</div>
+            <p className="empty-state-hint">No fue posible cargar las notas.</p>
+          </div>
+        ) : isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+            <div className="spinner" />
+          </div>
+        ) : filteredNotas.length === 0 ? (
+          <EmptyNotas />
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Estado</th>
+                <th>Tipo</th>
+                <th>Paciente</th>
+                <th>Expediente</th>
+                <th>Fecha</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredNotas.map((nota: any) => (
+                <tr
+                  key={nota.id}
+                  className="row-link"
+                  onClick={() => navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`)}
+                >
+                  <td data-label="Estado">
                     {nota.firmada ? (
-                      <span className="badge badge-success" style={{ display: 'inline-flex', gap: '0.25rem' }}>
-                        <ShieldCheck size={12} /> Firmada
+                      <span className="badge badge-gold">
+                        <ShieldCheck size={11} /> Firmada
                       </span>
                     ) : (
-                      <span className="badge" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'inline-flex', gap: '0.25rem' }}>
-                        <Edit3 size={12} /> Borrador
+                      <span className="badge badge-draft">
+                        <Edit3 size={11} /> Borrador
                       </span>
                     )}
                   </td>
-                  <td data-label="Tipo de Nota" style={{ padding: '1rem', fontWeight: 500, textTransform: 'uppercase', fontSize: '0.9rem' }}>
+                  <td data-label="Tipo" style={{ fontWeight: 500, textTransform: 'capitalize' }}>
                     {nota.tipo_nota}
                   </td>
-                  <td data-label="Paciente" style={{ padding: '1rem', fontWeight: 500 }}>
+                  <td data-label="Paciente" style={{ fontWeight: 500 }}>
                     {nota.paciente_nombre}
                   </td>
-                  <td data-label="Expediente" style={{ padding: '1rem', fontFamily: 'monospace', fontSize: '0.9rem' }} className="text-muted">
+                  <td data-label="Expediente" className="mono" style={{ color: 'var(--color-muted)' }}>
                     {nota.expediente_folio}
                   </td>
-                  <td data-label="Fecha" style={{ padding: '1rem', fontSize: '0.9rem' }} className="text-muted">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <Calendar size={14} />
-                      {new Date(nota.creado_en).toLocaleDateString()}
+                  <td data-label="Fecha" style={{ color: 'var(--color-muted)' }}>
+                    {new Date(nota.creado_en).toLocaleDateString()}
+                  </td>
+                  <td data-label="Acciones">
+                    <div className="cell-actions">
+                      <button
+                        className="btn btn-outline"
+                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem' }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`); }}
+                      >
+                        Ver nota
+                      </button>
                     </div>
                   </td>
-                  <td data-label="Acciones" style={{ padding: '1rem', textAlign: 'right' }}>
-                    <button 
-                      className="btn btn-primary" 
-                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} 
-                      onClick={(e) => { e.stopPropagation(); navigate(`/app/pacientes/${nota.paciente_id}#nota-${nota.id}`); }}
-                    >
-                      Ver Nota
-                    </button>
-                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );

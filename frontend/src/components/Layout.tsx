@@ -1,103 +1,119 @@
-import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Activity, Users, FileText, Settings as SettingsIcon, Menu, X, Calendar as CalendarIcon } from 'lucide-react';
+import { Activity, Users, FileText, Settings as SettingsIcon, Calendar as CalendarIcon } from 'lucide-react';
 import { UserButton } from '@clerk/react';
 import { ConnectionStatus } from './ConnectionStatus';
 
+const NAV_ITEMS = [
+  { to: '/app/agenda', label: 'Agenda', icon: CalendarIcon, end: false },
+  { to: '/app', label: 'Pacientes', icon: Users, end: true },
+  { to: '/app/expedientes', label: 'Expedientes', icon: FileText, end: false },
+  { to: '/app/notas', label: 'Notas', icon: Activity, end: false },
+];
+
+function breadcrumbFor(pathname: string): string[] {
+  if (pathname.startsWith('/app/pacientes/')) return ['Pacientes', 'Expediente clínico'];
+  if (pathname.startsWith('/app/agenda')) return ['Agenda'];
+  if (pathname.startsWith('/app/expedientes')) return ['Expedientes'];
+  if (pathname.startsWith('/app/notas')) return ['Notas médicas'];
+  if (pathname.startsWith('/app/settings')) return ['Configuración'];
+  return ['Pacientes'];
+}
 
 export default function Layout() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-
-  const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const crumbs = breadcrumbFor(location.pathname);
 
   return (
     <div className="app-container">
-      <div className="mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* ponytail: simple img for logo */}
-          <img src="/faviconC.png" alt="Logo" style={{ height: '28px', width: 'auto', borderRadius: '6px' }} />
-          <span className="font-serif" style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>CloudMedRecord</span>
-        </div>
-        <button className="btn btn-icon" style={{ background: 'transparent', border: 'none', color: 'var(--text-main)' }} onClick={toggleMenu} aria-label="Menu">
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
-      {/* Sidebar Overlay for Mobile */}
-      {isMobileMenuOpen && (
-        <div className="sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`glass-card sidebar ${isMobileMenuOpen ? 'open' : ''}`} style={{ padding: '1.5rem 1rem', border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.04)', borderRadius: '24px' }}>
-        <div className="sidebar-header" style={{ marginBottom: '2.5rem', padding: '0 0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* ponytail: simple img for logo */}
-          <img src="/faviconC.png" alt="Logo" style={{ height: '36px', width: 'auto', borderRadius: '8px' }} />
+      {/* Sidebar — desktop */}
+      <aside className="sidebar no-print">
+        <div className="sidebar-brand">
+          <img src="/faviconC.png" alt="CloudMedRecord" />
           <div>
-            <h2 style={{ fontSize: '1.4rem', marginBottom: 0, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>CloudMedRecord</h2>
-            <span className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Clínico</span>
+            <div className="sidebar-brand-name">CloudMedRecord</div>
+            <div className="sidebar-brand-tag">Clínico</div>
           </div>
         </div>
-        
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <NavLink 
-            to="/app/agenda" 
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <CalendarIcon size={20} className="nav-icon" />
-            Agenda
-          </NavLink>
-          <NavLink 
-            to="/app" 
-            end
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <Users size={20} className="nav-icon" />
-            Pacientes
-          </NavLink>
-          <NavLink 
-            to="/app/expedientes" 
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <FileText size={20} className="nav-icon" />
-            Expedientes
-          </NavLink>
-          <NavLink 
-            to="/app/notas" 
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <Activity size={20} className="nav-icon" />
-            Notas Médicas
-          </NavLink>
 
+        <nav className="sidebar-section" aria-label="Navegación principal">
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
+            >
+              <Icon size={17} className="nav-icon" />
+              {label}
+            </NavLink>
+          ))}
         </nav>
-        
-        <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
-          <div style={{ marginBottom: '1rem', padding: '0.5rem', border: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <UserButton showName />
-          </div>
-          <NavLink 
-            to="/app/settings" 
-            className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
-            onClick={() => setIsMobileMenuOpen(false)}
+
+        <div className="sidebar-footer">
+          <NavLink
+            to="/app/settings"
+            className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
           >
-            <SettingsIcon size={20} className="nav-icon" />
-            CONFIGURACIÓN
+            <SettingsIcon size={17} className="nav-icon" />
+            Configuración
           </NavLink>
         </div>
       </aside>
 
       <main className="main-content">
-        <div key={location.pathname} className="fade-in" style={{ width: '100%', height: '100%' }}>
-          <ConnectionStatus />
+        {/* Topbar — desktop */}
+        <div className="topbar no-print">
+          <div className="breadcrumb">
+            {crumbs.map((crumb, i) => {
+              const isLast = i === crumbs.length - 1;
+              return (
+                <span key={crumb} className={isLast ? 'crumb-current' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {crumb}
+                  {!isLast && <span className="crumb-sep">/</span>}
+                </span>
+              );
+            })}
+          </div>
+          <div className="topbar-actions">
+            <UserButton showName />
+          </div>
+        </div>
 
+        {/* Mobile header */}
+        <div className="mobile-header no-print">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <img src="/faviconC.png" alt="CloudMedRecord" style={{ height: '26px', width: 'auto', borderRadius: '6px' }} />
+            <span className="font-serif" style={{ fontSize: '1.1rem', color: 'var(--color-text)' }}>CloudMedRecord</span>
+          </div>
+          <UserButton />
+        </div>
+
+        <div key={location.pathname} className="page-body fade-in">
+          <ConnectionStatus />
           <Outlet />
         </div>
+
+        {/* Bottom navigation — mobile */}
+        <nav className="bottom-nav no-print" aria-label="Navegación móvil">
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
+            >
+              <Icon size={18} className="nav-icon" />
+              {label}
+            </NavLink>
+          ))}
+          <NavLink
+            to="/app/settings"
+            className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
+          >
+            <SettingsIcon size={18} className="nav-icon" />
+            Ajustes
+          </NavLink>
+        </nav>
       </main>
     </div>
   );

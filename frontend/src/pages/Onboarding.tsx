@@ -57,23 +57,23 @@ export default function Onboarding() {
           width: '100%',
           maxWidth: '500px',
           padding: '3rem 2rem',
-          borderRadius: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)',
-          border: '1px solid var(--border-light)',
-          background: 'white'
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-glass)',
+          border: '1px solid var(--color-border)',
+          background: 'var(--color-surface)'
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{ 
-            background: 'linear-gradient(135deg, var(--primary), var(--accent))', 
+          <div style={{
+            background: 'var(--color-primary-tint)',
+            border: '1px solid rgba(0, 194, 184, 0.35)',
             width: '64px', height: '64px',
-            borderRadius: '20px', 
-            color: 'white', 
-            display: 'flex', 
-            alignItems: 'center', 
+            borderRadius: '18px',
+            color: 'var(--color-primary)',
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 1.5rem',
-            boxShadow: '0 10px 25px rgba(0,122,255,0.3)'
+            margin: '0 auto 1.5rem'
           }}>
             <Activity size={32} />
           </div>
