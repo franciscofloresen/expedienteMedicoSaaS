@@ -162,6 +162,23 @@ async def onboarding(
     existing_tenant = await db.execute(stmt)
     tenant_row = existing_tenant.scalar_one_or_none()
 
+    # Self-heal for the dev→prod migration: Clerk user ids are NOT portable between
+    # Clerk instances, so a tenant migrated from dev keeps a stale dev clerk_id and
+    # never matches by clerk_id above. Fall back to the verified email and re-link the
+    # existing tenant to the current (prod) Clerk user instead of creating a duplicate
+    # (which would collide on the unique cédula). Only trust real emails from the JWT,
+    # never the synthetic *.local fallbacks set by the middleware.
+    if not tenant_row and user_email and not user_email.endswith(".local"):
+        stmt = select(Tenant).where(Tenant.email == user_email)
+        tenant_row = (await db.execute(stmt)).scalar_one_or_none()
+        if tenant_row and tenant_row.clerk_id != user_id:
+            logger.info(
+                f"Re-linking tenant {tenant_row.id} ({user_email}) from stale "
+                f"clerk_id={tenant_row.clerk_id} to {user_id} (dev→prod migration)."
+            )
+            tenant_row.clerk_id = user_id
+            await db.commit()
+
     if tenant_row:
         new_tenant_id = tenant_row.id
         tenant_profile = {
