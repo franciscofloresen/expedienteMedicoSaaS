@@ -1,0 +1,50 @@
+name: Ops — Release Cédula (Production)
+
+# Operación administrativa puntual y auditada.
+# Libera una cédula borrando el tenant huérfano que la ocupa, invocando el
+# Lambda dentro de la VPC ({"release_cedula": "<cedula>"}).
+# NO borra tenants con datos clínicos: el DELETE viola las FK y se aborta (409).
+
+on:
+  workflow_dispatch:
+    inputs:
+      cedula:
+        description: "Cédula del tenant huérfano a liberar en producción"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+
+jobs:
+  release-cedula:
+    name: Release cédula in Production DB
+    runs-on: ubuntu-latest
+    environment: production  # Requiere aprobación manual vía GitHub Environment
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Invoke Lambda to release cédula
+        env:
+          CEDULA: ${{ inputs.cedula }}
+        run: |
+          PAYLOAD=$(jq -nc --arg c "$CEDULA" '{release_cedula: $c}')
+          echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload "${PAYLOAD}" \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/release_result.json
+          echo "--- Resultado ---"
+          cat /tmp/release_result.json
+          echo ""
+          grep -q "200" /tmp/release_result.json || { echo "❌ La liberación no devolvió 200 (revisa si el tenant tiene datos o hubo error)."; exit 1; }
+          echo "✅ Cédula liberada correctamente."
