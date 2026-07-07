@@ -261,6 +261,48 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error(f"Failed to release cédula {cedula}", exc_info=True)
             return {"statusCode": 500, "body": f"Failed to release cédula: {e}"}
 
+    if isinstance(event, dict) and event.get("inspect_email"):
+        import asyncio
+
+        from scripts.release_cedula import inspect_email
+
+        email = str(event["inspect_email"])
+        logger.info(f"Inspecting email {email} (read-only)...")
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            inspect_result = loop.run_until_complete(inspect_email(email))
+            return {"statusCode": 200, "body": inspect_result}
+        except Exception as e:
+            logger.error(f"Failed to inspect email {email}", exc_info=True)
+            return {"statusCode": 500, "body": f"Failed to inspect email: {e}"}
+
+    if isinstance(event, dict) and event.get("release_email"):
+        import asyncio
+
+        from scripts.release_cedula import TenantHasDataError, release_email
+
+        email = str(event["release_email"])
+        logger.info(f"Releasing tenant by email {email} in production...")
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(release_email(email))
+            return {"statusCode": 200, "body": result}
+        except TenantHasDataError as e:
+            # Safety guard: tenant has clinical data — nothing was deleted.
+            logger.error(f"Release aborted for email {email}: {e}")
+            return {"statusCode": 409, "body": str(e)}
+        except Exception as e:
+            logger.error(f"Failed to release tenant by email {email}", exc_info=True)
+            return {"statusCode": 500, "body": f"Failed to release by email: {e}"}
+
     import asyncio
     try:
         asyncio.get_event_loop()

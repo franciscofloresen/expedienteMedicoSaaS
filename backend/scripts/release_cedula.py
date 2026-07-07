@@ -72,6 +72,22 @@ async def _count_related_rows(db: AsyncSession, tenant_id: uuid.UUID) -> dict[st
     return counts
 
 
+async def _tenant_report(db: AsyncSession, tenant: Tenant) -> dict[str, Any]:
+    """Build the read-only identity + related-rows report for a tenant."""
+    related = await _count_related_rows(db, tenant.id)
+    return {
+        "tenant_id": str(tenant.id),
+        "email": tenant.email,
+        "cedula": tenant.cedula,
+        "nombre_medico": tenant.nombre_medico,
+        "clerk_id": getattr(tenant, "clerk_id", None),
+        "plan": getattr(tenant, "plan", None),
+        "created_at": str(getattr(tenant, "created_at", None)),
+        "related_rows": related,
+        "has_data": bool(related),
+    }
+
+
 async def inspect_cedula(cedula: str) -> dict[str, Any]:
     """Read-only: reporta identidad del tenant y datos asociados. No borra nada."""
     cedula = str(cedula).strip()
@@ -142,11 +158,70 @@ async def release_cedula(cedula: str) -> str:
         return msg
 
 
+async def inspect_email(email: str) -> dict[str, Any]:
+    """Read-only: reporta el tenant que ocupa un email y sus datos. No borra nada.
+
+    Útil para localizar tenants duplicados/huérfanos cuya cédula desconocemos
+    (p. ej. la identidad "gmail" creada por el split email/Google).
+    """
+    email = str(email).strip()
+    factory = _get_session_factory()
+    async with factory() as db:
+        stmt = select(Tenant).where(Tenant.email == email)
+        tenant = (await db.execute(stmt)).scalar_one_or_none()
+        if tenant is None:
+            return {"email": email, "exists": False}
+
+        report = await _tenant_report(db, tenant)
+        return {"email": email, "exists": True, **report}
+
+
+async def release_email(email: str) -> str:
+    """Borra el tenant que ocupa un email (idempotente).
+
+    Misma salvaguarda que release_cedula: si el tenant tiene datos clínicos, el
+    DELETE viola las FK y se aborta con TenantHasDataError — nunca se borran
+    datos por accidente.
+    """
+    email = str(email).strip()
+    factory = _get_session_factory()
+    async with factory() as db:
+        stmt = select(Tenant).where(Tenant.email == email)
+        tenant = (await db.execute(stmt)).scalar_one_or_none()
+
+        if tenant is None:
+            msg = f"No existe ningún tenant con el email {email}. Nada que hacer."
+            logger.info(f"✅ {msg}")
+            return msg
+
+        tenant_id = tenant.id
+        identity = f"{tenant.email} / {tenant.nombre_medico} (cédula {tenant.cedula})"
+        logger.info(f"Encontrado tenant {tenant_id} ({identity}). Borrando...")
+
+        await db.delete(tenant)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            related = await _count_related_rows(db, tenant_id)
+            raise TenantHasDataError(
+                f"El tenant con email {email} ({identity}, id={tenant_id}) tiene datos "
+                f"asociados y NO se borró nada. Desglose: {related or 'desconocido'}. "
+                "Revísalo manualmente antes de continuar."
+            ) from None
+
+        msg = f"Tenant con email {email} (id={tenant_id}) eliminado."
+        logger.info(f"✅ {msg}")
+        return msg
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Inspeccionar o liberar la cédula de un tenant"
+        description="Inspeccionar o liberar un tenant por cédula o por email"
     )
-    parser.add_argument("cedula", help="Cédula del tenant")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("cedula", nargs="?", help="Cédula del tenant")
+    target.add_argument("--email", help="Email del tenant (para huérfanos sin cédula)")
     parser.add_argument(
         "--action",
         choices=["inspect", "release"],
@@ -155,13 +230,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    inspect_fn = inspect_email if args.email else inspect_cedula
+    release_fn = release_email if args.email else release_cedula
+    target_value = args.email or args.cedula
+
     if args.action == "inspect":
-        result = asyncio.run(inspect_cedula(args.cedula))
+        result = asyncio.run(inspect_fn(target_value))
         logger.info(json.dumps(result, ensure_ascii=False, indent=2))
         return
 
     try:
-        asyncio.run(release_cedula(args.cedula))
+        asyncio.run(release_fn(target_value))
     except TenantHasDataError as e:
         logger.error(f"❌ {e}")
         sys.exit(1)
