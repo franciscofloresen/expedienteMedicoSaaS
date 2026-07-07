@@ -26,6 +26,7 @@ from app.api.v1 import (
     reminders,
 )
 from app.core.config import settings
+from app.middleware.audit import AuditMiddleware
 from app.middleware.tenant import TenantMiddleware
 
 # ── Structured JSON Logging ──
@@ -111,6 +112,10 @@ app = FastAPI(
 
 
 # ── Middleware (order matters: last added = first executed) ──
+
+# 5. Audit — innermost, so it runs after TenantMiddleware has set tenant_id and
+#     can see the final response status. Appends to the immutable bitácora.
+app.add_middleware(AuditMiddleware)
 
 # 4. Tenant isolation — runs closest to the app (extracts tenant_id, auth)
 app.add_middleware(TenantMiddleware)

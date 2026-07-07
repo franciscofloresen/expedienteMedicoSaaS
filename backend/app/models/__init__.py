@@ -1,3 +1,4 @@
+from .audit_log import AuditLog
 from .base import Base
 from .cie10 import CIE10
 from .cita import Cita
@@ -11,6 +12,7 @@ from .tenant import Tenant
 # Import all models here so Alembic can discover them
 __all__ = [
     "Base",
+    "AuditLog",
     "Tenant",
     "Paciente",
     "Expediente",
