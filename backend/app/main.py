@@ -195,8 +195,8 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(inspect_cedula(cedula))
-            return {"statusCode": 200, "body": result}
+            inspect_result = loop.run_until_complete(inspect_cedula(cedula))
+            return {"statusCode": 200, "body": inspect_result}
         except Exception as e:
             logger.error(f"Failed to inspect cédula {cedula}", exc_info=True)
             return {"statusCode": 500, "body": f"Failed to inspect cédula: {e}"}

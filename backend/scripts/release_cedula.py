@@ -3,9 +3,12 @@ import asyncio
 import json
 import logging
 import sys
+import uuid
+from typing import Any
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import _get_session_factory
 from app.models.tenant import Tenant
@@ -18,7 +21,7 @@ class TenantHasDataError(Exception):
     """El tenant tiene datos clínicos asociados y no debe borrarse a ciegas."""
 
 
-async def _count_related_rows(db, tenant_id) -> dict[str, int]:
+async def _count_related_rows(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, int]:
     """Cuenta filas de cada tabla que referencia tenants.id para este tenant.
 
     Descubre las FK dinámicamente (no depende de nombres hardcodeados) y fija el
@@ -69,7 +72,7 @@ async def _count_related_rows(db, tenant_id) -> dict[str, int]:
     return counts
 
 
-async def inspect_cedula(cedula: str) -> dict:
+async def inspect_cedula(cedula: str) -> dict[str, Any]:
     """Read-only: reporta identidad del tenant y datos asociados. No borra nada."""
     cedula = str(cedula).strip()
     factory = _get_session_factory()
