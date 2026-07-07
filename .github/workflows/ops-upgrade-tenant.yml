@@ -1,0 +1,60 @@
+name: Ops — Upgrade Tenant Plan (Production)
+
+# Cambia el plan de un tenant en producción (vía Lambda en la VPC privada).
+# Idempotente: si el médico ya está en el plan indicado, no hace nada.
+# Sincroniza el plan en PostgreSQL y en Clerk (public_metadata). El plan surte
+# efecto para el médico en su siguiente refresh de token (~60s) o al recargar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Correo electrónico del médico (tenant) en producción"
+        required: true
+        type: string
+      plan:
+        description: "Plan destino"
+        required: true
+        default: "pro"
+        type: choice
+        options:
+          - pro
+          - basico
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+
+jobs:
+  upgrade-tenant:
+    name: Upgrade tenant (${{ inputs.email }} → ${{ inputs.plan }})
+    runs-on: ubuntu-latest
+    environment: production  # Requiere aprobación manual vía GitHub Environment
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Invoke Lambda
+        env:
+          EMAIL: ${{ inputs.email }}
+          PLAN: ${{ inputs.plan }}
+        run: |
+          PAYLOAD=$(jq -nc --arg e "$EMAIL" --arg p "$PLAN" '{upgrade_tenant: $e, plan: $p}')
+          echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload "${PAYLOAD}" \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/upgrade_result.json
+          echo "--- Resultado ---"
+          cat /tmp/upgrade_result.json
+          echo ""
+          grep -q '"statusCode": 200' /tmp/upgrade_result.json \
+            || { echo "❌ No se actualizó el plan (error del Lambda)."; exit 1; }
+          echo "✅ Plan actualizado: ${EMAIL} → ${PLAN}."
