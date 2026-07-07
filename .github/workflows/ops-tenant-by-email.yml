@@ -1,0 +1,68 @@
+name: Ops — Inspect/Release Tenant by Email (Production)
+
+# Operación administrativa puntual y auditada contra la BD privada (vía Lambda VPC).
+#   action=inspect (por defecto, SOLO LECTURA): reporta identidad del tenant que
+#     ocupa el email y cuántas filas hijas tiene. No modifica nada.
+#   action=release: borra el tenant huérfano. NO borra tenants con datos clínicos
+#     (el DELETE viola las FK y se aborta con 409).
+# Útil para limpiar tenants duplicados cuya cédula desconocemos.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email del tenant en producción"
+        required: true
+        type: string
+      action:
+        description: "inspect (solo lectura) o release (borra el tenant)"
+        required: true
+        default: "inspect"
+        type: choice
+        options:
+          - inspect
+          - release
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+
+jobs:
+  email-op:
+    name: Tenant op (${{ inputs.action }}) by email in Production DB
+    runs-on: ubuntu-latest
+    environment: production  # Requiere aprobación manual vía GitHub Environment
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Invoke Lambda
+        env:
+          EMAIL: ${{ inputs.email }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          KEY="${ACTION}_email"   # inspect_email | release_email
+          PAYLOAD=$(jq -nc --arg k "$KEY" --arg e "$EMAIL" '{($k): $e}')
+          echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload "${PAYLOAD}" \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/email_result.json
+          echo "--- Resultado ---"
+          cat /tmp/email_result.json
+          echo ""
+          if [ "$ACTION" = "inspect" ]; then
+            # Solo lectura: siempre informativo, no falla el job.
+            grep -q '"statusCode": 200' /tmp/email_result.json || { echo "❌ La inspección falló (error del Lambda)."; exit 1; }
+            echo "✅ Inspección completada (revisa related_rows arriba)."
+          else
+            grep -q '"statusCode": 200' /tmp/email_result.json || { echo "❌ No se borró el tenant (probablemente tiene datos: revisa el desglose arriba)."; exit 1; }
+            echo "✅ Tenant eliminado correctamente."
+          fi

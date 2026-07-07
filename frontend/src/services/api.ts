@@ -188,6 +188,19 @@ export const citasApi = {
   }
 };
 
+export interface AuditEntry {
+  timestamp: string;
+  action: string;
+  status_code: number | null;
+  ip_address: string | null;
+}
+
+export const auditApi = {
+  list: async (limit = 50, offset = 0): Promise<AuditEntry[]> => {
+    return api.get<AuditEntry[]>('/audit/', { limit, offset });
+  },
+};
+
 export const recetasApi = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getByNotaId: async (_notaId: string): Promise<any[]> => {

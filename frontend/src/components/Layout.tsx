@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Activity, Users, FileText, Settings as SettingsIcon, Calendar as CalendarIcon } from 'lucide-react';
-import { UserButton } from '@clerk/react';
+import { Activity, Users, FileText, Settings as SettingsIcon, Calendar as CalendarIcon, ScrollText } from 'lucide-react';
+import { UserButton, useUser } from '@clerk/react';
 import { ConnectionStatus } from './ConnectionStatus';
 
 const NAV_ITEMS = [
@@ -10,18 +10,24 @@ const NAV_ITEMS = [
   { to: '/app/notas', label: 'Notas', icon: Activity, end: false },
 ];
 
+const AUDIT_ITEM = { to: '/app/auditoria', label: 'Auditoría', icon: ScrollText, end: false };
+
 function breadcrumbFor(pathname: string): string[] {
   if (pathname.startsWith('/app/pacientes/')) return ['Pacientes', 'Expediente clínico'];
   if (pathname.startsWith('/app/agenda')) return ['Agenda'];
   if (pathname.startsWith('/app/expedientes')) return ['Expedientes'];
   if (pathname.startsWith('/app/notas')) return ['Notas médicas'];
   if (pathname.startsWith('/app/settings')) return ['Configuración'];
+  if (pathname.startsWith('/app/auditoria')) return ['Auditoría'];
   return ['Pacientes'];
 }
 
 export default function Layout() {
   const location = useLocation();
   const crumbs = breadcrumbFor(location.pathname);
+  const { user } = useUser();
+  const isPro = user?.publicMetadata?.plan === 'pro';
+  const navItems = isPro ? [...NAV_ITEMS, AUDIT_ITEM] : NAV_ITEMS;
 
   return (
     <div className="app-container">
@@ -36,7 +42,7 @@ export default function Layout() {
         </div>
 
         <nav className="sidebar-section" aria-label="Navegación principal">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -95,7 +101,7 @@ export default function Layout() {
 
         {/* Bottom navigation — mobile */}
         <nav className="bottom-nav no-print" aria-label="Navegación móvil">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

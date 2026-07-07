@@ -8,6 +8,7 @@ import ExpedientesList from './pages/ExpedientesList';
 import NotasList from './pages/NotasList';
 import ErrorBoundary from './components/ErrorBoundary';
 import Settings from './pages/Settings';
+import Auditoria from './pages/Auditoria';
 import Landing from './pages/Landing';
 import Privacidad from './pages/Privacidad';
 import Onboarding from './pages/Onboarding';
@@ -50,6 +51,7 @@ function App() {
                     <Route path="expedientes" element={<ExpedientesList />} />
                     <Route path="notas" element={<NotasList />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="auditoria" element={<Auditoria />} />
                     <Route path="pacientes/:id" element={<Expediente />} />
                   </Route>
                 </Route>

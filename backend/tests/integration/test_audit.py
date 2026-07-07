@@ -13,14 +13,33 @@ async def test_audit_forbidden_for_basico(client: AsyncClient, seed_tenant_a):
 
 
 @pytest.mark.asyncio
-async def test_audit_empty_when_no_log_group(client: AsyncClient, seed_tenant_a):
-    """Pro tenant, no CloudWatch log group configured (testing) → [] not 500."""
+async def test_audit_records_and_returns_writes(client: AsyncClient, seed_tenant_a):
+    """A write is recorded in the bitácora and readable by a Pro tenant."""
     from tests.conftest import TENANT_A_ID
 
     headers = {"X-Tenant-ID": TENANT_A_ID, "X-Plan": "pro"}
-    res = await client.get("/api/v1/audit/", headers=headers)
+
+    # A write — the audit middleware should append a row.
+    res = await client.post(
+        "/api/v1/pacientes/",
+        json={
+            "nombre_completo": "Paciente Auditoría",
+            "sexo": "M",
+            "fecha_nacimiento": "1980-02-02",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201
+
+    # Read the bitácora back.
+    res = await client.get("/api/v1/audit/?limit=200", headers=headers)
     assert res.status_code == 200
-    assert res.json() == []
+    entries = res.json()
+    assert isinstance(entries, list)
+    assert any(
+        e["action"] == "POST /api/v1/pacientes/" and e["status_code"] == 201
+        for e in entries
+    )
 
 
 @pytest.mark.asyncio
