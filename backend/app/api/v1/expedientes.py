@@ -73,17 +73,20 @@ async def create_expediente(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
-    # Enforce plan limits
+    # Enforce plan limits (entitlements are defined centrally in app.core.plans)
+    from app.core.plans import entitlement
+
     plan = getattr(request.state, "plan", "basico")
-    if plan == "basico":
+    max_expedientes = entitlement(plan, "max_expedientes")
+    if max_expedientes is not None:
         from sqlalchemy import func
 
         stmt_count = select(func.count(Expediente.id))
         count = (await db.execute(stmt_count)).scalar_one()
-        if count >= 5:
+        if count >= max_expedientes:
             raise HTTPException(
                 status_code=403,
-                detail="Límite alcanzado: El plan Básico permite un máximo de 5 expedientes. Por favor contacte soporte (franciscofloresenr@gmail.com o WhatsApp +523121940941) para activar su cuenta Pro.",
+                detail=f"Límite alcanzado: El plan Básico permite un máximo de {max_expedientes} expedientes. Por favor contacte soporte (franciscofloresenr@gmail.com o WhatsApp +523121940941) para activar su cuenta Pro.",
             )
 
     # Check if expediente already exists

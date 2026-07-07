@@ -58,6 +58,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         if not tenant_id and settings.environment == "testing":
             tenant_id = request.headers.get("X-Tenant-ID")
             claims = {"sub": "test-user", "email": "test@test.com"}
+            # Test-only hook to exercise plan entitlements (mirrors X-Tenant-ID).
+            test_plan = request.headers.get("X-Plan")
+            if test_plan:
+                claims["plan"] = test_plan
 
         if not tenant_id:
             # Allow onboarding path without tenant_id if they have a valid token

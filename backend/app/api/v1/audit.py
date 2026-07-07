@@ -10,10 +10,11 @@ import time
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.core.plans import entitlement
 
 logger = logging.getLogger("medrecord.audit")
 
@@ -138,6 +139,15 @@ async def list_audit(
     log backend is unavailable.
     """
     tenant_id = request.state.tenant_id
+
+    # Pro-only feature.
+    plan = getattr(request.state, "plan", "basico")
+    if not entitlement(plan, "audit_log"):
+        raise HTTPException(
+            status_code=403,
+            detail="El registro de auditoría está disponible sólo en el plan Pro.",
+        )
+
     try:
         return _query_cloudwatch(str(tenant_id), limit, offset)
     except Exception as e:  # noqa: BLE001 — read endpoint must not 500
