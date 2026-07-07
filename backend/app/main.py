@@ -182,6 +182,29 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error(f"Failed to upgrade tenant {email}", exc_info=True)
             return {"statusCode": 500, "body": f"Failed to upgrade tenant: {e}"}
 
+    if isinstance(event, dict) and event.get("release_cedula"):
+        import asyncio
+
+        from scripts.release_cedula import TenantHasDataError, release_cedula
+
+        cedula = str(event["release_cedula"])
+        logger.info(f"Releasing cédula {cedula} in production...")
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            result = loop.run_until_complete(release_cedula(cedula))
+            return {"statusCode": 200, "body": result}
+        except TenantHasDataError as e:
+            # Safety guard: tenant has clinical data — nothing was deleted.
+            logger.error(f"Release aborted for cédula {cedula}: {e}")
+            return {"statusCode": 409, "body": str(e)}
+        except Exception as e:
+            logger.error(f"Failed to release cédula {cedula}", exc_info=True)
+            return {"statusCode": 500, "body": f"Failed to release cédula: {e}"}
+
     import asyncio
     try:
         asyncio.get_event_loop()
