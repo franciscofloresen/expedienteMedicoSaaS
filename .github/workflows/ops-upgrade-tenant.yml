@@ -9,8 +9,12 @@ on:
   workflow_dispatch:
     inputs:
       email:
-        description: "Correo electrónico del médico (tenant) en producción"
-        required: true
+        description: "Correo del médico (deja vacío si usas tenant_id)"
+        required: false
+        type: string
+      tenant_id:
+        description: "ID (UUID) del tenant — usar cuando el email es sintético (*.local)"
+        required: false
         type: string
       plan:
         description: "Plan destino"
@@ -44,9 +48,18 @@ jobs:
       - name: Invoke Lambda
         env:
           EMAIL: ${{ inputs.email }}
+          TENANT_ID: ${{ inputs.tenant_id }}
           PLAN: ${{ inputs.plan }}
         run: |
-          PAYLOAD=$(jq -nc --arg e "$EMAIL" --arg p "$PLAN" '{upgrade_tenant: $e, plan: $p}')
+          if [ -n "$TENANT_ID" ]; then
+            PAYLOAD=$(jq -nc --arg t "$TENANT_ID" --arg p "$PLAN" '{upgrade_tenant_id: $t, plan: $p}')
+            TARGET="tenant_id=${TENANT_ID}"
+          elif [ -n "$EMAIL" ]; then
+            PAYLOAD=$(jq -nc --arg e "$EMAIL" --arg p "$PLAN" '{upgrade_tenant: $e, plan: $p}')
+            TARGET="email=${EMAIL}"
+          else
+            echo "❌ Debes proporcionar 'email' o 'tenant_id'."; exit 1
+          fi
           echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
             --payload "${PAYLOAD}" \
@@ -57,4 +70,4 @@ jobs:
           echo ""
           grep -q '"statusCode": 200' /tmp/upgrade_result.json \
             || { echo "❌ No se actualizó el plan (error del Lambda)."; exit 1; }
-          echo "✅ Plan actualizado: ${EMAIL} → ${PLAN}."
+          echo "✅ Plan actualizado: ${TARGET} → ${PLAN}."
