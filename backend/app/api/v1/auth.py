@@ -19,6 +19,42 @@ logger = logging.getLogger("medrecord.auth")
 
 router = APIRouter()
 
+
+async def _fetch_clerk_primary_email(user_id: str) -> str | None:
+    """Return the user's primary verified email from the Clerk API, or None.
+
+    Clerk session tokens frequently omit the email claim, so onboarding cannot
+    rely on the JWT alone to dedup tenants. This fetches the authoritative
+    address server-side (using the Clerk secret key) as a fallback.
+    """
+    import httpx
+
+    from app.core.config import settings
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://api.clerk.com/v1/users/{user_id}",
+                headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        logger.warning(f"Could not resolve Clerk email for {user_id}: {e}")
+        return None
+
+    primary_id = data.get("primary_email_address_id")
+    addresses = data.get("email_addresses", [])
+    for addr in addresses:
+        if addr.get("id") == primary_id:
+            return addr.get("email_address")  # type: ignore[no-any-return]
+    # Fall back to any verified address if the primary id didn't match.
+    for addr in addresses:
+        if (addr.get("verification") or {}).get("status") == "verified":
+            return addr.get("email_address")  # type: ignore[no-any-return]
+    return None
+
+
 # ── Endpoints ──
 
 
@@ -201,6 +237,19 @@ async def onboarding(
 
     from app.core.config import settings
     from app.models.tenant import Tenant
+
+    # The Clerk session token often omits the email claim, so the middleware may
+    # have fallen back to a synthetic "*.local" address. Resolve the real verified
+    # email from the Clerk API so the self-heal below can re-link this login to an
+    # existing (e.g. dev→prod migrated) tenant instead of creating a duplicate.
+    if user_email.endswith(".local") and settings.clerk_secret_key:
+        resolved_email = await _fetch_clerk_primary_email(user_id)
+        if resolved_email:
+            logger.info(
+                f"Resolved real email for {user_id} from Clerk API "
+                f"(JWT had no email claim): {resolved_email}"
+            )
+            user_email = resolved_email
 
     # Check if they already have a tenant
     tenant_id = getattr(request.state, "tenant_id", None)

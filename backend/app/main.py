@@ -196,6 +196,29 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error(f"Failed to upgrade tenant {email}", exc_info=True)
             return {"statusCode": 500, "body": f"Failed to upgrade tenant: {e}"}
 
+    if isinstance(event, dict) and event.get("upgrade_tenant_id"):
+        import asyncio
+
+        from scripts.upgrade_tenant import upgrade_tenant_by_id
+
+        tenant_id = str(event["upgrade_tenant_id"])
+        plan = event.get("plan", "pro")
+        logger.info(f"Upgrading tenant id {tenant_id} to {plan} in production...")
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(upgrade_tenant_by_id(tenant_id, plan))
+            return {
+                "statusCode": 200,
+                "body": f"Successfully upgraded tenant {tenant_id} to {plan}",
+            }
+        except Exception as e:
+            logger.error(f"Failed to upgrade tenant id {tenant_id}", exc_info=True)
+            return {"statusCode": 500, "body": f"Failed to upgrade tenant: {e}"}
+
     if isinstance(event, dict) and event.get("inspect_cedula"):
         import asyncio
 
