@@ -1,17 +1,26 @@
 name: Ops — Release Cédula (Production)
 
-# Operación administrativa puntual y auditada.
-# Libera una cédula borrando el tenant huérfano que la ocupa, invocando el
-# Lambda dentro de la VPC ({"release_cedula": "<cedula>"}).
-# NO borra tenants con datos clínicos: el DELETE viola las FK y se aborta (409).
+# Operación administrativa puntual y auditada contra la BD privada (vía Lambda VPC).
+#   action=inspect (por defecto, SOLO LECTURA): reporta identidad del tenant y
+#     cuántas filas hijas tiene. No modifica nada.
+#   action=release: borra el tenant para liberar la cédula. NO borra tenants con
+#     datos clínicos (el DELETE viola las FK y se aborta con 409).
 
 on:
   workflow_dispatch:
     inputs:
       cedula:
-        description: "Cédula del tenant huérfano a liberar en producción"
+        description: "Cédula del tenant en producción"
         required: true
         type: string
+      action:
+        description: "inspect (solo lectura) o release (borra el tenant)"
+        required: true
+        default: "inspect"
+        type: choice
+        options:
+          - inspect
+          - release
 
 permissions:
   id-token: write
@@ -22,8 +31,8 @@ env:
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
 
 jobs:
-  release-cedula:
-    name: Release cédula in Production DB
+  cedula-op:
+    name: Cédula op (${{ inputs.action }}) in Production DB
     runs-on: ubuntu-latest
     environment: production  # Requiere aprobación manual vía GitHub Environment
     steps:
@@ -33,18 +42,26 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Invoke Lambda to release cédula
+      - name: Invoke Lambda
         env:
           CEDULA: ${{ inputs.cedula }}
+          ACTION: ${{ inputs.action }}
         run: |
-          PAYLOAD=$(jq -nc --arg c "$CEDULA" '{release_cedula: $c}')
+          KEY="${ACTION}_cedula"   # inspect_cedula | release_cedula
+          PAYLOAD=$(jq -nc --arg k "$KEY" --arg c "$CEDULA" '{($k): $c}')
           echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
             --payload "${PAYLOAD}" \
             --cli-binary-format raw-in-base64-out \
-            /tmp/release_result.json
+            /tmp/cedula_result.json
           echo "--- Resultado ---"
-          cat /tmp/release_result.json
+          cat /tmp/cedula_result.json
           echo ""
-          grep -q "200" /tmp/release_result.json || { echo "❌ La liberación no devolvió 200 (revisa si el tenant tiene datos o hubo error)."; exit 1; }
-          echo "✅ Cédula liberada correctamente."
+          if [ "$ACTION" = "inspect" ]; then
+            # Solo lectura: siempre es informativo, no falla el job.
+            grep -q '"statusCode": 200' /tmp/cedula_result.json || { echo "❌ La inspección falló (error del Lambda)."; exit 1; }
+            echo "✅ Inspección completada (revisa related_rows arriba)."
+          else
+            grep -q '"statusCode": 200' /tmp/cedula_result.json || { echo "❌ No se liberó la cédula (probablemente tiene datos: revisa el desglose arriba)."; exit 1; }
+            echo "✅ Cédula liberada correctamente."
+          fi
