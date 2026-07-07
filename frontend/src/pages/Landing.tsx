@@ -148,7 +148,7 @@ export default function Landing() {
           <span className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>CloudMedRecord</span>
           <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '3rem' }}>
             <Link to="/privacidad" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Aviso de Privacidad</Link>
-            <a href="#" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Términos</a>
+            <Link to="/privacidad" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Términos</Link>
             <a href="https://wa.me/523121940941" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Soporte</a>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>&copy; {new Date().getFullYear()} CloudMedRecord. Clínicas modernas, protegidas legalmente.</p>
