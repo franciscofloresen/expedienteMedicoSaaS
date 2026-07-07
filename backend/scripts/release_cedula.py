@@ -53,7 +53,7 @@ async def release_cedula(cedula: str) -> str:
                 f"El tenant con cédula {cedula} tiene datos asociados "
                 "(pacientes/citas/expedientes/recetas/notas). NO se borró nada. "
                 "Revísalo manualmente antes de continuar."
-            )
+            ) from None
 
         msg = f"Tenant con cédula {cedula} eliminado. La cédula quedó libre para re-registro."
         logger.info(f"✅ {msg}")

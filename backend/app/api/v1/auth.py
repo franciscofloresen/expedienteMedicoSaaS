@@ -194,9 +194,9 @@ async def onboarding(
         except IntegrityError:
             await db.rollback()
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="La cédula o el correo proporcionado ya se encuentra registrado."
-            )
+            ) from None
 
     # Update Clerk Metadata so future tokens contain the tenant_id
     if settings.clerk_secret_key:
