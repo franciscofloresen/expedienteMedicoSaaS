@@ -30,6 +30,12 @@ class Tenant(Base):
     email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     plan: Mapped[str] = mapped_column(String(20), server_default="basico")
     activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+
+    # Terms of Service acceptance (null = not yet accepted)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    terms_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
     creado_en: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()")
     )
