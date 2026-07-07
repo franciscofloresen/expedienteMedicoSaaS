@@ -38,6 +38,10 @@ class PacienteCreate(BaseModel):
     email: str | None = None
     aseguradora: str | None = None
     num_poliza: str | None = None
+    contacto_emergencia: str | None = Field(None, max_length=200)
+    telefono_emergencia: str | None = Field(None, max_length=20)
+    tipo_sangre: str | None = Field(None, max_length=5)
+    alergias: str | None = None
     domicilio: str | None = None  # Plaintext in, encrypted at rest
 
     @field_validator("fecha_nacimiento")
@@ -63,6 +67,10 @@ class PacienteUpdate(BaseModel):
     email: str | None = None
     aseguradora: str | None = None
     num_poliza: str | None = None
+    contacto_emergencia: str | None = Field(None, max_length=200)
+    telefono_emergencia: str | None = Field(None, max_length=20)
+    tipo_sangre: str | None = Field(None, max_length=5)
+    alergias: str | None = None
     domicilio: str | None = None  # Will be encrypted before storage
 
 
@@ -134,6 +142,10 @@ async def create_paciente(
         email=paciente_data.email,
         aseguradora=paciente_data.aseguradora,
         num_poliza=paciente_data.num_poliza,
+        contacto_emergencia=paciente_data.contacto_emergencia,
+        telefono_emergencia=paciente_data.telefono_emergencia,
+        tipo_sangre=paciente_data.tipo_sangre,
+        alergias=paciente_data.alergias,
         domicilio_cifrado=domicilio_cifrado,
         creado_por=tenant_id,
     )
@@ -176,6 +188,10 @@ async def get_paciente(
         "email": paciente.email,
         "aseguradora": paciente.aseguradora,
         "num_poliza": paciente.num_poliza,
+        "contacto_emergencia": paciente.contacto_emergencia,
+        "telefono_emergencia": paciente.telefono_emergencia,
+        "tipo_sangre": paciente.tipo_sangre,
+        "alergias": paciente.alergias,
         "domicilio": domicilio,
         "creado_en": paciente.creado_en.isoformat() if paciente.creado_en else None,
     }

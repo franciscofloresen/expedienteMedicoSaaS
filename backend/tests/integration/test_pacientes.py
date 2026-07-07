@@ -53,6 +53,48 @@ async def test_pacientes_crud(
 
 
 @pytest.mark.asyncio
+async def test_paciente_update_medical_fields_persist(
+    client: AsyncClient, db_session: AsyncSession, seed_tenant_a
+):
+    """BUG-01 regression: blood_type/emergency/allergies must persist on update."""
+    from tests.conftest import TENANT_A_ID
+
+    headers = {"X-Tenant-ID": TENANT_A_ID}
+
+    res = await client.post(
+        "/api/v1/pacientes/",
+        json={
+            "nombre_completo": "Paciente Medical Fields",
+            "sexo": "F",
+            "fecha_nacimiento": "1985-05-05",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201
+    patient_id = res.json()["id"]
+
+    update_data = {
+        "tipo_sangre": "O+",
+        "contacto_emergencia": "Juan Pérez",
+        "telefono_emergencia": "555-000-1111",
+        "alergias": "Penicilina, mariscos",
+    }
+    res = await client.put(
+        f"/api/v1/pacientes/{patient_id}", json=update_data, headers=headers
+    )
+    assert res.status_code == 200
+
+    # Read back and confirm all 4 fields persisted
+    res = await client.get(f"/api/v1/pacientes/{patient_id}", headers=headers)
+    assert res.status_code == 200
+    pat = res.json()
+    assert pat["tipo_sangre"] == "O+"
+    assert pat["contacto_emergencia"] == "Juan Pérez"
+    assert pat["telefono_emergencia"] == "555-000-1111"
+    assert pat["alergias"] == "Penicilina, mariscos"
+
+
+@pytest.mark.asyncio
 async def test_paciente_not_found(client: AsyncClient, seed_tenant_a):
     from tests.conftest import TENANT_A_ID
 

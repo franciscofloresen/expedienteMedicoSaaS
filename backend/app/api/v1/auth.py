@@ -118,6 +118,60 @@ async def update_profile(
     return {"status": "success"}
 
 
+class AcceptTermsRequest(BaseModel):
+    version: str = Field(..., min_length=1, max_length=20)
+
+
+@router.post("/accept-terms")
+async def accept_terms(
+    data: AcceptTermsRequest, request: Request, db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Record Terms of Service acceptance for the current tenant.
+
+    Idempotent — calling it again simply refreshes the timestamp/version.
+    """
+    from datetime import datetime, timezone
+
+    from app.models.tenant import Tenant
+
+    tenant_id = request.state.tenant_id
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
+    tenant = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    tenant.terms_accepted_at = datetime.now(timezone.utc)
+    tenant.terms_version = data.version
+    await db.flush()
+
+    return {
+        "accepted": True,
+        "accepted_at": tenant.terms_accepted_at.isoformat(),
+    }
+
+
+@router.get("/terms-status")
+async def terms_status(request: Request, db: AsyncSession = Depends(get_db)) -> Any:
+    """Return whether the current tenant has accepted the Terms of Service."""
+    from app.models.tenant import Tenant
+
+    tenant_id = request.state.tenant_id
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
+    tenant = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado")
+
+    return {
+        "accepted": tenant.terms_accepted_at is not None,
+        "accepted_at": tenant.terms_accepted_at.isoformat()
+        if tenant.terms_accepted_at
+        else None,
+        "version": tenant.terms_version,
+    }
+
+
 class OnboardingRequest(BaseModel):
     nombre_medico: str = Field(..., min_length=2, max_length=200)
     cedula: str = Field(..., min_length=5, max_length=20)

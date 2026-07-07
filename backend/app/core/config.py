@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     clerk_jwks_url: str = ""
 
+    # CloudWatch Logs (audit trail surfaced read-only to the frontend)
+    cloudwatch_log_group: str = ""
+    cloudwatch_audit_window_days: int = 30
+
     # Cache TTLs (seconds)
     secrets_cache_ttl: int = 300  # 5 minutes
 
