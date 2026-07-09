@@ -10,7 +10,6 @@ The sender address must be a verified SES identity in ``settings.aws_region``.
 """
 
 import logging
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 import boto3
