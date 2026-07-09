@@ -8,9 +8,18 @@ function qrUrl(url?: string) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(url)}`;
 }
 
-function contentText(doc: any) {
+interface PrintDoc {
+  tipo_documento?: string;
+  medicamentos?: { descripcion?: string }[];
+  contenido_renderizado?: string;
+  motivo_consulta?: string;
+  exploracion_fisica?: string;
+  plan_tratamiento?: string;
+}
+
+function contentText(doc: PrintDoc) {
   if (doc.tipo_documento === 'receta') {
-    return (doc.medicamentos || []).map((m: any) => m.descripcion || JSON.stringify(m)).join('\n\n');
+    return (doc.medicamentos || []).map((m) => m.descripcion || JSON.stringify(m)).join('\n\n');
   }
   if (doc.tipo_documento === 'consentimiento') return doc.contenido_renderizado;
   return [
