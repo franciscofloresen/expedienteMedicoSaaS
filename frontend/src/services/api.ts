@@ -103,7 +103,7 @@ export const authApi = {
   getProfile: async (): Promise<any> => {
     return api.get('/auth/me');
   },
-  updateProfile: async (data: { cedula?: string; especialidad?: string }): Promise<any> => {
+  updateProfile: async (data: { cedula?: string; especialidad?: string; notification_email?: string }): Promise<any> => {
     return api.put('/auth/profile', data);
   },
   onboarding: async (data: { nombre_medico: string; cedula: string; especialidad?: string }): Promise<any> => {

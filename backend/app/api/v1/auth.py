@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,6 +83,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         "tenant_id": str(tenant.id),
         "nombre_medico": tenant.nombre_medico,
         "email": tenant.email,
+        "notification_email": tenant.notification_email,
         "cedula": tenant.cedula,
         "especialidad": tenant.especialidad,
         "plan": tenant.plan,
@@ -92,6 +93,22 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 class ProfileUpdate(BaseModel):
     cedula: str | None = Field(None, min_length=5, max_length=20)
     especialidad: str | None = None
+    # Where cita notifications go. "" clears the override (falls back to email).
+    notification_email: str | None = Field(None, max_length=200)
+
+    @field_validator("notification_email")
+    @classmethod
+    def _validate_notification_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if v == "":
+            return ""  # explicit clear
+        from app.services.email import is_deliverable
+
+        if not is_deliverable(v):
+            raise ValueError("Correo de notificaciones inválido o no entregable.")
+        return v.lower()
 
 
 @router.put("/profile")
@@ -115,6 +132,9 @@ async def update_profile(
         tenant.cedula = data.cedula
     if data.especialidad is not None:
         tenant.especialidad = data.especialidad
+    if data.notification_email is not None:
+        # "" clears the override; a validated address sets it.
+        tenant.notification_email = data.notification_email or None
 
     await db.flush()
 
@@ -294,6 +314,25 @@ async def onboarding(
             "plan": tenant_row.plan,
         }
     else:
+        # Never persist a synthetic/undeliverable address as the tenant identity.
+        # If Clerk's token carried no email and the API lookup failed, fail loudly
+        # so the user retries — instead of silently creating a tenant whose
+        # `email` is `{clerk_id}@test.local` and can never receive notifications.
+        from app.services.email import is_deliverable
+
+        if not is_deliverable(user_email):
+            logger.error(
+                f"Onboarding abortado para {user_id}: correo no verificable "
+                f"({user_email!r})."
+            )
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "No pudimos verificar tu correo electrónico. Cierra sesión, "
+                    "vuelve a iniciar sesión e inténtalo de nuevo."
+                ),
+            )
+
         new_tenant_id = uuid.uuid4()
 
         # Create Tenant

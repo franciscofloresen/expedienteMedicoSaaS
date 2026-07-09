@@ -50,7 +50,8 @@ async def create_cita(
 
     tenant = await db.get(Tenant, tenant_id)
     if tenant:
-        queue_cita_notification(db, tenant.email, tenant.nombre_medico, cita, "creada")
+        to = tenant.notification_email or tenant.email
+        queue_cita_notification(db, to, tenant.nombre_medico, cita, "creada")
     return cita
 
 
@@ -90,7 +91,8 @@ async def update_cita(
     action = "cancelada" if (now_cancelada and not was_cancelada) else "actualizada"
     tenant = await db.get(Tenant, cita.tenant_id)
     if tenant:
-        queue_cita_notification(db, tenant.email, tenant.nombre_medico, cita, action)
+        to = tenant.notification_email or tenant.email
+        queue_cita_notification(db, to, tenant.nombre_medico, cita, action)
     return cita
 
 
@@ -112,9 +114,8 @@ async def delete_cita(
     # it maps to "cancelada".
     tenant = await db.get(Tenant, cita.tenant_id)
     if tenant:
-        queue_cita_notification(
-            db, tenant.email, tenant.nombre_medico, cita, "cancelada"
-        )
+        to = tenant.notification_email or tenant.email
+        queue_cita_notification(db, to, tenant.nombre_medico, cita, "cancelada")
 
     await db.delete(cita)
     await db.flush()

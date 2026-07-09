@@ -10,6 +10,7 @@ The sender address must be a verified SES identity in ``settings.aws_region``.
 """
 
 import logging
+import re
 from typing import TYPE_CHECKING, Any, Optional
 
 import boto3
@@ -43,11 +44,36 @@ def _get_ses_client() -> Any:
     return _ses_client
 
 
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def is_deliverable(email: Optional[str]) -> bool:
+    """True only for addresses SES could actually deliver to.
+
+    Rejects the synthetic `*.local` fallbacks the tenant middleware assigns when
+    a Clerk token has no email claim — sending to those "succeeds" at the SES API
+    but never reaches an inbox.
+    """
+    if not email:
+        return False
+    email = email.strip().lower()
+    if not _EMAIL_RE.match(email):
+        return False
+    domain = email.rsplit("@", 1)[-1]
+    if domain.endswith((".local", ".test", ".invalid", ".localhost")):
+        return False
+    return True
+
+
 def _send(payload: dict[str, Any]) -> None:
     """Perform the actual SES send. Best-effort — never raises."""
     if not settings.ses_sender_email or settings.environment == "testing":
         return
-    if not payload.get("to_email"):
+    if not is_deliverable(payload.get("to_email")):
+        logger.warning(
+            f"Cita {payload['cita_id']}: destino no entregable "
+            f"({payload.get('to_email')!r}) — no se envía notificación."
+        )
         return
 
     verb = payload["verb"]
