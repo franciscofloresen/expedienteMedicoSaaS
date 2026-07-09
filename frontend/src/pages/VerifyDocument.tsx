@@ -13,6 +13,15 @@ export default function VerifyDocument() {
   });
 
   const valid = data?.valid === true;
+  const typeLabels: Record<string, string> = {
+    nota: 'Nota médica',
+    receta: 'Receta',
+    consentimiento: 'Consentimiento',
+  };
+  const tipoLabel = data?.resource_type
+    ? typeLabels[data.resource_type] ??
+      data.resource_type.charAt(0).toUpperCase() + data.resource_type.slice(1)
+    : 'N/A';
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-main)', padding: '4rem 5%' }}>
@@ -33,7 +42,7 @@ export default function VerifyDocument() {
               </div>
               <h1 className="font-serif" style={{ marginTop: 0 }}>Verificación pública</h1>
               <dl style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '0.75rem', fontSize: '0.95rem' }}>
-                <dt>Tipo</dt><dd>{data?.resource_type || 'N/A'}</dd>
+                <dt>Tipo</dt><dd>{tipoLabel}</dd>
                 <dt>Folio</dt><dd className="mono">{data?.folio || 'N/A'}</dd>
                 <dt>Médico</dt><dd>{data?.medico_nombre || 'N/A'}</dd>
                 <dt>Cédula</dt><dd>{data?.medico_cedula || 'N/A'}</dd>

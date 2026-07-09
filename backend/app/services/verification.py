@@ -42,15 +42,22 @@ async def get_or_create_verification_token(
     so it is stored in plaintext to allow the same URL to be regenerated on each
     print. It grants read access only to minimal, non-clinical metadata.
     """
+    # Reuse the earliest existing token. Uses first() rather than
+    # scalar_one_or_none() so pre-existing duplicate rows — left by the original
+    # insert-on-every-call behaviour before this became get-or-create — resolve to
+    # a single stable token instead of raising MultipleResultsFound.
     existing = (
         await db.execute(
-            select(VerificationToken).where(
+            select(VerificationToken)
+            .where(
                 VerificationToken.tenant_id == tenant_id,
                 VerificationToken.resource_type == resource_type,
                 VerificationToken.resource_id == resource_id,
             )
+            .order_by(VerificationToken.created_at.asc())
+            .limit(1)
         )
-    ).scalar_one_or_none()
+    ).scalars().first()
     if existing is not None:
         return existing, existing.token
 
