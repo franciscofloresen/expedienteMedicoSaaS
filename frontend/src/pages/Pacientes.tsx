@@ -23,6 +23,16 @@ function edad(fechaNacimiento: string): number | null {
   return years;
 }
 
+function friendlyPatientError(error: unknown, fallback: string): string {
+  const maybe = error as { response?: { data?: { detail?: unknown } }; message?: string };
+  const detail = maybe.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  if (typeof maybe.message === 'string' && maybe.message.trim() && !maybe.message.includes('500')) {
+    return maybe.message;
+  }
+  return fallback;
+}
+
 function EmptyPatients({ hasQuery, onCreate }: { hasQuery: boolean; onCreate: () => void }) {
   return (
     <div className="empty-state">
@@ -75,13 +85,14 @@ export default function Pacientes() {
     mutationFn: pacientesApi.create,
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['pacientes'] });
-      showToast('Paciente registrado exitosamente', 'success');
+      showToast('Paciente registrado. Ya puedes abrir su expediente clínico.', 'success');
       closeFormModal();
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (error: any) => {
-      const message = error.response?.data?.detail || (error instanceof Error ? error.message : "Error al registrar el paciente");
-      showToast(message, 'error');
+    onError: (error: unknown) => {
+      showToast(
+        friendlyPatientError(error, 'No pudimos guardar el paciente. Revisa los campos obligatorios e inténtalo de nuevo.'),
+        'error'
+      );
     }
   });
 
@@ -89,12 +100,14 @@ export default function Pacientes() {
     mutationFn: ({ id, data }: { id: string; data: PacienteUpdate }) => pacientesApi.update(id, data),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['pacientes'] });
-      showToast('Paciente actualizado exitosamente', 'success');
+      showToast('Datos del paciente actualizados.', 'success');
       closeFormModal();
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al actualizar el paciente";
-      showToast(message, 'error');
+      showToast(
+        friendlyPatientError(error, 'No pudimos actualizar el paciente. Revisa la información e inténtalo de nuevo.'),
+        'error'
+      );
     }
   });
 
@@ -102,13 +115,15 @@ export default function Pacientes() {
     mutationFn: pacientesApi.delete,
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['pacientes'] });
-      showToast('Paciente archivado (NOM-004)', 'success');
+      showToast('Paciente archivado y conservado conforme al expediente clínico.', 'success');
       setIsDeleteModalOpen(false);
       setPacienteToDelete(null);
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al archivar el paciente";
-      showToast(message, 'error');
+      showToast(
+        friendlyPatientError(error, 'No pudimos archivar el paciente. Inténtalo de nuevo.'),
+        'error'
+      );
       setIsDeleteModalOpen(false);
       setPacienteToDelete(null);
     }
@@ -212,7 +227,7 @@ export default function Pacientes() {
         {isError ? (
           <div className="empty-state">
             <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>Error de conexión al servidor</div>
-            <p className="empty-state-hint">No fue posible cargar los pacientes. Verifica que el backend esté en línea.</p>
+            <p className="empty-state-hint">No pudimos cargar tus pacientes. Revisa tu conexión e inténtalo de nuevo.</p>
           </div>
         ) : isLoading ? (
           <table className="data-table">
@@ -313,9 +328,12 @@ export default function Pacientes() {
         onClose={closeFormModal}
         title={editingPaciente ? 'Editar paciente' : 'Registrar nuevo paciente'}
       >
-        <form id="paciente-form" key={isFormModalOpen ? 'open' : 'closed'} onSubmit={handleSubmit} noValidate>
+        <form id="paciente-form" key={isFormModalOpen ? 'open' : 'closed'} onSubmit={handleSubmit}>
+          <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+            Captura los datos mínimos para identificar al paciente. CURP y contacto pueden completarse después.
+          </div>
           <div className="form-group">
-            <label className="form-label" htmlFor="nombre_completo">Nombre completo (NOM-004)</label>
+            <label className="form-label" htmlFor="nombre_completo">Nombre completo <span className="required-mark">*</span></label>
             <input
               type="text"
               id="nombre_completo"
@@ -323,8 +341,11 @@ export default function Pacientes() {
               className="form-input"
               required
               minLength={2}
+              autoComplete="name"
+              placeholder="Nombre y apellidos como aparecen en el expediente"
               defaultValue={editingPaciente?.nombre_completo}
             />
+            <span className="form-help">Usa el nombre completo del paciente para evitar duplicados.</span>
           </div>
 
           <div className="form-group">
@@ -340,29 +361,31 @@ export default function Pacientes() {
               defaultValue={editingPaciente?.curp}
               aria-describedby="curp-hint"
             />
-            <span id="curp-hint" className="text-muted" style={{ display: 'block', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+            <span id="curp-hint" className="form-help">
               Formato: 4 letras, 6 números, 6 letras, 1 dígito/letra, 1 dígito.
             </span>
           </div>
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label">Sexo</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.35rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                  <input type="radio" name="sexo" value="M" required defaultChecked={editingPaciente?.sexo === 'M'} /> Masculino
+              <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                <legend className="form-label">Sexo <span className="required-mark">*</span></legend>
+                <div className="radio-card-group">
+                <label className="radio-card">
+                  <input type="radio" name="sexo" value="M" required defaultChecked={editingPaciente?.sexo === 'M'} /> <span>Masculino</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                  <input type="radio" name="sexo" value="F" required defaultChecked={editingPaciente?.sexo === 'F'} /> Femenino
+                <label className="radio-card">
+                  <input type="radio" name="sexo" value="F" required defaultChecked={editingPaciente?.sexo === 'F'} /> <span>Femenino</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                  <input type="radio" name="sexo" value="X" required defaultChecked={editingPaciente?.sexo === 'X'} /> Otro / ND
+                <label className="radio-card">
+                  <input type="radio" name="sexo" value="X" required defaultChecked={editingPaciente?.sexo === 'X'} /> <span>Otro / ND</span>
                 </label>
-              </div>
+                </div>
+              </fieldset>
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="fecha_nacimiento">Fecha de nacimiento</label>
+              <label className="form-label" htmlFor="fecha_nacimiento">Fecha de nacimiento <span className="required-mark">*</span></label>
               <input
                 type="date"
                 id="fecha_nacimiento"
@@ -383,6 +406,9 @@ export default function Pacientes() {
                 id="telefono"
                 name="telefono"
                 className="form-input"
+                placeholder="10 dígitos"
+                inputMode="numeric"
+                autoComplete="tel-national"
                 pattern="\d{10}"
                 title="Debe contener 10 dígitos"
                 onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '')}
@@ -397,6 +423,8 @@ export default function Pacientes() {
                 id="email"
                 name="email"
                 className="form-input"
+                placeholder="paciente@correo.com"
+                autoComplete="email"
                 defaultValue={editingPaciente?.email}
               />
             </div>
@@ -410,6 +438,8 @@ export default function Pacientes() {
                 id="domicilio"
                 name="domicilio"
                 className="form-input"
+                autoComplete="street-address"
+                placeholder="Calle, número, colonia, ciudad"
                 defaultValue={editingPaciente?.domicilio}
               />
             </div>
@@ -421,6 +451,8 @@ export default function Pacientes() {
                 id="ocupacion"
                 name="ocupacion"
                 className="form-input"
+                autoComplete="organization-title"
+                placeholder="Ej. Docente, comerciante, estudiante"
                 defaultValue={editingPaciente?.ocupacion}
               />
             </div>
@@ -434,6 +466,8 @@ export default function Pacientes() {
                 id="contacto_emergencia"
                 name="contacto_emergencia"
                 className="form-input"
+                autoComplete="name"
+                placeholder="Nombre de familiar o contacto"
                 defaultValue={editingPaciente?.contacto_emergencia}
               />
             </div>
@@ -445,6 +479,9 @@ export default function Pacientes() {
                 id="telefono_emergencia"
                 name="telefono_emergencia"
                 className="form-input"
+                placeholder="10 dígitos"
+                inputMode="numeric"
+                autoComplete="tel-national"
                 pattern="\d{10}"
                 title="Debe contener 10 dígitos"
                 onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '')}
@@ -489,7 +526,7 @@ export default function Pacientes() {
               disabled={createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending
-                ? 'Guardando…'
+                ? 'Guardando paciente…'
                 : (editingPaciente ? 'Actualizar paciente' : 'Guardar paciente')}
             </button>
           </div>

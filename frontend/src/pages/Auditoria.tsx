@@ -7,9 +7,9 @@ import { auditApi, type AuditEntry } from '../services/api';
 const PAGE_SIZE = 50;
 
 function statusBadge(code: number | null) {
-  if (code == null) return <span className="badge">—</span>;
+  if (code == null) return <span className="badge badge-neutral">Sin estado</span>;
   if (code < 400) return <span className="badge badge-gold">{code}</span>;
-  return <span className="badge badge-draft">{code}</span>;
+  return <span className="badge badge-danger">{code}</span>;
 }
 
 export default function Auditoria() {
@@ -37,7 +37,7 @@ export default function Auditoria() {
           <div className="empty-state">
             <div className="empty-state-title">Función Pro</div>
             <p className="empty-state-hint">
-              El registro de auditoría está disponible en el plan Pro.
+              La bitácora completa de actividad está disponible en el plan Pro.
             </p>
           </div>
         ) : isError ? (
@@ -45,18 +45,19 @@ export default function Auditoria() {
             <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>
               Error de conexión
             </div>
-            <p className="empty-state-hint">No fue posible cargar la bitácora.</p>
+            <p className="empty-state-hint">No pudimos cargar la bitácora. Revisa tu conexión e inténtalo de nuevo.</p>
           </div>
         ) : isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+          <div className="loading-state">
             <div className="spinner" />
+            <span>Cargando bitácora de actividad…</span>
           </div>
         ) : entries.length === 0 && page === 0 ? (
           <div className="empty-state">
             <ShieldCheck size={40} style={{ color: 'var(--color-muted)' }} />
             <div className="empty-state-title">Sin registros aún</div>
             <p className="empty-state-hint">
-              Aquí aparecerán los accesos y cambios a los expedientes.
+              Aquí aparecerán accesos, cambios y acciones relevantes sobre expedientes.
             </p>
           </div>
         ) : (

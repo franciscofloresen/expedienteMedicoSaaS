@@ -37,6 +37,14 @@ function EmptyNotas({ onCreate }: { onCreate: () => void }) {
   );
 }
 
+function friendlyActionError(error: unknown, fallback: string): string {
+  const maybe = error as { response?: { data?: { detail?: unknown } }; message?: string };
+  const detail = maybe.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim() && !detail.includes('Internal Server Error')) return detail;
+  if (typeof maybe.message === 'string' && maybe.message.trim() && !maybe.message.includes('500')) return maybe.message;
+  return fallback;
+}
+
 export default function Expediente() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -120,11 +128,13 @@ export default function Expediente() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['expediente', id] });
       client.invalidateQueries({ queryKey: ['auditLogs'] }); // Refrescar bitácora en dashboard
-      showToast("Expediente creado y consentimiento registrado", "success");
+      showToast("Expediente creado. Ya puedes capturar la primera nota médica.", "success");
     },
     onError: (err: any) => {
-      const message = err.response?.data?.detail || err.message || "Error al crear el expediente";
-      showToast(message, "error");
+      showToast(
+        friendlyActionError(err, "No pudimos crear el expediente. Revisa tu conexión e inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
@@ -133,10 +143,13 @@ export default function Expediente() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['expediente', id] });
       setIsAntecedentesModalOpen(false);
-      showToast("Antecedentes actualizados exitosamente", "success");
+      showToast("Antecedentes médicos actualizados.", "success");
     },
-    onError: () => {
-      showToast("Error al actualizar antecedentes", "error");
+    onError: (error: unknown) => {
+      showToast(
+        friendlyActionError(error, "No pudimos guardar los antecedentes. Inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
@@ -181,11 +194,13 @@ export default function Expediente() {
       setIsSidePanelOpen(false);
       setEditingNota(null);
       clearDraft();
-      showToast("Borrador creado", "success");
+      showToast("Borrador de nota médica guardado.", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al guardar el borrador";
-      showToast(message, "error");
+      showToast(
+        friendlyActionError(error, "No pudimos guardar el borrador. Revisa los campos obligatorios e inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
@@ -196,11 +211,13 @@ export default function Expediente() {
       setIsSidePanelOpen(false);
       setEditingNota(null);
       clearDraft();
-      showToast("Borrador actualizado", "success");
+      showToast("Borrador de nota médica actualizado.", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al actualizar el borrador";
-      showToast(message, "error");
+      showToast(
+        friendlyActionError(error, "No pudimos actualizar el borrador. Inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
@@ -210,11 +227,13 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSignModalOpen(false);
       setNotaToSign(null);
-      showToast("Nota firmada y bloqueada exitosamente", "success");
+      showToast("Nota médica firmada. El documento legal ya está disponible.", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al firmar la nota";
-      showToast(message, "error");
+      showToast(
+        friendlyActionError(error, "No pudimos firmar la nota. Revisa tu sesión e inténtalo de nuevo."),
+        "error"
+      );
       setIsSignModalOpen(false);
     }
   });
@@ -316,7 +335,7 @@ export default function Expediente() {
   const openWhatsApp = (message: string) => {
     const rawPhone = paciente?.telefono?.replace(/\D/g, '');
     if (!rawPhone) {
-      showToast("El paciente no tiene teléfono registrado", "error");
+      showToast("Este paciente no tiene teléfono registrado para abrir WhatsApp.", "error");
       return;
     }
     window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
@@ -332,7 +351,7 @@ export default function Expediente() {
       message_preview: message,
     });
     client.invalidateQueries({ queryKey: ['messageLogs', id] });
-    showToast("Envío de WhatsApp registrado", "success");
+    showToast("Envío manual por WhatsApp registrado en la bitácora.", "success");
   };
 
   const sendPatientWhatsApp = async () => {
@@ -360,8 +379,14 @@ export default function Expediente() {
     onSuccess: async (receta) => {
       setIsRecetaModalOpen(false);
       setRecetaText('');
-      showToast("Receta firmada con QR", "success");
+      showToast("Receta generada y lista para imprimir.", "success");
       navigate(`/app/documentos/receta/${receta.id}/print`);
+    },
+    onError: (error: unknown) => {
+      showToast(
+        friendlyActionError(error, "No pudimos generar la receta. Revisa el contenido e inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
@@ -392,18 +417,21 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
       setIsConsentModalOpen(false);
       setSignatureText('');
-      showToast("Consentimiento creado y firmado por paciente", "success");
+      showToast("Consentimiento creado y firmado por el paciente.", "success");
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : "Error al crear consentimiento";
-      showToast(message, "error");
+      showToast(
+        friendlyActionError(error, "No pudimos crear el consentimiento. Revisa los campos obligatorios e inténtalo de nuevo."),
+        "error"
+      );
     }
   });
 
   if (isLoadingExpediente) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
+      <div className="loading-state">
         <div className="spinner" />
+        <span>Cargando expediente clínico…</span>
       </div>
     );
   }
@@ -444,7 +472,7 @@ export default function Expediente() {
             <p>1. El paciente reconoce y acepta que sus datos personales, incluyendo datos sensibles de salud, serán recabados, almacenados y tratados de forma confidencial y segura exclusivamente para fines de atención médica, diagnóstico y tratamiento.</p>
             <p>2. El médico tratante está autorizado para integrar estos datos en el Expediente Clínico Electrónico (ECE).</p>
             <p>3. El paciente tiene derecho a acceder, rectificar o solicitar la cancelación del tratamiento de sus datos (Derechos ARCO), salvo en los casos de conservación obligatoria estipulados por la ley (5 años mínimos para el ECE).</p>
-            <p><em>(Este texto es un machote legal de demostración. Al aceptar, el evento se registra de manera inmutable en la bitácora de auditoría).</em></p>
+            <p><em>Este texto es una plantilla de demostración. Al aceptar, el evento se registra en la bitácora de actividad.</em></p>
           </div>
 
           <label style={{
@@ -467,7 +495,7 @@ export default function Expediente() {
               style={{ width: '18px', height: '18px', marginTop: '0.2rem', cursor: 'pointer', flexShrink: 0 }}
             />
             <span>
-              <strong>Declaro bajo protesta de decir verdad</strong> que he leído el aviso de privacidad al paciente y que ha otorgado su consentimiento expreso para el tratamiento de su información de salud.
+              <strong>Confirmo que el paciente recibió el aviso de privacidad</strong> y otorgó consentimiento expreso para el tratamiento de su información de salud.
             </span>
           </label>
 
@@ -657,7 +685,7 @@ export default function Expediente() {
                           </div>
                           <div className="text-muted" style={{ fontSize: '0.78rem' }}>
                             {nota.firmada
-                              ? `Sellada e inmutable · ${new Date((nota as any).firmado_en || nota.creado_en).toLocaleString()}`
+                            ? `Firmada digitalmente · ${new Date((nota as any).firmado_en || nota.creado_en).toLocaleString()}`
                               : `Última edición: ${new Date(nota.creado_en).toLocaleString()}`}
                           </div>
                         </div>
@@ -734,10 +762,11 @@ export default function Expediente() {
                         <div className="signed-banner-title">
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                             <ShieldCheck size={15} />
-                            ✓ Nota firmada · {new Date(nota.firmado_en!).toLocaleDateString()} · Cédula {nota.medico_cedula || 'N/A'}
+                            Nota médica firmada · {new Date(nota.firmado_en!).toLocaleDateString()} · Cédula {nota.medico_cedula || 'N/A'}
                           </span>
                           <span style={{ display: 'inline-flex', gap: '0.5rem' }}>
                             <button
+                              type="button"
                               className="btn btn-outline no-print"
                               style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', color: 'var(--color-gold)', borderColor: 'rgba(212,168,67,0.4)' }}
                               onClick={() => navigate(`/app/documentos/nota/${nota.id}/print`)}
@@ -745,6 +774,7 @@ export default function Expediente() {
                               <Printer size={12} /> Ver documento legal
                             </button>
                             <button
+                              type="button"
                               className="btn btn-outline no-print"
                               style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
                               onClick={() => sendNoteVerificationWhatsApp(nota)}
@@ -752,6 +782,7 @@ export default function Expediente() {
                               <MessageCircle size={12} /> WhatsApp
                             </button>
                             <button
+                              type="button"
                               className="btn btn-gold no-print"
                               style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
                               onClick={() => { setActiveNotaForReceta(nota); setIsRecetaModalOpen(true); }}
@@ -813,7 +844,7 @@ export default function Expediente() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div>
               <h2 style={{ margin: 0 }}>Consentimientos informados</h2>
-              <p className="text-muted" style={{ margin: '0.35rem 0 0' }}>Plantillas simples para procedimientos privados.</p>
+              <p className="text-muted" style={{ margin: '0.35rem 0 0' }}>Documenta consentimiento, firma y evidencia verificable para procedimientos.</p>
             </div>
             <button className="btn btn-primary" onClick={() => setIsConsentModalOpen(true)}>
               <Plus size={16} /> Nuevo consentimiento
@@ -821,7 +852,13 @@ export default function Expediente() {
           </div>
           <div style={{ display: 'grid', gap: '1rem' }}>
             {consentimientos.length === 0 ? (
-              <div className="empty-state glass-card">Sin consentimientos registrados.</div>
+              <div className="empty-state glass-card">
+                <div className="empty-state-title">Sin consentimientos informados</div>
+                <p className="empty-state-hint">Crea un consentimiento para documentar el procedimiento y la aceptación del paciente.</p>
+                <button type="button" className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => setIsConsentModalOpen(true)}>
+                  <Plus size={16} /> Nuevo consentimiento
+                </button>
+              </div>
             ) : consentimientos.map((cons: any) => (
               <div key={cons.id} className="glass-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
@@ -840,7 +877,7 @@ export default function Expediente() {
                       <button className="btn btn-gold" onClick={async () => {
                         await consentimientosApi.firmarMedico(cons.id);
                         client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
-                        showToast("Consentimiento firmado por médico", "success");
+                        showToast("Consentimiento firmado por el médico.", "success");
                       }} disabled={!cons.firmado_paciente_en}>
                         <Lock size={14} /> Firmar médico
                       </button>
@@ -852,7 +889,7 @@ export default function Expediente() {
           </div>
           <div className="glass-card" style={{ marginTop: '1rem' }}>
             <span className="overline">WhatsApp manual</span>
-            <p className="text-muted">Últimos envíos registrados: {messageLogs.length}</p>
+            <p className="text-muted">Envíos manuales registrados en la bitácora: {messageLogs.length}</p>
           </div>
         </div>
       )}
@@ -894,26 +931,26 @@ export default function Expediente() {
                 <span className="overline">Signos vitales</span>
                 {!editingNota && lastSaveSecondsAgo !== null && (
                   <span className="text-muted" style={{ fontSize: '0.7rem' }}>
-                    Guardado hace {lastSaveSecondsAgo}s
+                    Guardado local hace {lastSaveSecondsAgo}s
                   </span>
                 )}
               </div>
               <div className="vitals-grid">
                 <div className="form-group">
-                  <label className="form-label">FC (lpm)</label>
-                  <input type="number" name="fc" className="form-input" required defaultValue={editingNota?.signos_vitales?.frecuencia_cardiaca} />
+                  <label className="form-label" htmlFor="nota-fc">FC (lpm) <span className="required-mark">*</span></label>
+                  <input id="nota-fc" type="number" name="fc" className="form-input" required defaultValue={editingNota?.signos_vitales?.frecuencia_cardiaca} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">FR (rpm)</label>
-                  <input type="number" name="fr" className="form-input" required defaultValue={editingNota?.signos_vitales?.frecuencia_respiratoria} />
+                  <label className="form-label" htmlFor="nota-fr">FR (rpm) <span className="required-mark">*</span></label>
+                  <input id="nota-fr" type="number" name="fr" className="form-input" required defaultValue={editingNota?.signos_vitales?.frecuencia_respiratoria} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Temp (°C)</label>
-                  <input type="number" step="0.1" name="temp" className="form-input" required defaultValue={editingNota?.signos_vitales?.temperatura} />
+                  <label className="form-label" htmlFor="nota-temp">Temp (°C) <span className="required-mark">*</span></label>
+                  <input id="nota-temp" type="number" step="0.1" name="temp" className="form-input" required defaultValue={editingNota?.signos_vitales?.temperatura} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">TA</label>
-                  <input type="text" name="ta" className="form-input" placeholder="120/80" required pattern="\d{2,3}/\d{2,3}" title="Ej. 120/80" onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/[^\d/]/g, '')} defaultValue={editingNota?.signos_vitales?.tension_arterial} />
+                  <label className="form-label" htmlFor="nota-ta">TA <span className="required-mark">*</span></label>
+                  <input id="nota-ta" type="text" name="ta" className="form-input" placeholder="120/80" required pattern="\d{2,3}/\d{2,3}" title="Ej. 120/80" inputMode="numeric" onInput={(e) => e.currentTarget.value = e.currentTarget.value.replace(/[^\d/]/g, '')} defaultValue={editingNota?.signos_vitales?.tension_arterial} />
                 </div>
               </div>
             </div>
@@ -922,7 +959,7 @@ export default function Expediente() {
             <div>
               <span className="overline" style={{ marginBottom: '0.75rem' }}>Contenido clínico</span>
               <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                <label className="form-label">Motivo de consulta y evolución</label>
+                <label className="form-label">Motivo de consulta y evolución <span className="required-mark">*</span></label>
                 <textarea name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva…" defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro}></textarea>
               </div>
 
@@ -932,7 +969,7 @@ export default function Expediente() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Diagnóstico (texto libre)</label>
+                <label className="form-label">Diagnóstico clínico <span className="required-mark">*</span></label>
                 <input type="text" name="diagnostico" className="form-input" required minLength={5} defaultValue={editingNota?.contenido?.diagnosticos?.[0]} />
               </div>
 
@@ -941,12 +978,12 @@ export default function Expediente() {
                 <Cie10Search
                   name="diagnostico_cie10"
                   defaultValue={editingNota?.diagnostico_cie10 || draft?.diagnostico_cie10}
-                  onSelect={(code) => console.log('Seleccionado:', code)}
+                  onSelect={() => undefined}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Plan / Tratamiento</label>
+                <label className="form-label">Plan / Tratamiento <span className="required-mark">*</span></label>
                 <textarea name="plan_tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.plan_tratamiento || editingNota?.contenido?.tratamiento}></textarea>
               </div>
             </div>
@@ -955,7 +992,7 @@ export default function Expediente() {
           <div style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-outline" onClick={() => setIsSidePanelOpen(false)}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={draftNotaMutation.isPending || updateNotaMutation.isPending}>
-              {draftNotaMutation.isPending || updateNotaMutation.isPending ? 'Guardando…' : (editingNota ? 'Actualizar borrador' : 'Guardar borrador')}
+              {draftNotaMutation.isPending || updateNotaMutation.isPending ? 'Guardando nota…' : (editingNota ? 'Actualizar borrador' : 'Guardar borrador')}
             </button>
           </div>
         </form>
@@ -973,31 +1010,32 @@ export default function Expediente() {
       <Modal
         isOpen={isSignModalOpen}
         onClose={() => setIsSignModalOpen(false)}
-        title="Firma electrónica NOM-004"
+        title="Firmar nota médica"
         footer={
           <>
-            <button className="btn btn-outline" onClick={() => setIsSignModalOpen(false)}>
+            <button type="button" className="btn btn-outline" onClick={() => setIsSignModalOpen(false)}>
               Revisar de nuevo
             </button>
             <button
+              type="button"
               className="btn btn-gold"
               onClick={() => notaToSign && signNotaMutation.mutate(notaToSign.id)}
               disabled={signNotaMutation.isPending}
             >
-              <Lock size={14} /> {signNotaMutation.isPending ? 'Firmando y bloqueando…' : 'Firmar y bloquear'}
+              <Lock size={14} /> {signNotaMutation.isPending ? 'Firmando nota…' : 'Firmar nota'}
             </button>
           </>
         }
       >
-        <div style={{ backgroundColor: 'var(--color-gold-tint)', border: '1px solid rgba(212,168,67,0.35)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem', color: 'var(--color-gold)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+        <div className="alert alert-gold" style={{ marginBottom: '1.25rem' }}>
           <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
-          <p style={{ margin: 0 }}>Al firmar esta nota médica, se generará una firma criptográfica ECDSA vinculada a su identidad y al hash exacto del contenido de la nota.</p>
+          <p style={{ margin: 0 }}>Al firmar esta nota médica, se genera evidencia verificable vinculada a tu identidad profesional y al contenido del documento.</p>
         </div>
         <p style={{ marginBottom: '0.75rem', fontWeight: 500, fontSize: '0.9rem' }}>
           De acuerdo con la NOM-004-SSA3-2012:
         </p>
-        <ul style={{ paddingLeft: '1.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--color-muted)' }}>
-          <li style={{ marginBottom: '0.5rem' }}>Las notas médicas firmadas son inmutables y no podrán ser alteradas ni eliminadas.</li>
+        <ul style={{ paddingLeft: '1.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--color-muted-strong)' }}>
+          <li style={{ marginBottom: '0.5rem' }}>La nota firmada queda protegida contra edición directa.</li>
           <li>Cualquier corrección posterior deberá realizarse mediante una nota de adenda separada.</li>
         </ul>
         <p style={{ fontSize: '0.9rem' }}>
@@ -1040,22 +1078,23 @@ export default function Expediente() {
         title="Generar receta"
         footer={
           <>
-            <button className="btn btn-outline" onClick={() => setIsRecetaModalOpen(false)}>
+            <button type="button" className="btn btn-outline" onClick={() => setIsRecetaModalOpen(false)}>
               Cancelar
             </button>
             <button
+              type="button"
               className="btn btn-primary"
               onClick={handlePrintReceta}
               disabled={!recetaText || createRecetaMutation.isPending}
             >
               <Printer size={15} />
-              {createRecetaMutation.isPending ? 'Guardando…' : 'Guardar e imprimir'}
+              {createRecetaMutation.isPending ? 'Generando receta…' : 'Guardar e imprimir'}
             </button>
           </>
         }
       >
         <div className="form-group">
-          <label className="form-label">Medicamentos e indicaciones</label>
+          <label className="form-label">Medicamentos e indicaciones <span className="required-mark">*</span></label>
           <textarea
             className="form-input"
             rows={8}
@@ -1076,7 +1115,7 @@ export default function Expediente() {
           createConsentimientoMutation.mutate(new FormData(e.currentTarget));
         }}>
           <div className="form-group">
-            <label className="form-label">Plantilla</label>
+            <label className="form-label">Plantilla <span className="required-mark">*</span></label>
             <select
               className="form-input"
               value={selectedConsentTemplate}
@@ -1091,13 +1130,13 @@ export default function Expediente() {
               return tpl ? (
                 <div className="glass-card" style={{ marginTop: '0.75rem', padding: '0.85rem', fontSize: '0.83rem' }}>
                   <p style={{ margin: 0 }}><strong>Qué incluye:</strong> {tpl.descripcion}</p>
-                  <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)' }}><strong>Riesgos base:</strong> {tpl.riesgos}</p>
+                  <p style={{ margin: '0.5rem 0 0', color: 'var(--color-muted-strong)' }}><strong>Riesgos base:</strong> {tpl.riesgos}</p>
                 </div>
               ) : null;
             })()}
           </div>
           <div className="form-group">
-            <label className="form-label">Procedimiento</label>
+            <label className="form-label">Procedimiento <span className="required-mark">*</span></label>
             <input name="procedimiento" className="form-input" required placeholder="Ej. Aplicación de toxina botulínica tercio superior" />
           </div>
           <div className="form-group">
@@ -1105,15 +1144,15 @@ export default function Expediente() {
             <textarea name="riesgos_principales" className="form-input" rows={3} placeholder="Opcional: si lo dejas vacío se usa el texto base de la plantilla." />
           </div>
           <div className="form-group">
-            <label className="form-label">Nombre completo del paciente</label>
+            <label className="form-label">Nombre completo del paciente <span className="required-mark">*</span></label>
             <input name="nombre_paciente" className="form-input" required defaultValue={paciente?.nombre_completo} />
           </div>
-          <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', margin: '1rem 0' }}>
+          <label className="radio-card" style={{ margin: '1rem 0' }}>
             <input name="aceptado" type="checkbox" required style={{ marginTop: '0.2rem' }} />
             <span>El paciente declara que leyó el consentimiento, resolvió sus dudas y acepta firmarlo en este dispositivo.</span>
           </label>
           <div className="form-group">
-            <label className="form-label">Firma del paciente en pantalla</label>
+            <label className="form-label">Firma del paciente en pantalla <span className="required-mark">*</span></label>
             <textarea
               className="form-input"
               rows={3}
@@ -1126,7 +1165,7 @@ export default function Expediente() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
             <button type="button" className="btn btn-outline" onClick={() => setIsConsentModalOpen(false)}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={createConsentimientoMutation.isPending || !signatureText.trim()}>
-              {createConsentimientoMutation.isPending ? 'Guardando…' : 'Crear y firmar paciente'}
+              {createConsentimientoMutation.isPending ? 'Guardando consentimiento…' : 'Crear y firmar paciente'}
             </button>
           </div>
         </form>

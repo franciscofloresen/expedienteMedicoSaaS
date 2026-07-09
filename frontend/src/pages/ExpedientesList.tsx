@@ -37,11 +37,12 @@ export default function ExpedientesList() {
         {isError ? (
           <div className="empty-state">
             <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>Error de conexión</div>
-            <p className="empty-state-hint">No fue posible cargar los expedientes.</p>
+            <p className="empty-state-hint">No pudimos cargar los expedientes. Revisa tu conexión e inténtalo de nuevo.</p>
           </div>
         ) : isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+          <div className="loading-state">
             <div className="spinner" />
+            <span>Cargando expedientes clínicos…</span>
           </div>
         ) : expedientes.length === 0 ? (
           <EmptyExpedientes />

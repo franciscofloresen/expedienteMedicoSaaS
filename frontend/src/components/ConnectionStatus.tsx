@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useEffect, useState } from 'react';
+import { WifiOff } from 'lucide-react';
 
 /**
  * ConnectionStatus — Displays an offline banner when network is lost.
@@ -32,7 +33,8 @@ export const ConnectionStatus: React.FC = () => {
 
   return (
     <div className="offline-banner" role="alert">
-      ⚠️ Sin conexión a internet. Los cambios se guardarán localmente en su dispositivo.
+      <WifiOff size={16} style={{ verticalAlign: '-3px', marginRight: '0.4rem' }} />
+      Sin conexión a internet. Los cambios se guardarán localmente en este dispositivo.
     </div>
   );
 };

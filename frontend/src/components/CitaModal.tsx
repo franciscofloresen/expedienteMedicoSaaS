@@ -104,7 +104,7 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
       className="cita-modal modal-dialog"
     >
       <div className="modal-content" style={{ padding: '1.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
           <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
             {cita?.id ? 'Editar cita' : 'Nueva cita'}
           </h2>
@@ -115,27 +115,30 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {error && (
-            <div style={{ padding: '0.7rem 0.9rem', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--color-danger-tint)', border: '1px solid rgba(248,81,73,0.35)', color: 'var(--color-danger)', fontSize: '0.85rem', fontWeight: 500 }}>
+            <div className="alert alert-danger" role="alert">
               {error}
             </div>
           )}
 
           <div>
-            <label className="form-label">Título</label>
+            <label className="form-label" htmlFor="cita-titulo">Título <span className="required-mark">*</span></label>
             <input
+              id="cita-titulo"
               required type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
               className="form-input"
               placeholder="Ej. Consulta general"
+              autoComplete="off"
             />
           </div>
 
           <div>
-            <label className="form-label">Paciente (opcional)</label>
+            <label className="form-label" htmlFor="cita-paciente">Paciente</label>
             <select
+              id="cita-paciente"
               value={pacienteId} onChange={e => setPacienteId(e.target.value)}
               className="form-input"
             >
-              <option value="">— Sin paciente asignado —</option>
+              <option value="">Sin paciente asignado</option>
               {pacientes.map(p => (
                 <option key={p.id} value={p.id}>{p.nombre_completo}</option>
               ))}
@@ -144,15 +147,17 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
 
           <div className="form-grid-2">
             <div>
-              <label className="form-label">Inicio</label>
+              <label className="form-label" htmlFor="cita-inicio">Inicio <span className="required-mark">*</span></label>
               <input
+                id="cita-inicio"
                 required type="datetime-local" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
                 className="form-input"
               />
             </div>
             <div>
-              <label className="form-label">Fin</label>
+              <label className="form-label" htmlFor="cita-fin">Fin <span className="required-mark">*</span></label>
               <input
+                id="cita-fin"
                 required type="datetime-local" value={fechaFin} onChange={e => setFechaFin(e.target.value)}
                 className="form-input"
               />
@@ -160,11 +165,13 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
           </div>
 
           <div>
-            <label className="form-label">Notas (opcional)</label>
+            <label className="form-label" htmlFor="cita-notas">Notas internas</label>
             <textarea
+              id="cita-notas"
               value={notas} onChange={e => setNotas(e.target.value)}
               className="form-input"
               style={{ minHeight: '80px' }}
+              placeholder="Motivo breve, preparación o recordatorios para la consulta."
             />
           </div>
 

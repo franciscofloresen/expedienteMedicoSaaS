@@ -32,7 +32,6 @@ export default function UpgradeBanner() {
         </h4>
         <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
           Para desbloquear expedientes ilimitados, contacta a soporte: franciscofloresenr@gmail.com o WhatsApp +523121940941
-          {/* ponytail: simplificado al máximo */}
         </p>
       </div>
       <button
