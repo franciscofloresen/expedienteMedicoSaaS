@@ -19,11 +19,14 @@ from app.api.v1 import (
     auth,
     cie10,
     citas,
+    consentimientos,
     expedientes,
+    messages,
     notas,
     pacientes,
     recetas,
     reminders,
+    verify,
 )
 from app.core.config import settings
 from app.middleware.audit import AuditMiddleware
@@ -142,10 +145,15 @@ app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"]
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
 app.include_router(cie10.router, prefix="/api/v1/cie10", tags=["CIE-10"])
 app.include_router(recetas.router, prefix="/api/v1/recetas", tags=["Recetas"])
+app.include_router(
+    consentimientos.router, prefix="/api/v1/consentimientos", tags=["Consentimientos"]
+)
+app.include_router(messages.router, prefix="/api/v1/messages", tags=["Mensajes"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 app.include_router(
     reminders.router, prefix="/api/v1/reminders", tags=["Recordatorios"]
 )
+app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 
 @app.get("/health")

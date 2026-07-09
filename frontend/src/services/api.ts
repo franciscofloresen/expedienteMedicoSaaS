@@ -9,10 +9,12 @@ import type {
   NotaCreate,
   Cita,
   CitaBase,
+  Receta,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
+const API_ROOT_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
 
 let getToken: (() => Promise<string | null>) | null = null;
 
@@ -166,6 +168,9 @@ export const notasApi = {
   },
   firmar: async (notaId: string): Promise<{ id: string; firma_digital: string; firmado_en: string }> => {
     return api.post(`/notas/${notaId}/firmar`);
+  },
+  legalPreview: async (notaId: string): Promise<any> => {
+    return api.get(`/notas/${notaId}/legal-preview`);
   }
 };
 
@@ -202,17 +207,42 @@ export const auditApi = {
 };
 
 export const recetasApi = {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getByNotaId: async (_notaId: string): Promise<any[]> => {
-    // Assuming backend endpoint /recetas/?nota_id={notaId}
-    // But since ponytail minimum is to just fetch the receta of a nota, we might need it.
-    // However, I only built GET /recetas/{id} and POST /recetas/
-    // Let's rely on just passing the medications JSON from the frontend for printing if we want to save time, or we can fetch.
-    // Wait, the backend has /recetas/{id}. But how do we know the ID?
-    // In beta, maybe we don't even save it, just print it directly.
-    return [];
+  getByNotaId: async (notaId: string): Promise<Receta[]> => {
+    return api.get('/recetas', { nota_id: notaId });
   },
-  create: async (data: any): Promise<any> => {
+  create: async (data: any): Promise<Receta> => {
     return api.post('/recetas', data);
+  },
+  firmar: async (id: string): Promise<Receta & { verification_url?: string }> => {
+    return api.post(`/recetas/${id}/firmar`);
+  },
+  print: async (id: string): Promise<any> => {
+    return api.get(`/recetas/${id}/print`);
   }
+};
+
+export const consentimientosApi = {
+  templates: async (): Promise<any[]> => api.get('/consentimientos/templates'),
+  getByExpedienteId: async (expedienteId: string): Promise<any[]> => {
+    return api.get(`/consentimientos/expediente/${expedienteId}`);
+  },
+  create: async (data: any): Promise<any> => api.post('/consentimientos', data),
+  firmarPaciente: async (id: string, data: any): Promise<any> => {
+    return api.post(`/consentimientos/${id}/firmar-paciente`, data);
+  },
+  firmarMedico: async (id: string): Promise<any> => api.post(`/consentimientos/${id}/firmar-medico`),
+  print: async (id: string): Promise<any> => api.get(`/consentimientos/${id}/print`),
+};
+
+export const messagesApi = {
+  logWhatsAppManual: async (data: any): Promise<any> => api.post('/messages/log-whatsapp-manual', data),
+  getByPacienteId: async (pacienteId: string): Promise<any[]> => api.get(`/messages/paciente/${pacienteId}`),
+};
+
+export const publicApi = {
+  verify: async (token: string): Promise<any> => {
+    const response = await fetch(`${API_ROOT_URL}/verify/${encodeURIComponent(token)}`);
+    if (!response.ok) throw new Error('No se pudo verificar el documento');
+    return response.json();
+  },
 };

@@ -15,10 +15,98 @@ from app.models.expediente import Expediente
 from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.services.firma import sign_note, verify_signature
+from app.services.verification import get_or_create_verification_token
 
 logger = logging.getLogger("medrecord")
 
 router = APIRouter()
+
+
+def _tenant_uuid(request: Request) -> UUID:
+    return UUID(str(request.state.tenant_id))
+
+
+def _signature_preview(signature: bytes | str | None) -> str | None:
+    if not signature:
+        return None
+    if isinstance(signature, bytes):
+        return signature.hex()[:32]
+    return signature[:32]
+
+
+async def _build_legal_note_payload(
+    nota_id: UUID,
+    request: Request,
+    db: AsyncSession,
+) -> dict[str, Any]:
+    tenant_id = _tenant_uuid(request)
+    stmt = (
+        select(Nota, Expediente, Paciente)
+        .join(Expediente, Nota.expediente_id == Expediente.id)
+        .join(Paciente, Expediente.paciente_id == Paciente.id)
+        .where(Nota.id == nota_id, Nota.tenant_id == tenant_id)
+    )
+    row = (await db.execute(stmt)).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+
+    nota, expediente, paciente = row
+    if not nota.firma_digital or not nota.firma_hash_contenido:
+        raise HTTPException(status_code=400, detail="La nota debe estar firmada para generar el documento legal")
+
+    token_row, plain_token = await get_or_create_verification_token(
+        db,
+        tenant_id=tenant_id,
+        resource_type="nota",
+        resource_id=nota.id,
+        public_metadata={
+            "folio": f"NOTA-{str(nota.id)[:8].upper()}",
+            "medico_nombre": nota.medico_nombre,
+            "medico_cedula": nota.medico_cedula,
+            "fecha_emision": nota.firmado_en.isoformat() if nota.firmado_en else None,
+            "hash": nota.firma_hash_contenido,
+        },
+    )
+    nota.verification_token_id = token_row.id
+    verification_url = f"{str(request.base_url).rstrip('/')}/verify/{plain_token}"
+
+    return {
+        "id": str(nota.id),
+        "folio": f"NOTA-{str(nota.id)[:8].upper()}",
+        "tipo_documento": "nota",
+        "tipo_nota": nota.tipo_nota,
+        "paciente": {
+            "nombre_completo": paciente.nombre_completo,
+            "fecha_nacimiento": paciente.fecha_nacimiento.isoformat(),
+            "sexo": paciente.sexo,
+        },
+        "expediente": {"id": str(expediente.id), "folio": expediente.folio},
+        "medico": {
+            "nombre": nota.medico_nombre,
+            "cedula": nota.medico_cedula,
+            "especialidad": nota.medico_especialidad,
+        },
+        "fechas": {
+            "creado_en": nota.creado_en.isoformat(),
+            "firmado_en": nota.firmado_en.isoformat() if nota.firmado_en else None,
+        },
+        "contenido": json.loads(nota.contenido) if nota.contenido else {},
+        "motivo_consulta": nota.motivo_consulta,
+        "exploracion_fisica": nota.exploracion_fisica,
+        "plan_tratamiento": nota.plan_tratamiento,
+        "diagnostico_cie10": nota.diagnostico_cie10,
+        "signos_vitales": nota.signos_vitales or {},
+        "firma": {
+            "hash": nota.firma_hash_contenido,
+            "algoritmo": nota.firma_algoritmo,
+            "firma_abreviada": _signature_preview(nota.firma_digital),
+            "verification_url": verification_url,
+        },
+        "leyenda": (
+            "Documento firmado digitalmente dentro de CloudMedRecord. "
+            "El QR permite verificar metadatos mínimos e integridad sin exponer contenido clínico sensible."
+        ),
+    }
 
 
 class NotaCreate(BaseModel):
@@ -342,6 +430,20 @@ async def firmar_nota(
         # Lock the note — NOM-004: signed notes are immutable
         nota.es_editable = False
         nota.estado = "signed"
+        token_row, plain_token = await get_or_create_verification_token(
+            db,
+            tenant_id=UUID(str(tenant_id)),
+            resource_type="nota",
+            resource_id=nota.id,
+            public_metadata={
+                "folio": f"NOTA-{str(nota.id)[:8].upper()}",
+                "medico_nombre": nota.medico_nombre,
+                "medico_cedula": nota.medico_cedula,
+                "fecha_emision": nota.firmado_en.isoformat() if nota.firmado_en else None,
+                "hash": nota.firma_hash_contenido,
+            },
+        )
+        nota.verification_token_id = token_row.id
 
         await db.flush()
 
@@ -353,6 +455,7 @@ async def firmar_nota(
             "medico_nombre": nota.medico_nombre,
             "medico_cedula": nota.medico_cedula,
             "es_editable": False,
+            "verification_url": f"{str(request.base_url).rstrip('/')}/verify/{plain_token}",
         }
     except Exception as e:
         logger.warning("Signing failed for nota %s: %s", nota_id, e)
@@ -450,3 +553,21 @@ async def verificar_firma(
         "medico_especialidad": nota.medico_especialidad,
         "firma_algoritmo": nota.firma_algoritmo,
     }
+
+
+@router.get("/{nota_id}/legal-preview")
+async def legal_preview_nota(
+    nota_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await _build_legal_note_payload(nota_id, request, db)
+
+
+@router.get("/{nota_id}/print")
+async def print_nota(
+    nota_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    return await _build_legal_note_payload(nota_id, request, db)

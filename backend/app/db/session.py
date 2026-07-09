@@ -65,6 +65,13 @@ async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
             # RLS automatically filters to current tenant's data
     """
     tenant_id = getattr(request.state, "tenant_id", None)
+    if request.url.path.startswith("/verify/"):
+        factory = _get_session_factory()
+        async with factory() as session:
+            async with session.begin():
+                yield session
+        return
+
     if not tenant_id:
         if request.url.path == "/api/v1/auth/onboarding":
             # For onboarding, we don't have a tenant yet.

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Zap, FileText } from 'lucide-react';
+import { CalendarCheck, FileCheck2, QrCode, ShieldCheck } from 'lucide-react';
 import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
 
 export default function Landing() {
@@ -72,24 +72,24 @@ export default function Landing() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
               <span style={{ height: '1px', width: '2rem', backgroundColor: 'var(--primary)' }}></span>
-              <span className="tracking-widest" style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>Exclusivo para Profesionales</span>
+              <span className="tracking-widest" style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>Beta Fundador para médicos privados</span>
               <span style={{ height: '1px', width: '2rem', backgroundColor: 'var(--primary)' }}></span>
             </div>
 
             <h1 className="font-serif" style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)', fontWeight: 600, lineHeight: 1.1, margin: '0 0 1.5rem 0', color: 'var(--text-main)' }}>
-              El estándar dorado en <br />
-              <span style={{ fontStyle: 'italic', color: 'var(--primary)' }}>expediente clínico.</span>
+              Expediente clínico legal-first <br />
+              <span style={{ fontStyle: 'italic', color: 'var(--primary)' }}>para médicos en México.</span>
             </h1>
 
             <p style={{ fontSize: '1.1rem', fontWeight: 400, color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto 3rem auto', lineHeight: 1.8 }}>
-              Un software diseñado con precisión quirúrgica. Gestión inmutable, rápida y adaptada a la normativa mexicana para proteger la práctica médica.
+              Crea notas, recetas y consentimientos con firma digital, hash, bitácora y QR verificable. Diseñado para consultas privadas que quieren documentar mejor y protegerse ante reclamaciones.
             </p>
 
             <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>
               <SignUpButton mode="modal">
-                <button style={{ background: 'transparent', border: 'none', borderBottom: '1px solid transparent', color: 'var(--text-main)', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', padding: 0, paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Crear Clínica</button>
+                <button style={{ background: 'transparent', border: 'none', borderBottom: '1px solid transparent', color: 'var(--text-main)', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', padding: 0, paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Quiero probar la beta</button>
               </SignUpButton>
-              <Link to="/privacidad" style={{ color: 'var(--primary)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}>Cumplimiento Legal</Link>
+              <a href="https://wa.me/523121940941?text=Hola%2C%20quiero%20agendar%20una%20demo%20de%2015%20minutos%20de%20CloudMedRecord" style={{ color: 'var(--primary)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}>Agendar demo</a>
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export default function Landing() {
 
       </section>
 
-      {/* Banner de Características "Luxury" */}
+      {/* Banner de Características */}
       <section style={{ backgroundColor: 'var(--color-surface)', color: 'var(--text-main)', borderTop: '1px solid var(--color-border)', padding: '5rem 0', position: 'relative', zIndex: 30 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 5%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '3rem', textAlign: 'center' }}>
           
@@ -106,26 +106,46 @@ export default function Landing() {
             style={{ padding: '2rem 1rem' }}
           >
             <ShieldCheck size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Auditoría Inmutable</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Cada nota firmada se sella digitalmente. Cumplimos estrictamente con la NOM-004 y NOM-024.</p>
+            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Evidencia legal visible</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Firma digital, hash SHA-256, bitácora y QR para verificar documentos sin mostrar datos clínicos sensibles.</p>
           </div>
 
           <div 
             style={{ padding: '2rem 1rem', borderLeft: '1px solid var(--border-light)', borderRight: '1px solid var(--border-light)' }}
           >
-            <Zap size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Rapidez Extrema</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Interfaz minimalista diseñada para que dediques más tiempo al paciente y menos al teclado.</p>
+            <FileCheck2 size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
+            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Estética y dermatología</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Consentimientos listos para procedimientos privados, recetas firmadas y expedientes ordenados para consulta diaria.</p>
           </div>
 
           <div 
             style={{ padding: '2rem 1rem' }}
           >
-            <FileText size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Listo para 2026</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Infraestructura interoperable alineada con el próximo Decreto de Digitalización del Sector Salud.</p>
+            <CalendarCheck size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
+            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Beta Fundador</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>$499 MXN/mes para los primeros médicos. Incluye setup asistido, soporte directo y precio congelado 12 meses.</p>
           </div>
 
+        </div>
+      </section>
+
+      <section style={{ padding: '4rem 5%', background: 'var(--bg-app)' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+          {[
+            ['Para quién es', 'Médicos de medicina estética, dermatología y consultas privadas que documentan procedimientos y seguimiento.'],
+            ['Problemas que resuelve', 'Expedientes dispersos, recetas sin evidencia, consentimientos improvisados y dificultad para demostrar integridad documental.'],
+            ['Aviso responsable', 'Ayuda a documentar mejor y considera NOM-004, NOM-024 y LFPDPPP; no promete cumplimiento garantizado ni sustituye asesoría legal.'],
+          ].map(([title, text]) => (
+            <div key={title} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: '1.25rem', background: 'var(--color-surface)' }}>
+              <h3 style={{ marginTop: 0 }}>{title}</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{text}</p>
+            </div>
+          ))}
+          <div style={{ border: '1px solid rgba(0,194,184,0.35)', borderRadius: 8, padding: '1.25rem', background: 'var(--color-surface)' }}>
+            <QrCode color="var(--primary)" />
+            <h3>Demo de 15 minutos</h3>
+            <p style={{ color: 'var(--text-muted)' }}>Expediente, nota firmada, documento imprimible, QR, consentimiento, receta y WhatsApp manual.</p>
+          </div>
         </div>
       </section>
 
@@ -135,7 +155,7 @@ export default function Landing() {
           <span className="font-serif" style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem' }}>CloudMedRecord</span>
           <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '3rem' }}>
             <Link to="/privacidad" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Aviso de Privacidad</Link>
-            <Link to="/privacidad" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Términos</Link>
+            <Link to="/seguridad-y-cumplimiento" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Seguridad</Link>
             <a href="https://wa.me/523121940941" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Soporte</a>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>&copy; {new Date().getFullYear()} CloudMedRecord. Clínicas modernas, protegidas legalmente.</p>
