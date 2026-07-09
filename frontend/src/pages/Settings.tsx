@@ -13,6 +13,7 @@ export default function Settings() {
   const [isEditingProf, setIsEditingProf] = useState(false);
   const [editCedula, setEditCedula] = useState('');
   const [editEspecialidad, setEditEspecialidad] = useState('');
+  const [editNotifEmail, setEditNotifEmail] = useState('');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile, isLoading, isError } = useQuery<any>({
@@ -22,27 +23,31 @@ export default function Settings() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { cedula: string; especialidad: string }) => authApi.updateProfile(data),
+    mutationFn: (data: { cedula: string; especialidad: string; notification_email: string }) => authApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showToast('Datos actualizados correctamente', 'success');
       setIsEditingProf(false);
     },
-    onError: () => {
-      showToast('Error al actualizar datos', 'error');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail || err?.data?.detail;
+      showToast(typeof detail === 'string' ? detail : 'Error al actualizar datos', 'error');
     }
   });
 
   const handleEdit = () => {
     setEditCedula(profile.cedula || '');
     setEditEspecialidad(profile.especialidad || '');
+    setEditNotifEmail(profile.notification_email || '');
     setIsEditingProf(true);
   };
 
   const handleSave = () => {
     updateMutation.mutate({
       cedula: editCedula,
-      especialidad: editEspecialidad
+      especialidad: editEspecialidad,
+      notification_email: editNotifEmail.trim()
     });
   };
 
@@ -104,6 +109,19 @@ export default function Settings() {
                   <input type="text" className="form-input" value={editEspecialidad} onChange={e => setEditEspecialidad(e.target.value)} />
                 ) : (
                   <div>{profile.especialidad || 'No especificada'}</div>
+                )}
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Correo de notificaciones</label>
+                {isEditingProf ? (
+                  <>
+                    <input type="email" className="form-input" value={editNotifEmail} placeholder={profile.email} onChange={e => setEditNotifEmail(e.target.value)} />
+                    <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.35rem' }}>
+                      A dónde enviamos las confirmaciones de citas. Déjalo vacío para usar tu correo de acceso ({profile.email}).
+                    </p>
+                  </>
+                ) : (
+                  <div>{profile.notification_email || <span className="text-muted">Usando tu correo de acceso ({profile.email})</span>}</div>
                 )}
               </div>
             </div>

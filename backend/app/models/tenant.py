@@ -28,6 +28,10 @@ class Tenant(Base):
     especialidad: Mapped[str | None] = mapped_column(String(100))
     rfc: Mapped[str | None] = mapped_column(String(13))
     email: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    # Optional override for where cita notifications are sent. Null → use `email`.
+    # Not unique: lets a doctor point notifications at a real inbox even if that
+    # address is the identity `email` of another (legacy/duplicate) tenant.
+    notification_email: Mapped[str | None] = mapped_column(String(200))
     plan: Mapped[str] = mapped_column(String(20), server_default="basico")
     activo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
 
