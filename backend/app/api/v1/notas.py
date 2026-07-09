@@ -57,7 +57,12 @@ async def _build_legal_note_payload(
     if not nota.firma_digital or not nota.firma_hash_contenido:
         raise HTTPException(status_code=400, detail="La nota debe estar firmada para generar el documento legal")
 
-    token_row, plain_token = await get_or_create_verification_token(
+    # This is a read/render path (GET legal-preview & print) over an already-signed,
+    # immutable note. Do NOT write back nota.verification_token_id: the note is locked
+    # by the NOM-004 trigger (any UPDATE with es_editable=false raises), and the token
+    # is always discoverable via verification_tokens.resource_id, so the FK backfill is
+    # redundant. Signing already links the token on the note.
+    _token_row, plain_token = await get_or_create_verification_token(
         db,
         tenant_id=tenant_id,
         resource_type="nota",
@@ -70,7 +75,6 @@ async def _build_legal_note_payload(
             "hash": nota.firma_hash_contenido,
         },
     )
-    nota.verification_token_id = token_row.id
     verification_url = public_verification_url(plain_token)
 
     return {
@@ -428,28 +432,20 @@ async def firmar_nota(
             detail="El servicio de firma digital no está disponible en este entorno.",
         ) from e
 
-    # Persist ALL signature metadata (9 fields)
-    nota.firma_digital = signature_data["firma_digital"]
-    nota.firma_hash_contenido = signature_data["firma_hash_contenido"]
-    nota.firma_kms_key_id = signature_data["firma_kms_key_id"]
-    nota.firma_algoritmo = signature_data["firma_algoritmo"]
-    nota.firmado_en = signature_data["firmado_en"]
-    nota.firmado_por = tenant_id
-    nota.medico_nombre = signature_data["medico_nombre"]
-    nota.medico_cedula = signature_data["medico_cedula"]
-    nota.medico_especialidad = signature_data["medico_especialidad"]
-
-    # Lock the note — NOM-004: signed notes are immutable
-    nota.es_editable = False
-    nota.estado = "signed"
-
-    # Flush the signature first: it is the legally critical part and must persist
-    # even if verification-token creation fails.
-    await db.flush()
-
-    # Verification token / QR is best-effort. Wrapped in a savepoint so any failure
-    # (e.g. schema not migrated) rolls back only the token, never the signature.
+    # Create the verification token FIRST, while the note is still editable.
+    #
+    # The `notas_signed_immutable` trigger raises whenever a note whose
+    # es_editable is already false is UPDATEd. So signing must touch the notas
+    # row exactly once: any second UPDATE (e.g. to attach verification_token_id)
+    # after es_editable flips to false is rejected as a NOM-004 violation. We
+    # therefore mint the token now — it only INSERTs into verification_tokens,
+    # never touches notas — and fold its id into the single signing UPDATE below.
+    #
+    # Token/QR remains best-effort: wrapped in a savepoint so any failure rolls
+    # back only the token and still lets the note be signed without one.
+    firmado_en = signature_data["firmado_en"]
     verification_url = None
+    verification_token_id = None
     try:
         async with db.begin_nested():
             token_row, plain_token = await get_or_create_verification_token(
@@ -459,22 +455,40 @@ async def firmar_nota(
                 resource_id=nota.id,
                 public_metadata={
                     "folio": f"NOTA-{str(nota.id)[:8].upper()}",
-                    "medico_nombre": nota.medico_nombre,
-                    "medico_cedula": nota.medico_cedula,
-                    "fecha_emision": nota.firmado_en.isoformat() if nota.firmado_en else None,
-                    "hash": nota.firma_hash_contenido,
+                    "medico_nombre": signature_data["medico_nombre"],
+                    "medico_cedula": signature_data["medico_cedula"],
+                    "fecha_emision": firmado_en.isoformat() if firmado_en else None,
+                    "hash": signature_data["firma_hash_contenido"],
                 },
             )
-            nota.verification_token_id = token_row.id
-            await db.flush()
+        verification_token_id = token_row.id
         verification_url = public_verification_url(plain_token)
     except Exception as e:
         logger.error(
             "Verification token creation failed for nota %s: %s", nota.id, e, exc_info=True
         )
-        # Safety belt: the savepoint rolled back the token row, so make sure the
-        # note carries no dangling FK to it into the outer commit.
-        nota.verification_token_id = None
+        verification_token_id = None
+        verification_url = None
+
+    # Persist ALL signature metadata (9 fields) + the token link + the immutable
+    # lock in a SINGLE UPDATE. es_editable is still true at this point, so the
+    # NOM-004 trigger allows the write; there is no second UPDATE afterwards.
+    nota.firma_digital = signature_data["firma_digital"]
+    nota.firma_hash_contenido = signature_data["firma_hash_contenido"]
+    nota.firma_kms_key_id = signature_data["firma_kms_key_id"]
+    nota.firma_algoritmo = signature_data["firma_algoritmo"]
+    nota.firmado_en = firmado_en
+    nota.firmado_por = tenant_id
+    nota.medico_nombre = signature_data["medico_nombre"]
+    nota.medico_cedula = signature_data["medico_cedula"]
+    nota.medico_especialidad = signature_data["medico_especialidad"]
+    nota.verification_token_id = verification_token_id
+
+    # Lock the note — NOM-004: signed notes are immutable
+    nota.es_editable = False
+    nota.estado = "signed"
+
+    await db.flush()
 
     return {
         "id": str(nota.id),
