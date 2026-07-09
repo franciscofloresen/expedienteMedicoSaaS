@@ -19,13 +19,21 @@ PUBLIC_PATHS = {
     "/docs",
 }
 
+PUBLIC_PREFIXES = (
+    "/verify/",
+)
+
 
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         # Skip public paths and CORS preflight OPTIONS requests
-        if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
+        if (
+            request.method == "OPTIONS"
+            or request.url.path in PUBLIC_PATHS
+            or request.url.path.startswith(PUBLIC_PREFIXES)
+        ):
             return await call_next(request)
 
         # Extract Authorization header

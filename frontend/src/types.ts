@@ -130,6 +130,14 @@ export interface Receta {
   medicamentos: Record<string, unknown>[]; // JSON array
   indicaciones_generales?: string;
   creado_en: string;
+  firmada?: boolean;
+  firmada_en?: string;
+  firma_hash_contenido?: string;
+  firma_algoritmo?: string;
+  es_editable?: boolean;
+  medico_nombre?: string;
+  medico_cedula?: string;
+  medico_especialidad?: string;
 }
 
 export interface RecetaCreate {

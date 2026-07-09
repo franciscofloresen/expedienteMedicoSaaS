@@ -2,17 +2,16 @@
 import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, RefreshCcw, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList } from 'lucide-react';
-import { expedientesApi, notasApi, pacientesApi } from '../services/api';
+import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, RefreshCcw, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
+import { consentimientosApi, expedientesApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
 import type { Nota, NotaCreate } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10Search from '../components/Cie10Search';
-import { recetasApi } from '../services/api';
 
-type TabKey = 'resumen' | 'consultas' | 'historia';
+type TabKey = 'resumen' | 'consultas' | 'historia' | 'consentimientos';
 
 function initials(nombre?: string): string {
   if (!nombre) return '';
@@ -58,6 +57,9 @@ export default function Expediente() {
   const [isRecetaModalOpen, setIsRecetaModalOpen] = useState(false);
   const [activeNotaForReceta, setActiveNotaForReceta] = useState<Nota | null>(null);
   const [recetaText, setRecetaText] = useState('');
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [selectedConsentTemplate, setSelectedConsentTemplate] = useState('estetico_no_quirurgico');
+  const [signatureText, setSignatureText] = useState('');
 
   // Autosave Draft
   const { draft, hasDraft, draftAge, saveDraft, clearDraft, lastSaveSecondsAgo } = useAutosave<any>(`nota-${id}`);
@@ -82,6 +84,23 @@ export default function Expediente() {
     queryKey: ['notas', expediente?.id],
     queryFn: () => notasApi.getByExpedienteId(expediente?.id as string),
     enabled: !!expediente?.id
+  });
+
+  const { data: consentTemplates = [] } = useQuery({
+    queryKey: ['consentimiento-templates'],
+    queryFn: () => consentimientosApi.templates(),
+  });
+
+  const { data: consentimientos = [] } = useQuery({
+    queryKey: ['consentimientos', expediente?.id],
+    queryFn: () => consentimientosApi.getByExpedienteId(expediente?.id as string),
+    enabled: !!expediente?.id,
+  });
+
+  const { data: messageLogs = [] } = useQuery({
+    queryKey: ['messageLogs', id],
+    queryFn: () => messagesApi.getByPacienteId(id!),
+    enabled: !!id,
   });
 
   useEffect(() => {
@@ -294,19 +313,55 @@ export default function Expediente() {
     setIsSignModalOpen(true);
   };
 
+  const openWhatsApp = (message: string) => {
+    const rawPhone = paciente?.telefono?.replace(/\D/g, '');
+    if (!rawPhone) {
+      showToast("El paciente no tiene teléfono registrado", "error");
+      return;
+    }
+    window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const logWhatsApp = async (message: string, template_key: string, resource?: { type: string; id: string }) => {
+    if (!paciente?.id) return;
+    await messagesApi.logWhatsAppManual({
+      paciente_id: paciente.id,
+      resource_type: resource?.type,
+      resource_id: resource?.id,
+      template_key,
+      message_preview: message,
+    });
+    client.invalidateQueries({ queryKey: ['messageLogs', id] });
+    showToast("Envío de WhatsApp registrado", "success");
+  };
+
+  const sendPatientWhatsApp = async () => {
+    const message = `Hola ${paciente?.nombre_completo || ''}, te escribe tu consultorio para dar seguimiento a tu atención médica.`;
+    openWhatsApp(message);
+    await logWhatsApp(message, 'mensaje_paciente');
+  };
+
+  const sendNoteVerificationWhatsApp = async (nota: Nota) => {
+    const preview = await notasApi.legalPreview(nota.id);
+    const message = `Hola ${paciente?.nombre_completo || ''}, puedes verificar tu documento clínico aquí: ${preview.firma?.verification_url}`;
+    openWhatsApp(message);
+    await logWhatsApp(message, 'link_verificacion_nota', { type: 'nota', id: nota.id });
+  };
+
   const createRecetaMutation = useMutation({
     mutationFn: async (data: { nota_id: string; texto: string }) => {
-      // Ponytail: Keep it simple. Store as single text block inside the jsonb array for MVP.
-      return recetasApi.create({
+      const receta = await recetasApi.create({
         nota_id: data.nota_id,
         medicamentos: [{ descripcion: data.texto }],
-        indicaciones_generales: "Impreso"
+        indicaciones_generales: "Indicaciones incluidas en receta"
       });
+      return recetasApi.firmar(receta.id);
     },
-    onSuccess: () => {
-      // Trigger print after save
-      setTimeout(() => window.print(), 100);
-      showToast("Receta generada con éxito", "success");
+    onSuccess: async (receta) => {
+      setIsRecetaModalOpen(false);
+      setRecetaText('');
+      showToast("Receta firmada con QR", "success");
+      navigate(`/app/documentos/receta/${receta.id}/print`);
     }
   });
 
@@ -314,6 +369,36 @@ export default function Expediente() {
     if (!activeNotaForReceta) return;
     createRecetaMutation.mutate({ nota_id: activeNotaForReceta.id, texto: recetaText });
   };
+
+  const createConsentimientoMutation = useMutation({
+    mutationFn: async (form: FormData) => {
+      const created = await consentimientosApi.create({
+        paciente_id: paciente!.id,
+        expediente_id: expediente!.id,
+        template_key: selectedConsentTemplate,
+        procedimiento: form.get('procedimiento'),
+        riesgos_principales: form.get('riesgos_principales') || undefined,
+      });
+      await consentimientosApi.firmarPaciente(created.id, {
+        nombre_completo: form.get('nombre_paciente') || paciente!.nombre_completo,
+        firma_paciente_base64: btoa(
+          Array.from(new TextEncoder().encode(signatureText), (byte) => String.fromCharCode(byte)).join('')
+        ),
+        aceptado: form.get('aceptado') === 'on',
+      });
+      return created;
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
+      setIsConsentModalOpen(false);
+      setSignatureText('');
+      showToast("Consentimiento creado y firmado por paciente", "success");
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Error al crear consentimiento";
+      showToast(message, "error");
+    }
+  });
 
   if (isLoadingExpediente) {
     return (
@@ -423,6 +508,9 @@ export default function Expediente() {
           </div>
         </div>
         <div className="page-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+          <button className="btn btn-outline no-print" onClick={sendPatientWhatsApp}>
+            <MessageCircle size={16} /> WhatsApp
+          </button>
           <button className="btn btn-outline no-print" onClick={() => window.print()}>
             <Printer size={16} /> Imprimir / PDF
           </button>
@@ -442,6 +530,9 @@ export default function Expediente() {
         </button>
         <button role="tab" aria-selected={activeTab === 'historia'} className={activeTab === 'historia' ? 'tab active' : 'tab'} onClick={() => setActiveTab('historia')}>
           Historia clínica
+        </button>
+        <button role="tab" aria-selected={activeTab === 'consentimientos'} className={activeTab === 'consentimientos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('consentimientos')}>
+          Consentimientos <span className="tab-count">{consentimientos.length}</span>
         </button>
       </div>
 
@@ -649,9 +740,16 @@ export default function Expediente() {
                             <button
                               className="btn btn-outline no-print"
                               style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', color: 'var(--color-gold)', borderColor: 'rgba(212,168,67,0.4)' }}
-                              onClick={() => window.print()}
+                              onClick={() => navigate(`/app/documentos/nota/${nota.id}/print`)}
                             >
-                              <Printer size={12} /> Imprimir nota
+                              <Printer size={12} /> Ver documento legal
+                            </button>
+                            <button
+                              className="btn btn-outline no-print"
+                              style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                              onClick={() => sendNoteVerificationWhatsApp(nota)}
+                            >
+                              <MessageCircle size={12} /> WhatsApp
                             </button>
                             <button
                               className="btn btn-gold no-print"
@@ -706,6 +804,55 @@ export default function Expediente() {
                 <p className="text-muted" style={{ margin: 0, fontStyle: 'italic' }}>Sin antecedentes registrados.</p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'consentimientos' && (
+        <div className="fade-in">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <h2 style={{ margin: 0 }}>Consentimientos informados</h2>
+              <p className="text-muted" style={{ margin: '0.35rem 0 0' }}>Plantillas simples para procedimientos privados.</p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setIsConsentModalOpen(true)}>
+              <Plus size={16} /> Nuevo consentimiento
+            </button>
+          </div>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {consentimientos.length === 0 ? (
+              <div className="empty-state glass-card">Sin consentimientos registrados.</div>
+            ) : consentimientos.map((cons: any) => (
+              <div key={cons.id} className="glass-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                  <div>
+                    <span className={cons.status === 'signed' ? 'badge badge-gold' : 'badge badge-draft'}>{cons.status === 'signed' ? 'Firmado' : 'Pendiente'}</span>
+                    <h3 style={{ margin: '0.75rem 0 0.35rem' }}>{cons.procedimiento}</h3>
+                    <p className="text-muted" style={{ margin: 0 }}>{cons.template_key} · v{cons.version}</p>
+                    {cons.hash_contenido && <p className="mono" style={{ fontSize: '0.78rem' }}>Hash: {cons.hash_contenido.substring(0, 18)}…</p>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {cons.status === 'signed' ? (
+                      <button className="btn btn-outline" onClick={() => navigate(`/app/documentos/consentimiento/${cons.id}/print`)}>
+                        <Printer size={14} /> Imprimir
+                      </button>
+                    ) : (
+                      <button className="btn btn-gold" onClick={async () => {
+                        await consentimientosApi.firmarMedico(cons.id);
+                        client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
+                        showToast("Consentimiento firmado por médico", "success");
+                      }} disabled={!cons.firmado_paciente_en}>
+                        <Lock size={14} /> Firmar médico
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="glass-card" style={{ marginTop: '1rem' }}>
+            <span className="overline">WhatsApp manual</span>
+            <p className="text-muted">Últimos envíos registrados: {messageLogs.length}</p>
           </div>
         </div>
       )}
@@ -917,6 +1064,63 @@ export default function Expediente() {
             placeholder="Escriba aquí los medicamentos, dosis e indicaciones…"
           />
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={isConsentModalOpen}
+        onClose={() => setIsConsentModalOpen(false)}
+        title="Nuevo consentimiento informado"
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          createConsentimientoMutation.mutate(new FormData(e.currentTarget));
+        }}>
+          <div className="form-group">
+            <label className="form-label">Plantilla</label>
+            <select
+              className="form-input"
+              value={selectedConsentTemplate}
+              onChange={(e) => setSelectedConsentTemplate(e.target.value)}
+            >
+              {consentTemplates.map((tpl: any) => (
+                <option key={tpl.key} value={tpl.key}>{tpl.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Procedimiento</label>
+            <input name="procedimiento" className="form-input" required placeholder="Ej. Aplicación de toxina botulínica tercio superior" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Riesgos principales</label>
+            <textarea name="riesgos_principales" className="form-input" rows={3} placeholder="Opcional: si lo dejas vacío se usa el texto base de la plantilla." />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nombre completo del paciente</label>
+            <input name="nombre_paciente" className="form-input" required defaultValue={paciente?.nombre_completo} />
+          </div>
+          <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', margin: '1rem 0' }}>
+            <input name="aceptado" type="checkbox" required style={{ marginTop: '0.2rem' }} />
+            <span>El paciente declara que leyó el consentimiento, resolvió sus dudas y acepta firmarlo en este dispositivo.</span>
+          </label>
+          <div className="form-group">
+            <label className="form-label">Firma del paciente en pantalla</label>
+            <textarea
+              className="form-input"
+              rows={3}
+              value={signatureText}
+              onChange={(e) => setSignatureText(e.target.value)}
+              required
+              placeholder="El paciente escribe su nombre como firma simple para beta."
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+            <button type="button" className="btn btn-outline" onClick={() => setIsConsentModalOpen(false)}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={createConsentimientoMutation.isPending || !signatureText.trim()}>
+              {createConsentimientoMutation.isPending ? 'Guardando…' : 'Crear y firmar paciente'}
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {/* Hidden area only visible during printing for the Receta */}

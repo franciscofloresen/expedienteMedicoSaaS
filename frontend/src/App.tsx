@@ -11,6 +11,9 @@ import Settings from './pages/Settings';
 import Auditoria from './pages/Auditoria';
 import Landing from './pages/Landing';
 import Privacidad from './pages/Privacidad';
+import SeguridadCumplimiento from './pages/SeguridadCumplimiento';
+import VerifyDocument from './pages/VerifyDocument';
+import PrintDocument from './pages/PrintDocument';
 import Onboarding from './pages/Onboarding';
 import Agenda from './pages/Agenda';
 
@@ -41,6 +44,8 @@ function App() {
                 {/* Public routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/privacidad" element={<Privacidad />} />
+                <Route path="/seguridad-y-cumplimiento" element={<SeguridadCumplimiento />} />
+                <Route path="/verify/:token" element={<VerifyDocument />} />
 
                 {/* Protected routes — handled by Clerk */}
                 <Route element={<ProtectedRoute />}>
@@ -53,6 +58,7 @@ function App() {
                     <Route path="settings" element={<Settings />} />
                     <Route path="auditoria" element={<Auditoria />} />
                     <Route path="pacientes/:id" element={<Expediente />} />
+                    <Route path="documentos/:kind/:id/print" element={<PrintDocument />} />
                   </Route>
                 </Route>
               </Routes>

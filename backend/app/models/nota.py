@@ -73,6 +73,9 @@ class Nota(Base):
     medico_nombre: Mapped[str | None] = mapped_column(String(200))
     medico_cedula: Mapped[str | None] = mapped_column(String(20))
     medico_especialidad: Mapped[str | None] = mapped_column(String(100))
+    verification_token_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("verification_tokens.id")
+    )
 
     # Audit
     creado_en: Mapped[datetime] = mapped_column(
