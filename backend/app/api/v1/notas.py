@@ -472,6 +472,9 @@ async def firmar_nota(
         logger.error(
             "Verification token creation failed for nota %s: %s", nota.id, e, exc_info=True
         )
+        # Safety belt: the savepoint rolled back the token row, so make sure the
+        # note carries no dangling FK to it into the outer commit.
+        nota.verification_token_id = None
 
     return {
         "id": str(nota.id),
