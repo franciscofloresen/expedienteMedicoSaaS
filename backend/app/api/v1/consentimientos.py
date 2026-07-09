@@ -14,7 +14,10 @@ from app.models.expediente import Expediente
 from app.models.paciente import Paciente
 from app.models.tenant import Tenant
 from app.services.firma import sign_note
-from app.services.verification import get_or_create_verification_token
+from app.services.verification import (
+    get_or_create_verification_token,
+    public_verification_url,
+)
 
 router = APIRouter()
 
@@ -22,26 +25,61 @@ TEMPLATES: dict[str, dict[str, str]] = {
     "general_atencion": {
         "nombre": "Consentimiento general de atención médica",
         "version": "1.0",
+        "descripcion": (
+            "Autorización para valoración clínica, exploración física e indicación de estudios "
+            "o tratamiento conforme al criterio del médico tratante."
+        ),
+        "beneficios": "Diagnóstico oportuno, plan de manejo personalizado y seguimiento del padecimiento.",
+        "alternativas": "No recibir atención, solicitar una segunda opinión o ser referido a otra unidad médica.",
+        "cuidados": "Seguir las indicaciones entregadas, acudir a las citas de control y reportar cualquier dato de alarma.",
         "riesgos": "Molestias propias de la exploración, reacciones no previstas y necesidad de estudios o referencia.",
     },
     "estetico_no_quirurgico": {
         "nombre": "Procedimiento estético no quirúrgico",
         "version": "1.0",
+        "descripcion": (
+            "Procedimiento estético sin cirugía (peelings, aparatología o tratamientos faciales) "
+            "cuyo resultado depende de la respuesta individual de cada paciente."
+        ),
+        "beneficios": "Mejoría del aspecto de la piel o de la zona tratada, sin tiempos de recuperación quirúrgicos.",
+        "alternativas": "Otros tratamientos estéticos, manejo quirúrgico o no realizar el procedimiento.",
+        "cuidados": "Evitar sol directo, usar protector solar, seguir la rutina indicada y no manipular la zona tratada.",
         "riesgos": "Inflamación, dolor, equimosis, asimetría, infección, reacción alérgica o resultado distinto al esperado.",
     },
     "toxina_botulinica": {
         "nombre": "Aplicación de toxina botulínica",
         "version": "1.0",
+        "descripcion": (
+            "Aplicación de toxina botulínica tipo A mediante microinyecciones para relajar músculos "
+            "y atenuar arrugas de expresión. El efecto es temporal (aprox. 3 a 6 meses)."
+        ),
+        "beneficios": "Suavizado de líneas de expresión y prevención de arrugas dinámicas.",
+        "alternativas": "Rellenos, tratamientos con aparatología o no aplicar la toxina.",
+        "cuidados": "No agacharse ni hacer ejercicio intenso las primeras horas, no masajear la zona y mantenerse erguido.",
         "riesgos": "Dolor, equimosis, cefalea, asimetría, ptosis temporal, reacción local o necesidad de retoque.",
     },
     "relleno_acido_hialuronico": {
-        "nombre": "Relleno / ácido hialurónico",
+        "nombre": "Relleno con ácido hialurónico",
         "version": "1.0",
+        "descripcion": (
+            "Aplicación de ácido hialurónico para dar volumen, hidratar o corregir contornos "
+            "faciales. Es reabsorbible y su duración varía según la zona y el producto."
+        ),
+        "beneficios": "Restauración de volumen, hidratación y armonización de los rasgos faciales.",
+        "alternativas": "Toxina botulínica, bioestimuladores, procedimientos quirúrgicos o no realizar el relleno.",
+        "cuidados": "Aplicar frío si se indica, evitar calor extremo y ejercicio intenso, y no presionar la zona tratada.",
         "riesgos": "Inflamación, equimosis, nódulos, asimetría, infección, compromiso vascular y necesidad de disolución.",
     },
     "dermatologico": {
         "nombre": "Tratamiento dermatológico",
         "version": "1.0",
+        "descripcion": (
+            "Indicación de tratamiento dermatológico (tópico, oral o en consultorio) para el manejo "
+            "de la condición de piel diagnosticada, con seguimiento por el médico tratante."
+        ),
+        "beneficios": "Control de la enfermedad cutánea, mejoría de los síntomas y del aspecto de la piel.",
+        "alternativas": "Otros esquemas terapéuticos, manejo expectante o una segunda opinión dermatológica.",
+        "cuidados": "Aplicar los productos según indicación, usar protector solar y reportar irritación o falta de mejoría.",
         "riesgos": "Irritación, ardor, resequedad, manchas, reacción alérgica, falta de respuesta o recaída.",
     },
 }
@@ -80,10 +118,14 @@ def _render_content(
         f"Médico: {tenant.nombre_medico}\n"
         f"Cédula profesional: {tenant.cedula}\n"
         f"Fecha: {datetime.now(timezone.utc).date().isoformat()}\n\n"
+        f"Descripción del procedimiento:\n{template['descripcion']}\n\n"
+        f"Beneficios esperados:\n{template['beneficios']}\n\n"
+        f"Alternativas:\n{template['alternativas']}\n\n"
+        f"Riesgos principales:\n{riesgos}\n\n"
+        f"Cuidados posteriores:\n{template['cuidados']}\n\n"
         "El paciente declara haber recibido información suficiente sobre el procedimiento, "
-        "beneficios esperados, alternativas y cuidados posteriores. Reconoce que ningún "
-        "resultado médico o estético puede garantizarse.\n\n"
-        f"Riesgos principales: {riesgos}\n\n"
+        "sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que "
+        "ningún resultado médico o estético puede garantizarse.\n\n"
         "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no "
         "sustituye asesoría legal ni el criterio clínico del médico tratante."
     )
@@ -113,7 +155,13 @@ def _serialize(row: Consentimiento) -> dict[str, Any]:
 @router.get("/templates")
 async def templates() -> Any:
     return [
-        {"key": key, "nombre": value["nombre"], "version": value["version"], "riesgos": value["riesgos"]}
+        {
+            "key": key,
+            "nombre": value["nombre"],
+            "version": value["version"],
+            "descripcion": value["descripcion"],
+            "riesgos": value["riesgos"],
+        }
         for key, value in TEMPLATES.items()
     ]
 
@@ -307,7 +355,7 @@ async def firmar_medico(
     row.verification_token_id = token_row.id
     await db.flush()
     payload = _serialize(row)
-    payload["verification_url"] = f"{str(request.base_url).rstrip('/')}/verify/{plain_token}"
+    payload["verification_url"] = public_verification_url(plain_token)
     return payload
 
 
@@ -356,7 +404,7 @@ async def print_consentimiento(
         "expediente": {"id": str(expediente.id), "folio": expediente.folio},
         "firma": {
             "hash": consentimiento.hash_contenido,
-            "verification_url": f"{str(request.base_url).rstrip('/')}/verify/{plain_token}",
+            "verification_url": public_verification_url(plain_token),
         },
         "leyenda": "Consentimiento firmado en dispositivo del consultorio y verificable por QR.",
     }

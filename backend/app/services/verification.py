@@ -5,7 +5,23 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.verification_token import VerificationToken
+
+
+def public_verification_url(token: str) -> str:
+    """Build the public verification URL for a QR/link.
+
+    Must point at the frontend web app (not the API host): scanning the QR opens
+    the branded /verify/:token page, which then fetches the minimal metadata from
+    the API. Using the API's request.base_url would (a) render raw JSON and (b)
+    behind API Gateway omits the stage path, yielding {"message":"Forbidden"}.
+
+    cors_origins[0] already carries the frontend origin in every environment
+    (prod: https://<frontend_url>; dev default: http://localhost:5173).
+    """
+    base = settings.cors_origins[0].rstrip("/") if settings.cors_origins else ""
+    return f"{base}/verify/{token}"
 
 
 async def get_or_create_verification_token(

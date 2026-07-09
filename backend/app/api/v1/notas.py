@@ -15,7 +15,10 @@ from app.models.expediente import Expediente
 from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.services.firma import sign_note, verify_signature
-from app.services.verification import get_or_create_verification_token
+from app.services.verification import (
+    get_or_create_verification_token,
+    public_verification_url,
+)
 
 logger = logging.getLogger("medrecord")
 
@@ -68,7 +71,7 @@ async def _build_legal_note_payload(
         },
     )
     nota.verification_token_id = token_row.id
-    verification_url = f"{str(request.base_url).rstrip('/')}/verify/{plain_token}"
+    verification_url = public_verification_url(plain_token)
 
     return {
         "id": str(nota.id),
@@ -455,7 +458,7 @@ async def firmar_nota(
             "medico_nombre": nota.medico_nombre,
             "medico_cedula": nota.medico_cedula,
             "es_editable": False,
-            "verification_url": f"{str(request.base_url).rstrip('/')}/verify/{plain_token}",
+            "verification_url": public_verification_url(plain_token),
         }
     except Exception as e:
         logger.warning("Signing failed for nota %s: %s", nota_id, e)
