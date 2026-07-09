@@ -129,6 +129,14 @@ resource "aws_iam_role_policy" "lambda_app_permissions" {
           "arn:aws:s3:::${var.s3_consent_bucket}",
           "arn:aws:s3:::${var.s3_consent_bucket}/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -157,13 +165,13 @@ resource "aws_cloudwatch_log_group" "api_logs" {
 # ── Lambda Function ──
 resource "aws_lambda_function" "api" {
   function_name = "medrecord-api-${var.environment}"
-  
-  depends_on = [aws_cloudwatch_log_group.api_logs]
-  role          = aws_iam_role.lambda_exec.arn
-  handler       = "app.main.handler"
-  runtime       = "python3.12"
-  timeout       = 30
-  memory_size   = 1024
+
+  depends_on  = [aws_cloudwatch_log_group.api_logs]
+  role        = aws_iam_role.lambda_exec.arn
+  handler     = "app.main.handler"
+  runtime     = "python3.12"
+  timeout     = 30
+  memory_size = 1024
 
   filename         = data.archive_file.dummy.output_path
   source_code_hash = data.archive_file.dummy.output_base64sha256
@@ -187,6 +195,7 @@ resource "aws_lambda_function" "api" {
       CLERK_SECRET_KEY      = var.clerk_secret_key
       CLERK_ISSUER_URL      = var.clerk_issuer_url
       CLERK_JWKS_URL        = var.clerk_jwks_url
+      SES_SENDER_EMAIL      = var.ses_sender_email
     }
   }
 
@@ -208,7 +217,7 @@ resource "aws_lambda_function" "api" {
 resource "aws_api_gateway_rest_api" "api" {
   name        = "medrecord-api-${var.environment}"
   description = "MedRecord REST API"
-  
+
   endpoint_configuration {
     types = ["REGIONAL"]
   }
@@ -305,7 +314,7 @@ resource "aws_lambda_permission" "apigw" {
 resource "aws_sqs_queue" "lambda_dlq" {
   name                      = "medrecord-lambda-dlq-${var.environment}"
   message_retention_seconds = 1209600 # 14 days
-  
+
   tags = {
     Environment = var.environment
   }

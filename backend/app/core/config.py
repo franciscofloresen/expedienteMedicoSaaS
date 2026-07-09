@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     s3_audit_bucket: str = "medrecord-audit-dev"
     s3_consent_bucket: str = "medrecord-consent-dev"
 
+    # SES (appointment notifications). Must be a VERIFIED SES identity
+    # in `aws_region`. Empty disables sending (best-effort no-op).
+    ses_sender_email: str = ""
+
     # Clerk Auth
     clerk_issuer_url: str = ""
     clerk_secret_key: str = ""
