@@ -41,8 +41,8 @@ module "networking" {
 
 # ── Security (KMS, WAF, CloudTrail, Secrets) ──
 module "security" {
-  source                = "./modules/security"
-  environment           = var.environment
+  source                 = "./modules/security"
+  environment            = var.environment
   cloudtrail_bucket_name = module.storage.audit_bucket_name
 }
 
@@ -55,12 +55,12 @@ module "storage" {
 
 # ── Database (RDS PostgreSQL) ──
 module "database" {
-  source                   = "./modules/database"
-  environment              = var.environment
-  vpc_id                   = module.networking.vpc_id
-  private_subnet_ids       = module.networking.private_subnet_ids
-  rds_security_group_id    = module.networking.rds_security_group_id
-  kms_key_arn              = module.security.encryption_key_arn
+  source                = "./modules/database"
+  environment           = var.environment
+  vpc_id                = module.networking.vpc_id
+  private_subnet_ids    = module.networking.private_subnet_ids
+  rds_security_group_id = module.networking.rds_security_group_id
+  kms_key_arn           = module.security.encryption_key_arn
 }
 
 # ── Compute (Lambda + API Gateway) ──
@@ -82,6 +82,7 @@ module "compute" {
   clerk_secret_key         = var.clerk_secret_key
   clerk_issuer_url         = var.clerk_issuer_url
   clerk_jwks_url           = var.clerk_jwks_url
+  ses_sender_email         = var.ses_sender_email
 }
 
 # ── Observability (Alarms, SNS) ──
@@ -94,6 +95,18 @@ module "observability" {
   lambda_function_name = "medrecord-api-${var.environment}"
   api_name             = "medrecord-api-${var.environment}"
   depends_on           = [module.compute]
+}
+
+# ── SES (transactional email: cita notifications) ──
+# Prod-only: the SES domain identity is a single per-account/region resource,
+# so only the prod stack owns it. Non-prod stacks leave ses_sender_email empty
+# (sending is a no-op there).
+module "ses" {
+  count            = var.environment == "prod" ? 1 : 0
+  source           = "./modules/ses"
+  domain           = var.ses_domain
+  mail_from_domain = var.ses_mail_from_domain
+  region           = var.region
 }
 
 # ── CDN (CloudFront) ──
@@ -121,4 +134,10 @@ output "encryption_key_arn" {
 
 output "signing_key_arn" {
   value = module.security.signing_key_arn
+}
+
+# DNS records to add at your DNS provider to complete SES verification.
+# View after apply with: terraform output ses_dns_records
+output "ses_dns_records" {
+  value = one(module.ses[*].dns_records)
 }

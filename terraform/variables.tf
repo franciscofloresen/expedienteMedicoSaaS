@@ -29,6 +29,24 @@ variable "clerk_jwks_url" {
   type        = string
 }
 
+variable "ses_sender_email" {
+  description = "Verified SES From address for appointment notification emails (e.g. citas@cloudmedrecord.com). Empty disables sending."
+  type        = string
+  default     = ""
+}
+
+variable "ses_domain" {
+  description = "SES verified sending domain (From address domain)."
+  type        = string
+  default     = "cloudmedrecord.com"
+}
+
+variable "ses_mail_from_domain" {
+  description = "SES custom MAIL FROM (envelope) subdomain for SPF/DMARC alignment."
+  type        = string
+  default     = "citas.cloudmedrecord.com"
+}
+
 variable "custom_domain" {
   description = "Custom domain for the frontend application (e.g. app.cloudmedrecord.com or cloudmedrecord.com)"
   type        = string

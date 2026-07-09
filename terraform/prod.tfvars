@@ -1,5 +1,10 @@
-environment = "prod"
-region      = "us-east-1"
-alarm_email = "franciscofloresenr@gmail.com"
-custom_domain       = "cloudmedrecord.com"
+environment   = "prod"
+region        = "us-east-1"
+alarm_email   = "franciscofloresenr@gmail.com"
+custom_domain = "cloudmedrecord.com"
+
+# SES — appointment notification emails
+ses_sender_email     = "citas@cloudmedrecord.com"
+ses_domain           = "cloudmedrecord.com"
+ses_mail_from_domain = "citas.cloudmedrecord.com"
 

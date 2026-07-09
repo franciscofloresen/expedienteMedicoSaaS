@@ -7,43 +7,30 @@ export default function Landing() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-app)', color: 'var(--text-main)' }}>
       
       {/* Navbar Transparente / Elegante */}
-      <nav style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: '1.5rem 5%', 
-        position: 'fixed',
-        top: 0,
-        width: '100%',
-        zIndex: 50,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <nav className="landing-nav">
+        <div className="landing-brand">
           {/* ponytail: simple img tag for logo instead of icon component */}
-          <img src="/faviconC.png" alt="Logo" style={{ height: '32px', width: 'auto' }} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="font-serif" style={{ fontSize: '1.4rem', fontWeight: 600, color: 'white', lineHeight: 1 }}>CloudMedRecord</span>
-            <span className="tracking-widest" style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginTop: '0.1rem' }}>Clinical System</span>
+          <img src="/faviconC.png" alt="Logo" />
+          <div className="landing-brand-text">
+            <span className="font-serif landing-brand-name">CloudMedRecord</span>
+            <span className="tracking-widest landing-brand-tag">Clinical System</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 500, color: 'white' }}>
+        <div className="landing-nav-actions">
           <Show when="signed-out">
             <SignInButton mode="modal">
-              <button style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-light)'} onMouseLeave={(e) => e.currentTarget.style.color = 'white'}>
+              <button className="landing-link-btn" onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-light)'} onMouseLeave={(e) => e.currentTarget.style.color = 'white'}>
                 Iniciar Sesión
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button style={{ backgroundColor: 'var(--primary)', color: '#04211F', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>
+              <button className="landing-cta" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>
                 Crear Cuenta
               </button>
             </SignUpButton>
           </Show>
           <Show when="signed-in">
-            <Link to="/app" style={{ color: 'white', borderBottom: '1px solid white', paddingBottom: '0.25rem', textDecoration: 'none', transition: 'all 0.2s', marginRight: '1rem' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-light)'; e.currentTarget.style.borderColor = 'var(--primary-light)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'white'; }}>Ir al Dashboard</Link>
+            <Link to="/app" className="landing-dash-link" style={{ marginRight: '1rem' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-light)'; e.currentTarget.style.borderColor = 'var(--primary-light)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'white'; }}>Ir al Dashboard</Link>
             <UserButton />
           </Show>
         </div>

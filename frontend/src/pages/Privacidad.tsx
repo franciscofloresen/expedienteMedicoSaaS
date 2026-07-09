@@ -20,7 +20,7 @@ export default function Privacidad() {
             </div>
             <div>
               <h1 style={{ fontSize: '2rem', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>Privacidad y Términos Legales</h1>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Última actualización: Junio de 2026</p>
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Última actualización: Julio de 2026</p>
             </div>
           </div>
 
@@ -58,19 +58,20 @@ export default function Privacidad() {
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>1. Datos Personales Recabados</h3>
             <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
-              <li><strong>Del Médico (Usuarios de la Plataforma):</strong> Nombre completo, Cédula Profesional, Especialidad, Correo Electrónico.</li>
+              <li><strong>Del Médico (Usuarios de la Plataforma):</strong> Nombre completo, Cédula Profesional, Especialidad, Correo Electrónico (utilizado para el acceso a la cuenta y el envío de notificaciones de servicio).</li>
               <li><strong>De los Pacientes (Recabados por el Responsable):</strong> Datos de identificación, datos de contacto, y <strong>Datos Sensibles</strong> consistentes en el historial clínico, diagnósticos y notas de evolución.</li>
             </ul>
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>2. Finalidad del Tratamiento</h3>
             <ul style={{ paddingLeft: '1.5rem', marginBottom: '1.5rem' }}>
               <li><strong>Finalidad Principal:</strong> Proveer, mantener y operar el expediente clínico electrónico para facilitar la atención médica brindada por el Médico tratante.</li>
+              <li><strong>Notificaciones de Servicio (Finalidad Principal):</strong> Enviar a la dirección de correo electrónico registrada por el Médico avisos transaccionales inherentes a la operación de su cuenta, tales como confirmaciones de creación, actualización o cancelación de citas. Al ser comunicaciones necesarias para la prestación del servicio, no requieren consentimiento adicional y no constituyen publicidad.</li>
               <li><strong>Finalidad Secundaria:</strong> Estadísticas de uso anonimizadas para mejorar el rendimiento del software. (Nunca aplicable a datos sensibles del paciente).</li>
             </ul>
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>3. Transferencia de Datos</h3>
             <p>
-              CloudMedRecord no vende, transfiere ni comercializa datos personales o sensibles. Los datos se transmiten de manera segura a través de protocolos TLS/SSL y residen únicamente en los servidores designados para la prestación del servicio.
+              CloudMedRecord no vende ni comercializa datos personales o sensibles. Los datos se transmiten mediante protocolos de cifrado en tránsito (TLS/SSL) y se procesan en infraestructura de Amazon Web Services (AWS), que puede ubicarse en Estados Unidos. Para el envío de notificaciones de servicio, CloudMedRecord utiliza Amazon Simple Email Service (Amazon SES) en calidad de encargado. Dichas notificaciones se entregan a la dirección de correo electrónico proporcionada por el Médico, la cual es administrada por el propio Médico o por su proveedor de correo; el Médico es responsable de mantener la seguridad y confidencialidad de dicha cuenta. Con el fin de proteger los datos sensibles de los pacientes, las notificaciones se limitan a la información mínima necesaria (título, fecha y estado de la cita) y <strong>no incluyen notas clínicas</strong>.
             </p>
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>4. Derechos ARCO</h3>

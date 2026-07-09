@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.cita import Cita
+from app.models.tenant import Tenant
 from app.schemas.cita import CitaCreate, CitaResponse, CitaUpdate
+from app.services.email import queue_cita_notification
 
 logger = logging.getLogger("medrecord")
 router = APIRouter()
@@ -45,6 +47,10 @@ async def create_cita(
     await db.refresh(cita)
 
     logger.info(f"Cita creada: {cita.id} para tenant {tenant_id}")
+
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant:
+        queue_cita_notification(db, tenant.email, tenant.nombre_medico, cita, "creada")
     return cita
 
 
@@ -63,6 +69,11 @@ async def update_cita(
         raise HTTPException(status_code=404, detail="Cita no encontrada")
 
     update_data = cita_in.model_dump(exclude_unset=True)
+    # No-op update: nothing changed → no state transition, no email.
+    if not update_data:
+        return cita
+
+    was_cancelada = cita.estado == "Cancelada"
     for field, value in update_data.items():
         setattr(cita, field, value)
 
@@ -71,6 +82,15 @@ async def update_cita(
     await db.refresh(cita)
 
     logger.info(f"Cita actualizada: {cita.id}")
+
+    # One mail per real action: "cancelada" only on the transition into
+    # Cancelada, otherwise "actualizada". Re-PUTs that keep the same state
+    # don't re-fire the cancel mail.
+    now_cancelada = cita.estado == "Cancelada"
+    action = "cancelada" if (now_cancelada and not was_cancelada) else "actualizada"
+    tenant = await db.get(Tenant, cita.tenant_id)
+    if tenant:
+        queue_cita_notification(db, tenant.email, tenant.nombre_medico, cita, action)
     return cita
 
 
@@ -86,6 +106,15 @@ async def delete_cita(
 
     if not cita:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
+
+    # Snapshot for the notification while the row is still loaded; the mail is
+    # sent only after the delete commits. DELETE is the UI's cancel action, so
+    # it maps to "cancelada".
+    tenant = await db.get(Tenant, cita.tenant_id)
+    if tenant:
+        queue_cita_notification(
+            db, tenant.email, tenant.nombre_medico, cita, "cancelada"
+        )
 
     await db.delete(cita)
     await db.flush()

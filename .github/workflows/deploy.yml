@@ -141,11 +141,47 @@ jobs:
           export TF_VAR_acm_certificate_arn="${{ secrets.TF_VAR_ACM_CERTIFICATE_ARN }}"
           terraform apply tfplan
 
+  # ── Enable Maintenance Page ──
+  # Puts the static maintenance page live (as index.html) BEFORE the backend
+  # deploy + DB migrations — the window where the app may be unavailable.
+  # The frontend deploy job restores the real index.html at the end.
+  enable-maintenance:
+    name: Enable Maintenance Page
+    runs-on: ubuntu-latest
+    needs: apply-infrastructure-production
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Publish maintenance page
+        run: |
+          # Keep a stable copy, and serve it as index.html for the window.
+          aws s3 cp frontend/public/maintenance.html \
+            s3://${{ env.S3_FRONTEND_PROD }}/maintenance.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+          aws s3 cp frontend/public/maintenance.html \
+            s3://${{ env.S3_FRONTEND_PROD }}/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+
+      - name: Invalidate CloudFront (maintenance)
+        if: env.CLOUDFRONT_DIST_PROD != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DIST_PROD }} \
+            --paths "/" "/index.html"
+
   # ── Deploy Backend to Production ──
   deploy-backend-production:
     name: Deploy Backend → Production
     runs-on: ubuntu-latest
-    needs: apply-infrastructure-production
+    needs: [apply-infrastructure-production, enable-maintenance]
     environment: production
 
     steps:
@@ -236,10 +272,13 @@ jobs:
 
       - name: Sync to S3 (Production)
         run: |
+          # Upload new hashed assets (index.html stays on the maintenance page
+          # during the sync). maintenance.html is in dist/ so --delete keeps it.
           aws s3 sync frontend/dist/ s3://${{ env.S3_FRONTEND_PROD }}/ \
             --delete \
             --cache-control "public,max-age=31536000,immutable" \
             --exclude "index.html"
+          # Restore the real app index.html — this DISABLES the maintenance page.
           aws s3 cp frontend/dist/index.html s3://${{ env.S3_FRONTEND_PROD }}/index.html \
             --cache-control "no-cache,no-store,must-revalidate"
 
