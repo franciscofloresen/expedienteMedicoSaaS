@@ -43,7 +43,7 @@ def _get_ses_client() -> Any:
     return _ses_client
 
 
-def _send(payload: dict) -> None:
+def _send(payload: dict[str, Any]) -> None:
     """Perform the actual SES send. Best-effort — never raises."""
     if not settings.ses_sender_email or settings.environment == "testing":
         return
@@ -83,7 +83,7 @@ def _send(payload: dict) -> None:
 
 def _snapshot(
     to_email: str, medico: Optional[str], cita: "Cita", action: str
-) -> dict:
+) -> dict[str, Any]:
     """Capture primitives NOW — after commit the ORM row may be gone (DELETE)."""
     # Note: `notas` is intentionally not captured — see _send (privacy).
     return {
