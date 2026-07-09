@@ -54,10 +54,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             </p>
             <button className="btn btn-primary" onClick={this.handleReload} style={{ width: '100%', justifyContent: 'center' }}>
               <RefreshCw size={18} />
-              Recargar Sistema
+              Recargar vista
             </button>
             {import.meta.env.DEV && this.state.error && (
-              <div style={{ marginTop: '2rem', textAlign: 'left', padding: '1rem', background: '#f8d7da', color: '#721c24', borderRadius: '8px', fontSize: '0.8rem', overflowX: 'auto' }}>
+              <div style={{ marginTop: '2rem', textAlign: 'left', padding: '1rem', background: 'var(--color-danger-tint)', color: '#FFB7B2', border: '1px solid rgba(248,81,73,0.4)', borderRadius: '8px', fontSize: '0.8rem', overflowX: 'auto' }}>
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>Detalle Técnico (Solo Dev):</p>
                 <pre style={{ margin: 0 }}>{this.state.error.toString()}</pre>
               </div>

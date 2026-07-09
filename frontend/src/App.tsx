@@ -27,7 +27,6 @@ const queryClient = new QueryClient();
 function ApiSetup({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
   
-  // Ponytail: Synchronous setup to avoid race condition with React Query on first render
   setTokenFetcher(getToken);
   
   return <>{children}</>;

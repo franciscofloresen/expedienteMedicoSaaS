@@ -33,6 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             
             <button 
               className="btn btn-icon" 
+              type="button"
               onClick={() => removeToast(toast.id)}
               aria-label="Cerrar notificación"
             >

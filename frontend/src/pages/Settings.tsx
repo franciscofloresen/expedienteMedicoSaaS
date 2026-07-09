@@ -32,7 +32,7 @@ export default function Settings() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       const detail = err?.response?.data?.detail || err?.data?.detail;
-      showToast(typeof detail === 'string' ? detail : 'Error al actualizar datos', 'error');
+      showToast(typeof detail === 'string' ? detail : 'No pudimos actualizar tus datos profesionales.', 'error');
     }
   });
 
@@ -61,10 +61,14 @@ export default function Settings() {
       <UpgradeBanner />
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '3rem' }}>Cargando perfil...</div>
+        <div className="loading-state">
+          <div className="spinner" />
+          <span>Cargando perfil profesional…</span>
+        </div>
       ) : isError ? (
-        <div className="glass-card" style={{ textAlign: 'center', color: 'var(--error)' }}>
-          No se pudo cargar la configuración. Verifica tu conexión.
+        <div className="empty-state glass-card">
+          <div className="empty-state-title" style={{ color: 'var(--color-danger)' }}>No pudimos cargar la configuración</div>
+          <p className="empty-state-hint">Revisa tu conexión o vuelve a iniciar sesión.</p>
         </div>
       ) : profile ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -79,16 +83,16 @@ export default function Settings() {
                 <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Datos Profesionales (NOM-004)</h2>
               </div>
               {!isEditingProf ? (
-                <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleEdit}>
+                  <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleEdit}>
                   <Edit2 size={16} /> Editar
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', color: 'var(--error)' }} onClick={() => setIsEditingProf(false)}>
+                  <button type="button" className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', color: 'var(--error)' }} onClick={() => setIsEditingProf(false)}>
                     <X size={16} /> Cancelar
                   </button>
-                  <button className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleSave} disabled={updateMutation.isPending}>
-                    <Check size={16} /> {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+                  <button type="button" className="btn btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }} onClick={handleSave} disabled={updateMutation.isPending}>
+                    <Check size={16} /> {updateMutation.isPending ? 'Guardando…' : 'Guardar'}
                   </button>
                 </div>
               )}
@@ -98,7 +102,7 @@ export default function Settings() {
               <div>
                 <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Cédula Profesional</label>
                 {isEditingProf ? (
-                  <input type="text" className="form-input" value={editCedula} onChange={e => setEditCedula(e.target.value)} />
+                  <input type="text" className="form-input" value={editCedula} placeholder="Ej. 1234567" onChange={e => setEditCedula(e.target.value)} />
                 ) : (
                   <div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{profile.cedula}</div>
                 )}
@@ -106,7 +110,7 @@ export default function Settings() {
               <div>
                 <label className="text-muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.25rem' }}>Especialidad</label>
                 {isEditingProf ? (
-                  <input type="text" className="form-input" value={editEspecialidad} onChange={e => setEditEspecialidad(e.target.value)} />
+                  <input type="text" className="form-input" value={editEspecialidad} placeholder="Ej. Medicina General" onChange={e => setEditEspecialidad(e.target.value)} />
                 ) : (
                   <div>{profile.especialidad || 'No especificada'}</div>
                 )}
@@ -198,7 +202,7 @@ export default function Settings() {
                     </span>
                   </h3>
                   <p className="text-muted" style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
-                    Todos los antecedentes y notas médicas de tus pacientes están protegidos con cifrado de base de datos (TDE) asegurando el cumplimiento de la NOM-024.
+                    Los antecedentes y notas médicas se protegen con cifrado de base de datos para ayudar a documentar seguridad y cumplimiento operativo.
                   </p>
                 </div>
               </div>

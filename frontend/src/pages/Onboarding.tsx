@@ -36,7 +36,7 @@ export default function Onboarding() {
       }
     } catch (err: any) {
       console.error(err);
-      showToast(err.response?.data?.detail || 'Error al guardar perfil. Intenta de nuevo.', 'error');
+      showToast(err.response?.data?.detail || 'No pudimos guardar tu perfil profesional. Intenta de nuevo.', 'error');
     } finally {
       setLoading(false);
     }
@@ -78,17 +78,18 @@ export default function Onboarding() {
             <Activity size={32} />
           </div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem', letterSpacing: '-0.03em' }}>
-            Completar Perfil
+            Completar perfil médico
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-            Configura tu entorno clínico seguro
+            Configura los datos que aparecerán en notas, recetas y consentimientos.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="form-group">
-            <label className="form-label" style={{ fontWeight: 600 }}>Nombre Completo (Doctor)</label>
+            <label className="form-label" style={{ fontWeight: 600 }} htmlFor="onboarding-nombre">Nombre completo <span className="required-mark">*</span></label>
             <input
+              id="onboarding-nombre"
               type="text"
               className="form-input"
               value={nombre}
@@ -96,13 +97,15 @@ export default function Onboarding() {
               placeholder="Ej. Dr. Juan Pérez"
               required
               minLength={2}
+              autoComplete="name"
               style={{ padding: '1rem', fontSize: '1rem' }}
             />
           </div>
           
           <div className="form-group">
-            <label className="form-label" style={{ fontWeight: 600 }}>Cédula Profesional</label>
+            <label className="form-label" style={{ fontWeight: 600 }} htmlFor="onboarding-cedula">Cédula profesional <span className="required-mark">*</span></label>
             <input
+              id="onboarding-cedula"
               type="text"
               className="form-input"
               value={cedula}
@@ -112,19 +115,21 @@ export default function Onboarding() {
               minLength={5}
               style={{ padding: '1rem', fontSize: '1rem' }}
             />
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+            <p className="form-help">
               Requerido por la NOM-004 para la firma de notas médicas.
             </p>
           </div>
 
           <div className="form-group">
-            <label className="form-label" style={{ fontWeight: 600 }}>Especialidad (Opcional)</label>
+            <label className="form-label" style={{ fontWeight: 600 }} htmlFor="onboarding-especialidad">Especialidad</label>
             <input
+              id="onboarding-especialidad"
               type="text"
               className="form-input"
               value={especialidad}
               onChange={(e) => setEspecialidad(e.target.value)}
-              placeholder="Ej. Medicina General, Cardiología..."
+              placeholder="Ej. Medicina General, Cardiología"
+              autoComplete="organization-title"
               style={{ padding: '1rem', fontSize: '1rem' }}
             />
           </div>
@@ -141,7 +146,7 @@ export default function Onboarding() {
               borderRadius: '12px'
             }}
           >
-            {loading ? 'Creando entorno...' : 'Comenzar a usar CloudMedRecord'}
+            {loading ? 'Guardando perfil…' : 'Comenzar a usar CloudMedRecord'}
           </button>
         </form>
       </div>

@@ -30,7 +30,7 @@ export default function SeguridadCumplimiento() {
           </h1>
           <p style={{ color: 'var(--text-muted)', lineHeight: 1.7 }}>
             CloudMedRecord ayuda a médicos privados en México a documentar mejor y generar evidencia
-            con firma digital, hash SHA-256, bitácora y QR verificable. No promete certificación ni sustituye asesoría legal.
+            con firma digital, huella de integridad, bitácora y QR verificable. No promete certificación ni sustituye asesoría legal.
           </p>
         </div>
 
@@ -38,7 +38,7 @@ export default function SeguridadCumplimiento() {
           <section style={blockStyle}>
             <ShieldCheck color="var(--primary)" />
             <h2>Datos protegidos</h2>
-            <p>Expedientes, pacientes, notas, recetas, citas y bitácora se aíslan por tenant y se tratan como información clínica sensible.</p>
+            <p>Expedientes, pacientes, notas, recetas, citas y bitácora se aíslan por consultorio y se tratan como información clínica sensible.</p>
           </section>
           <section style={blockStyle}>
             <KeyRound color="var(--primary)" />
@@ -47,13 +47,13 @@ export default function SeguridadCumplimiento() {
           </section>
           <section style={blockStyle}>
             <FileCheck2 color="var(--primary)" />
-            <h2>Hash SHA-256</h2>
-            <p>El hash permite detectar cambios en el contenido firmado y mostrar evidencia de integridad en documentos imprimibles.</p>
+            <h2>Huella de integridad</h2>
+            <p>La huella del documento ayuda a detectar cambios en el contenido firmado y mostrar evidencia en documentos imprimibles.</p>
           </section>
           <section style={blockStyle}>
             <ScrollText color="var(--primary)" />
             <h2>Bitácora</h2>
-            <p>Las acciones clínicas relevantes se registran con método, ruta, estado, fecha, IP y agente de usuario cuando aplica.</p>
+            <p>Las acciones clínicas relevantes se registran con fecha, resultado y datos de contexto cuando aplica.</p>
           </section>
           <section style={blockStyle}>
             <Server color="var(--primary)" />

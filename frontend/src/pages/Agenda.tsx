@@ -11,6 +11,8 @@ import { citasApi } from '../services/api';
 import { pacientesApi } from '../services/api';
 import CitaModal from '../components/CitaModal';
 import type { Cita, CitaBase } from '../types';
+import { Plus } from 'lucide-react';
+import { useToast } from '../hooks/useToast';
 
 // Setup localizer for react-big-calendar
 const locales = {
@@ -27,6 +29,7 @@ const localizer = dateFnsLocalizer({
 
 export default function Agenda() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [view, setView] = useState<View>(window.innerWidth < 768 ? Views.AGENDA : Views.WEEK);
   const [date, setDate] = useState(new Date());
   
@@ -51,6 +54,10 @@ export default function Agenda() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
       setIsModalOpen(false);
+      showToast('Cita programada correctamente.', 'success');
+    },
+    onError: () => {
+      showToast('No pudimos guardar la cita. Revisa el horario e inténtalo de nuevo.', 'error');
     }
   });
 
@@ -59,6 +66,10 @@ export default function Agenda() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
       setIsModalOpen(false);
+      showToast('Cita actualizada correctamente.', 'success');
+    },
+    onError: () => {
+      showToast('No pudimos actualizar la cita. Inténtalo de nuevo.', 'error');
     }
   });
 
@@ -67,6 +78,10 @@ export default function Agenda() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['citas'] });
       setIsModalOpen(false);
+      showToast('Cita cancelada.', 'success');
+    },
+    onError: () => {
+      showToast('No pudimos cancelar la cita. Inténtalo de nuevo.', 'error');
     }
   });
 
@@ -117,14 +132,15 @@ export default function Agenda() {
           className="btn btn-primary"
           onClick={() => { setSelectedCita(null); setIsModalOpen(true); }}
         >
-          + Nueva cita
+          <Plus size={16} /> Nueva cita
         </button>
       </div>
 
       <div style={{ flex: 1, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', overflow: 'auto' }}>
         {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            Cargando agenda...
+          <div className="loading-state" style={{ height: '100%' }}>
+            <div className="spinner" />
+            <span>Cargando agenda médica…</span>
           </div>
         ) : (
           <Calendar
@@ -156,7 +172,7 @@ export default function Agenda() {
                   backgroundColor: 'var(--primary)',
                   borderRadius: '6px',
                   border: 'none',
-                  color: 'white',
+                  color: '#04211F',
                   fontSize: '0.875rem'
                 }
               };

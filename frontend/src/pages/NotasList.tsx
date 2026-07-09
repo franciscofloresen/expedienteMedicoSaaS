@@ -62,8 +62,9 @@ export default function NotasList() {
             <p className="empty-state-hint">No fue posible cargar las notas.</p>
           </div>
         ) : isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
+          <div className="loading-state">
             <div className="spinner" />
+            <span>Cargando notas médicas…</span>
           </div>
         ) : filteredNotas.length === 0 ? (
           <EmptyNotas />

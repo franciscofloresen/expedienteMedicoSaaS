@@ -17,7 +17,7 @@ export default function ProtectedRoute() {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div className="spinner" />
-          <p style={{ marginTop: '1rem' }}>Verificando sesión...</p>
+          <p style={{ marginTop: '1rem' }}>Verificando sesión…</p>
         </div>
       </div>
     );

@@ -52,6 +52,7 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
           role="combobox"
           aria-expanded={isOpen}
           aria-autocomplete="list"
+          aria-label="Buscar diagnóstico CIE-10"
         />
       </div>
 

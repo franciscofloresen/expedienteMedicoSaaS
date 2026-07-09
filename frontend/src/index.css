@@ -11,14 +11,15 @@
   --color-bg:        #0D1117;
   --color-surface:   #161B22;
   --color-surface-2: #1C222B;   /* raised / hover surfaces */
-  --color-border:    #21262D;
+  --color-border:    #2B3440;
   --color-primary:   #00C2B8;
   --color-primary-hover: #00D9CE;
   --color-primary-tint: rgba(0, 194, 184, 0.10);
   --color-gold:      #D4A843;
   --color-gold-tint: rgba(212, 168, 67, 0.10);
   --color-text:      #E6EDF3;
-  --color-muted:     #7D8590;
+  --color-muted:     #AAB6C3;
+  --color-muted-strong: #C2CBD6;
   --color-danger:    #F85149;
   --color-danger-tint: rgba(248, 81, 73, 0.10);
   --color-success:   #3FB950;
@@ -86,6 +87,15 @@ body {
   background: rgba(0, 194, 184, 0.3);
 }
 
+a {
+  color: var(--color-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Subtle scrollbars */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -126,6 +136,10 @@ h1, h2, h3, h4 {
 .text-muted {
   color: var(--color-muted);
   font-size: 0.875rem;
+}
+
+.text-strong-muted {
+  color: var(--color-muted-strong);
 }
 
 .mono {
@@ -363,13 +377,14 @@ h1, h2, h3, h4 {
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  min-height: 38px;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast);
   font-family: inherit;
   white-space: nowrap;
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.68;
   cursor: not-allowed;
 }
 
@@ -380,6 +395,15 @@ h1, h2, h3, h4 {
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+}
+
+.btn-primary:focus-visible,
+.btn-gold:focus-visible,
+.btn-outline:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-danger-soft:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 194, 184, 0.22);
 }
 
 .btn-gold {
@@ -393,7 +417,7 @@ h1, h2, h3, h4 {
 
 .btn-outline,
 .btn-secondary {
-  background-color: transparent;
+  background-color: rgba(22, 27, 34, 0.75);
   color: var(--color-text);
   border-color: var(--color-border);
 }
@@ -406,7 +430,7 @@ h1, h2, h3, h4 {
 
 .btn-ghost {
   background: transparent;
-  color: var(--color-muted);
+  color: var(--color-muted-strong);
   border-color: transparent;
 }
 
@@ -433,8 +457,8 @@ h1, h2, h3, h4 {
 .btn-icon {
   padding: 0.45rem;
   background: transparent;
-  border: none;
-  color: var(--color-muted);
+  border: 1px solid transparent;
+  color: var(--color-muted-strong);
   border-radius: var(--radius-md);
   cursor: pointer;
   display: inline-flex;
@@ -448,6 +472,10 @@ h1, h2, h3, h4 {
   background: var(--color-surface-2);
 }
 
+.btn-icon:focus-visible {
+  border-color: var(--color-primary);
+}
+
 /* ── Badges ────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
@@ -459,6 +487,12 @@ h1, h2, h3, h4 {
   font-weight: 600;
   letter-spacing: 0.03em;
   border: 1px solid transparent;
+}
+
+.badge-neutral {
+  background-color: rgba(170, 182, 195, 0.12);
+  color: var(--color-muted-strong);
+  border-color: rgba(170, 182, 195, 0.28);
 }
 
 .badge-success {
@@ -491,29 +525,55 @@ h1, h2, h3, h4 {
 .form-label {
   display: block;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 0.35rem;
+  color: var(--color-muted-strong);
+}
+
+.required-mark {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.form-help {
+  display: block;
   color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-top: 0.35rem;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.55rem 0.75rem;
+  min-height: 40px;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 0.9rem;
   color: var(--color-text);
-  background-color: var(--color-bg);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  background-color: #0F151D;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
-.form-input::placeholder { color: #545D68; }
+.form-input::placeholder { color: #7F8B99; }
+
+.form-input:hover:not(:disabled) {
+  border-color: #3A4654;
+}
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-tint);
+  background-color: #101923;
+}
+
+.form-input:disabled {
+  color: #8E99A8;
+  background-color: rgba(13, 17, 23, 0.55);
+  border-color: rgba(43, 52, 64, 0.75);
+  cursor: not-allowed;
 }
 
 .form-input:user-invalid {
@@ -533,6 +593,11 @@ select.form-input {
   padding-right: 2.25rem;
 }
 
+select.form-input option {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+
 input[type="date"].form-input,
 input[type="datetime-local"].form-input {
   color-scheme: dark;
@@ -540,6 +605,50 @@ input[type="datetime-local"].form-input {
 
 input[type="radio"], input[type="checkbox"] {
   accent-color: var(--color-primary);
+}
+
+.radio-card-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #0F151D;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.radio-card:hover {
+  border-color: #3A4654;
+  background: var(--color-surface-2);
+}
+
+.radio-card:has(input:checked) {
+  border-color: rgba(0, 194, 184, 0.7);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 1px rgba(0, 194, 184, 0.15);
+}
+
+.radio-card input {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.radio-card span {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .form-grid-2 {
@@ -954,6 +1063,49 @@ input[type="radio"], input[type="checkbox"] {
   font-size: 0.85rem;
 }
 
+/* ── Alerts and loading states ─────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.alert-danger {
+  background: var(--color-danger-tint);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #FFB7B2;
+}
+
+.alert-info {
+  background: var(--color-primary-tint);
+  border-color: rgba(0, 194, 184, 0.35);
+  color: #B7F8F3;
+}
+
+.alert-gold {
+  background: var(--color-gold-tint);
+  border-color: rgba(212, 168, 67, 0.4);
+  color: #F3DB9A;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
 /* ── Empty states ──────────────────────────────────────────── */
 .empty-state {
   display: flex;
@@ -1083,6 +1235,7 @@ dialog.modal-dialog::backdrop {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   min-width: 300px;
+  max-width: min(420px, calc(100vw - 2rem));
   font-size: 0.875rem;
   animation: toast-in 0.2s ease-out;
 }
@@ -1321,9 +1474,14 @@ dialog.modal-dialog::backdrop {
 
   .form-grid-2, .encounter-grid { grid-template-columns: 1fr; }
 
+  .radio-card-group { grid-template-columns: 1fr; }
+
   .vitals-strip { grid-template-columns: 1fr 1fr; }
 
-  .side-panel { max-width: 100%; }
+  .side-panel {
+    max-width: 100%;
+    padding: 1.25rem 1rem 5.5rem;
+  }
 
   dialog.modal-dialog { max-width: calc(100% - 1.5rem); }
 
@@ -1358,6 +1516,7 @@ dialog.modal-dialog::backdrop {
     align-items: center;
     gap: 0.75rem;
     text-align: right;
+    overflow-wrap: anywhere;
   }
 
   .data-table td:last-child { border-bottom: none; }
