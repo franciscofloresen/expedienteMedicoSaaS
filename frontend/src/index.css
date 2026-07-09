@@ -320,6 +320,7 @@ h1, h2, h3, h4 {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
+  color: var(--color-text);
 }
 
 .card-hover {
@@ -552,11 +553,17 @@ h1, h2, h3, h4 {
   font-family: inherit;
   font-size: 0.9rem;
   color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
   background-color: #0F151D;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
 .form-input::placeholder { color: #7F8B99; }
+
+textarea.form-input {
+  line-height: 1.55;
+  resize: vertical;
+}
 
 .form-input:hover:not(:disabled) {
   border-color: #3A4654;
@@ -595,7 +602,19 @@ select.form-input {
 
 select.form-input option {
   color: var(--color-text);
+  -webkit-text-fill-color: var(--color-text);
   background-color: var(--color-surface);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-text);
+  caret-color: var(--color-text);
+  box-shadow: 0 0 0 1000px #0F151D inset;
+  border-color: var(--color-border);
 }
 
 input[type="date"].form-input,
@@ -609,7 +628,7 @@ input[type="radio"], input[type="checkbox"] {
 
 .radio-card-group {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
   gap: 0.5rem;
   margin-top: 0.35rem;
 }
@@ -624,6 +643,7 @@ input[type="radio"], input[type="checkbox"] {
   border-radius: var(--radius-md);
   background: #0F151D;
   color: var(--color-text);
+  min-width: 0;
   cursor: pointer;
   transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -646,9 +666,13 @@ input[type="radio"], input[type="checkbox"] {
 
 .radio-card span {
   display: block;
+  min-width: 0;
+  color: var(--color-text);
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .form-grid-2 {
@@ -993,6 +1017,7 @@ input[type="radio"], input[type="checkbox"] {
   max-width: 760px;
   height: 100vh;
   background-color: var(--color-surface);
+  color: var(--color-text);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-glass);
   transform: translateX(100%);
@@ -1172,6 +1197,7 @@ dialog.modal-dialog::backdrop {
 .modal-content {
   width: 100%;
   background: var(--color-surface);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   display: flex;
@@ -1200,6 +1226,7 @@ dialog.modal-dialog::backdrop {
 .modal-body {
   padding: 1.5rem;
   overflow-y: auto;
+  color: var(--color-text);
 }
 
 .modal-footer {
