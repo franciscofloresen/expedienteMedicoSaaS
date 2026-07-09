@@ -1375,6 +1375,138 @@ dialog.modal-dialog::backdrop {
   .table-card { border-radius: var(--radius-lg); }
 }
 
+/* ── Landing navbar (marketing page) ───────────────────────── */
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 5%;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0; /* allow the brand to shrink instead of pushing actions */
+}
+
+.landing-brand img {
+  height: 32px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.landing-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.landing-brand-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1;
+  white-space: nowrap;
+  /* Safety net: truncate instead of overlapping the actions on tiny screens */
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.landing-brand-tag {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+}
+
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 500;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.landing-link-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  font-weight: inherit;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.landing-cta {
+  background-color: var(--primary);
+  color: #04211f;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  font-weight: inherit;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.landing-dash-link {
+  color: #fff;
+  border-bottom: 1px solid #fff;
+  padding-bottom: 0.25rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+/* Tablet / large phone */
+@media (max-width: 640px) {
+  .landing-nav { padding: 0.9rem 1rem; gap: 0.6rem; }
+  .landing-brand { gap: 0.5rem; }
+  .landing-brand img { height: 26px; }
+  .landing-brand-name { font-size: 1.05rem; }
+  .landing-brand-tag { font-size: 0.5rem; letter-spacing: 0.12em; }
+  .landing-nav-actions { gap: 0.8rem; letter-spacing: 0.08em; font-size: 0.7rem; }
+  .landing-cta { padding: 0.5rem 0.85rem; }
+  .landing-dash-link { margin-right: 0 !important; }
+}
+
+/* Small phone (iPhone 12 mini / SE) */
+@media (max-width: 380px) {
+  .landing-brand-tag { display: none; }
+  .landing-brand-name { font-size: 0.95rem; }
+  .landing-nav-actions { gap: 0.55rem; letter-spacing: 0.04em; }
+  .landing-cta { padding: 0.45rem 0.7rem; }
+}
+
+/* Very narrow (legacy iPhone SE 320px): logo only, no wordmark, to avoid
+   the single-token brand name crowding the auth buttons. */
+@media (max-width: 360px) {
+  .landing-brand-text { display: none; }
+}
+
 /* ── PRINT — keep black-on-white output intact ─────────────── */
 @media print {
   @page {
