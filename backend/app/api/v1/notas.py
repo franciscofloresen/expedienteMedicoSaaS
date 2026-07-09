@@ -409,6 +409,9 @@ async def firmar_nota(
 
     medico_especialidad = tenant_row.especialidad or "General"
 
+    # Only the KMS/signing call is guarded as "servicio de firma no disponible".
+    # DB persistence and the verification token are handled separately so their
+    # errors are not masked as a signing-service outage.
     try:
         signature_data = sign_note(
             content=content_to_sign,
@@ -418,54 +421,71 @@ async def firmar_nota(
             medico_cedula=medico_cedula,
             medico_especialidad=medico_especialidad,
         )
-
-        # Persist ALL signature metadata (9 fields)
-        nota.firma_digital = signature_data["firma_digital"]
-        nota.firma_hash_contenido = signature_data["firma_hash_contenido"]
-        nota.firma_kms_key_id = signature_data["firma_kms_key_id"]
-        nota.firma_algoritmo = signature_data["firma_algoritmo"]
-        nota.firmado_en = signature_data["firmado_en"]
-        nota.firmado_por = tenant_id
-        nota.medico_nombre = signature_data["medico_nombre"]
-        nota.medico_cedula = signature_data["medico_cedula"]
-        nota.medico_especialidad = signature_data["medico_especialidad"]
-
-        # Lock the note — NOM-004: signed notes are immutable
-        nota.es_editable = False
-        nota.estado = "signed"
-        token_row, plain_token = await get_or_create_verification_token(
-            db,
-            tenant_id=UUID(str(tenant_id)),
-            resource_type="nota",
-            resource_id=nota.id,
-            public_metadata={
-                "folio": f"NOTA-{str(nota.id)[:8].upper()}",
-                "medico_nombre": nota.medico_nombre,
-                "medico_cedula": nota.medico_cedula,
-                "fecha_emision": nota.firmado_en.isoformat() if nota.firmado_en else None,
-                "hash": nota.firma_hash_contenido,
-            },
-        )
-        nota.verification_token_id = token_row.id
-
-        await db.flush()
-
-        return {
-            "id": str(nota.id),
-            "firmada": True,
-            "firma_hash_contenido": nota.firma_hash_contenido,
-            "firmado_en": nota.firmado_en.isoformat(),
-            "medico_nombre": nota.medico_nombre,
-            "medico_cedula": nota.medico_cedula,
-            "es_editable": False,
-            "verification_url": public_verification_url(plain_token),
-        }
     except Exception as e:
         logger.warning("Signing failed for nota %s: %s", nota_id, e)
         raise HTTPException(
             status_code=503,
             detail="El servicio de firma digital no está disponible en este entorno.",
         ) from e
+
+    # Persist ALL signature metadata (9 fields)
+    nota.firma_digital = signature_data["firma_digital"]
+    nota.firma_hash_contenido = signature_data["firma_hash_contenido"]
+    nota.firma_kms_key_id = signature_data["firma_kms_key_id"]
+    nota.firma_algoritmo = signature_data["firma_algoritmo"]
+    nota.firmado_en = signature_data["firmado_en"]
+    nota.firmado_por = tenant_id
+    nota.medico_nombre = signature_data["medico_nombre"]
+    nota.medico_cedula = signature_data["medico_cedula"]
+    nota.medico_especialidad = signature_data["medico_especialidad"]
+
+    # Lock the note — NOM-004: signed notes are immutable
+    nota.es_editable = False
+    nota.estado = "signed"
+
+    # Flush the signature first: it is the legally critical part and must persist
+    # even if verification-token creation fails.
+    await db.flush()
+
+    # Verification token / QR is best-effort. Wrapped in a savepoint so any failure
+    # (e.g. schema not migrated) rolls back only the token, never the signature.
+    verification_url = None
+    try:
+        async with db.begin_nested():
+            token_row, plain_token = await get_or_create_verification_token(
+                db,
+                tenant_id=UUID(str(tenant_id)),
+                resource_type="nota",
+                resource_id=nota.id,
+                public_metadata={
+                    "folio": f"NOTA-{str(nota.id)[:8].upper()}",
+                    "medico_nombre": nota.medico_nombre,
+                    "medico_cedula": nota.medico_cedula,
+                    "fecha_emision": nota.firmado_en.isoformat() if nota.firmado_en else None,
+                    "hash": nota.firma_hash_contenido,
+                },
+            )
+            nota.verification_token_id = token_row.id
+            await db.flush()
+        verification_url = public_verification_url(plain_token)
+    except Exception as e:
+        logger.error(
+            "Verification token creation failed for nota %s: %s", nota.id, e, exc_info=True
+        )
+        # Safety belt: the savepoint rolled back the token row, so make sure the
+        # note carries no dangling FK to it into the outer commit.
+        nota.verification_token_id = None
+
+    return {
+        "id": str(nota.id),
+        "firmada": True,
+        "firma_hash_contenido": nota.firma_hash_contenido,
+        "firmado_en": nota.firmado_en.isoformat(),
+        "medico_nombre": nota.medico_nombre,
+        "medico_cedula": nota.medico_cedula,
+        "es_editable": False,
+        "verification_url": verification_url,
+    }
 
 
 @router.get("/{nota_id}/verificar-firma")
