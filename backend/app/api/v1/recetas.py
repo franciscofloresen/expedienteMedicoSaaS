@@ -14,7 +14,10 @@ from app.models.paciente import Paciente
 from app.models.receta import Receta
 from app.models.tenant import Tenant
 from app.services.firma import sign_note
-from app.services.verification import get_or_create_verification_token
+from app.services.verification import (
+    get_or_create_verification_token,
+    public_verification_url,
+)
 
 router = APIRouter()
 
@@ -109,7 +112,7 @@ async def _build_receta_print_payload(
         "firma": {
             "hash": receta.firma_hash_contenido,
             "algoritmo": receta.firma_algoritmo,
-            "verification_url": f"{str(request.base_url).rstrip('/')}/verify/{plain_token}",
+            "verification_url": public_verification_url(plain_token),
         },
         "leyenda": "Receta firmada digitalmente. El QR verifica metadatos mínimos sin mostrar medicamentos.",
     }
@@ -224,7 +227,7 @@ async def firmar_receta(id: str, request: Request, db: AsyncSession = Depends(ge
     receta.verification_token_id = token_row.id
     await db.flush()
     payload = _serialize_receta(receta)
-    payload["verification_url"] = f"{str(request.base_url).rstrip('/')}/verify/{plain_token}"
+    payload["verification_url"] = public_verification_url(plain_token)
     return payload
 
 

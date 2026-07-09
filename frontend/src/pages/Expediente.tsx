@@ -1086,6 +1086,15 @@ export default function Expediente() {
                 <option key={tpl.key} value={tpl.key}>{tpl.nombre}</option>
               ))}
             </select>
+            {(() => {
+              const tpl = consentTemplates.find((t: any) => t.key === selectedConsentTemplate);
+              return tpl ? (
+                <div className="glass-card" style={{ marginTop: '0.75rem', padding: '0.85rem', fontSize: '0.83rem' }}>
+                  <p style={{ margin: 0 }}><strong>Qué incluye:</strong> {tpl.descripcion}</p>
+                  <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)' }}><strong>Riesgos base:</strong> {tpl.riesgos}</p>
+                </div>
+              ) : null;
+            })()}
           </div>
           <div className="form-group">
             <label className="form-label">Procedimiento</label>
