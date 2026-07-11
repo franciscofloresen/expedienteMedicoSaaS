@@ -238,6 +238,89 @@ jobs:
         working-directory: backend
         run: PYTHONPATH=. python3 scripts/smoke_test.py
 
+  # ── Verify Clinical File Storage end-to-end (Production) ──
+  # Exercises the real presigned POST → KMS → GuardDuty scan → gated download
+  # cycle from inside the deployed Lambda. Runs parallel to the frontend
+  # restore so a verification failure never strands the maintenance page.
+  verify-storage-production:
+    name: Verify Clinical File Storage → Production
+    runs-on: ubuntu-latest
+    needs: deploy-backend-production
+    environment: production
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: CORS preflight against clinical bucket
+        run: |
+          BUCKET="medrecord-expedientes-prod-${{ secrets.AWS_ACCOUNT_ID }}"
+          curl -s -D /tmp/cors_headers.txt -o /dev/null -X OPTIONS \
+            -H "Origin: https://cloudmedrecord.com" \
+            -H "Access-Control-Request-Method: POST" \
+            "https://${BUCKET}.s3.${{ env.AWS_REGION }}.amazonaws.com/"
+          if grep -qi "access-control-allow-origin: https://cloudmedrecord.com" /tmp/cors_headers.txt; then
+            echo "✅ CORS allows browser uploads from https://cloudmedrecord.com"
+          else
+            echo "❌ CORS preflight failed — browser uploads would be blocked:"
+            cat /tmp/cors_headers.txt
+            exit 1
+          fi
+
+      - name: Upload probe via presigned POST
+        run: |
+          aws lambda invoke --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
+            --payload '{"verify_file_storage": "upload"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/upload.json
+          cat /tmp/upload.json
+          python3 - <<'EOF'
+          import json, sys
+          result = json.load(open("/tmp/upload.json"))
+          if result.get("statusCode") != 200:
+              sys.exit("probe upload failed")
+          print(f"S3_KEY={result['body']['s3_key']}")
+          with open("/tmp/s3_key", "w") as f:
+              f.write(result["body"]["s3_key"])
+          EOF
+          echo "S3_KEY=$(cat /tmp/s3_key)" >> "$GITHUB_ENV"
+
+      - name: Wait for GuardDuty scan and verify gated download
+        run: |
+          for attempt in $(seq 1 24); do
+            aws lambda invoke --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
+              --payload "{\"verify_file_storage\": \"check\", \"s3_key\": \"${S3_KEY}\"}" \
+              --cli-binary-format raw-in-base64-out \
+              /tmp/check.json
+            cat /tmp/check.json
+            OUTCOME=$(python3 -c '
+          import json
+          result = json.load(open("/tmp/check.json"))
+          body = result.get("body") or {}
+          if result.get("statusCode") != 200:
+              print("failed")
+          elif isinstance(body, dict) and body.get("download_verified"):
+              print("verified")
+          else:
+              print("pending")
+          ')
+            if [ "$OUTCOME" = "verified" ]; then
+              echo "✅ Storage pipeline verified: upload, KMS, GuardDuty scan, gated download"
+              exit 0
+            fi
+            if [ "$OUTCOME" = "failed" ]; then
+              echo "❌ Storage verification failed (see output above)"
+              exit 1
+            fi
+            echo "Scan pending (attempt ${attempt}/24), retrying in 15s..."
+            sleep 15
+          done
+          echo "❌ GuardDuty scan did not complete within 6 minutes"
+          exit 1
+
   # ── Deploy Frontend to Production ──
   deploy-frontend-production:
     name: Deploy Frontend → Production

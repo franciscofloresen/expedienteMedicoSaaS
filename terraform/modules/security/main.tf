@@ -16,11 +16,11 @@ data "aws_region" "current" {}
 # KMS — Symmetric CMK for Data Encryption (Envelope Encryption)
 # ============================================================
 resource "aws_kms_key" "data_encryption" {
-  description             = "MedRecord data encryption CMK - ${var.environment}"
-  key_usage               = "ENCRYPT_DECRYPT"
+  description              = "MedRecord data encryption CMK - ${var.environment}"
+  key_usage                = "ENCRYPT_DECRYPT"
   customer_master_key_spec = "SYMMETRIC_DEFAULT"
-  enable_key_rotation     = true # Annual automatic rotation
-  deletion_window_in_days = 30
+  enable_key_rotation      = true # Annual automatic rotation
+  deletion_window_in_days  = 30
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -75,10 +75,10 @@ resource "aws_kms_alias" "data_encryption" {
 # Cost: $1/month (vs $1/key/tenant)
 # ============================================================
 resource "aws_kms_key" "signing" {
-  description             = "MedRecord digital signature key (ECDSA P-256) - ${var.environment}"
-  key_usage               = "SIGN_VERIFY"
+  description              = "MedRecord digital signature key (ECDSA P-256) - ${var.environment}"
+  key_usage                = "SIGN_VERIFY"
   customer_master_key_spec = "ECC_NIST_P256"
-  deletion_window_in_days = 30
+  deletion_window_in_days  = 30
   # Asymmetric keys do NOT support automatic rotation
   # Migration: create new key → update alias → re-sign critical notes
 
@@ -264,7 +264,7 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
 }
 
 resource "aws_cloudtrail" "main" {
-  depends_on = [aws_s3_bucket_policy.cloudtrail]
+  depends_on                    = [aws_s3_bucket_policy.cloudtrail]
   name                          = "medrecord-trail-${var.environment}"
   s3_bucket_name                = var.cloudtrail_bucket_name
   include_global_service_events = true
@@ -274,6 +274,11 @@ resource "aws_cloudtrail" "main" {
   event_selector {
     read_write_type           = "All"
     include_management_events = true
+
+    data_resource {
+      type   = "AWS::S3::Object"
+      values = ["${var.clinical_bucket_arn}/"]
+    }
   }
 
   tags = {
@@ -285,6 +290,11 @@ resource "aws_cloudtrail" "main" {
 variable "cloudtrail_bucket_name" {
   type        = string
   description = "S3 bucket name for CloudTrail logs"
+}
+
+variable "clinical_bucket_arn" {
+  type        = string
+  description = "Clinical S3 bucket ARN included in CloudTrail data events"
 }
 
 # ============================================================

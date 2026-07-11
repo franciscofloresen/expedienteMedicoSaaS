@@ -71,6 +71,66 @@ jobs:
       run: |
         pytest -v --cov=app --cov-report=xml
 
+  # Executes every Alembic migration on real Postgres (pytest uses create_all,
+  # which never runs the migration SQL: RLS policies, grants, triggers).
+  migration-check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: medrecord_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgrespassword@localhost:5432/medrecord_migrations
+      ENVIRONMENT: development
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+
+    - name: Create DB role for RLS
+      env:
+        PGPASSWORD: postgrespassword
+      run: |
+        psql -h localhost -U postgres -d medrecord_migrations -c \
+          "CREATE ROLE medrecord_app WITH LOGIN PASSWORD 'apppassword';
+           GRANT CONNECT ON DATABASE medrecord_migrations TO medrecord_app;"
+
+    - name: Run full migration chain
+      run: alembic upgrade head
+
+    - name: Round-trip newest migration (downgrade -1, upgrade head)
+      run: |
+        alembic downgrade -1
+        alembic upgrade head
+
+    - name: Verify RLS tenant isolation on migrated schema
+      run: PYTHONPATH=. python scripts/verify_rls.py
+
   frontend-build:
     runs-on: ubuntu-latest
     defaults:

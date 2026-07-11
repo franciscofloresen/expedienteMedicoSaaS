@@ -117,16 +117,26 @@ resource "aws_iam_role_policy" "lambda_app_permissions" {
       {
         Effect = "Allow"
         Action = [
-          "s3:PutObject",
-          "s3:GetObject",
           "s3:ListBucket"
         ]
         Resource = [
           "arn:aws:s3:::${var.s3_expedientes_bucket}",
-          "arn:aws:s3:::${var.s3_expedientes_bucket}/*",
           "arn:aws:s3:::${var.s3_audit_bucket}",
+          "arn:aws:s3:::${var.s3_consent_bucket}"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:GetObjectTagging",
+          "s3:GetObjectVersionTagging"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.s3_expedientes_bucket}/*",
           "arn:aws:s3:::${var.s3_audit_bucket}/*",
-          "arn:aws:s3:::${var.s3_consent_bucket}",
           "arn:aws:s3:::${var.s3_consent_bucket}/*"
         ]
       },
@@ -191,6 +201,7 @@ resource "aws_lambda_function" "api" {
       S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
       S3_AUDIT_BUCKET       = var.s3_audit_bucket
       S3_CONSENT_BUCKET     = var.s3_consent_bucket
+      MALWARE_SCAN_REQUIRED = "true"
       CORS_ORIGINS          = var.environment == "prod" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
       CLERK_SECRET_KEY      = var.clerk_secret_key
       CLERK_ISSUER_URL      = var.clerk_issuer_url

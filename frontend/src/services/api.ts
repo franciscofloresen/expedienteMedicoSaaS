@@ -75,6 +75,8 @@ async function fetchClient<T>(
       if (errBody.detail) {
         if (Array.isArray(errBody.detail)) {
           errorDetail = errBody.detail.map((e: any) => `${e.loc?.[e.loc?.length-1] || 'Campo'}: ${e.msg}`).join(', ');
+        } else if (typeof errBody.detail === 'object' && errBody.detail.message) {
+          errorDetail = errBody.detail.message;
         } else {
           errorDetail = errBody.detail;
         }
@@ -204,6 +206,66 @@ export const auditApi = {
   list: async (limit = 50, offset = 0): Promise<AuditEntry[]> => {
     return api.get<AuditEntry[]>('/audit/', { limit, offset });
   },
+};
+
+export interface StorageUsage {
+  plan: string;
+  quota_bytes: number;
+  used_bytes: number;
+  reserved_bytes: number;
+  available_bytes: number;
+  percent_used: number;
+}
+
+export interface ClinicalFile {
+  id: string;
+  expediente_id: string;
+  paciente_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  category: 'analysis' | 'xray' | 'prescription' | 'consent' | 'other';
+  status: string;
+  scan_status: string;
+  created_at: string;
+  completed_at: string | null;
+}
+
+interface UploadGrant {
+  file_id: string;
+  upload_url: string;
+  upload_fields: Record<string, string>;
+  expires_in: number;
+}
+
+export const filesApi = {
+  usage: (): Promise<StorageUsage> => api.get('/files/usage'),
+  list: (expedienteId: string): Promise<ClinicalFile[]> =>
+    api.get(`/files/expedientes/${expedienteId}`),
+  upload: async (
+    expedienteId: string,
+    file: File,
+    category: ClinicalFile['category'] = 'other'
+  ): Promise<ClinicalFile> => {
+    const contentType = file.type || (file.name.toLowerCase().endsWith('.dcm') ? 'application/dicom' : 'application/octet-stream');
+    const grant = await api.post<UploadGrant>(`/files/expedientes/${expedienteId}/upload-url`, {
+      filename: file.name,
+      content_type: contentType,
+      size_bytes: file.size,
+      category,
+    });
+    const form = new FormData();
+    Object.entries(grant.upload_fields).forEach(([key, value]) => form.append(key, value));
+    form.append('file', file);
+    const uploadResponse = await fetch(grant.upload_url, { method: 'POST', body: form });
+    if (!uploadResponse.ok) {
+      throw new Error('S3 no pudo completar la carga del archivo');
+    }
+    return api.post<ClinicalFile>(`/files/${grant.file_id}/complete`);
+  },
+  downloadUrl: (fileId: string): Promise<{ url: string; expires_in: number }> =>
+    api.get(`/files/${fileId}/download-url`),
+  archive: (fileId: string): Promise<void> => api.delete(`/files/${fileId}`),
 };
 
 export const recetasApi = {

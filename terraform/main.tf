@@ -44,13 +44,15 @@ module "security" {
   source                 = "./modules/security"
   environment            = var.environment
   cloudtrail_bucket_name = module.storage.audit_bucket_name
+  clinical_bucket_arn    = module.storage.expedientes_bucket_arn
 }
 
 # ── Storage (S3 buckets) ──
 module "storage" {
-  source      = "./modules/storage"
-  environment = var.environment
-  kms_key_arn = module.security.encryption_key_arn
+  source                     = "./modules/storage"
+  environment                = var.environment
+  kms_key_arn                = module.security.encryption_key_arn
+  clinical_file_cors_origins = concat(var.custom_domain != "" ? ["https://${var.custom_domain}"] : [], var.environment == "prod" ? [] : ["http://localhost:5173"])
 }
 
 # ── Database (RDS PostgreSQL) ──

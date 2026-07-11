@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     s3_expedientes_bucket: str = "medrecord-expedientes-dev"
     s3_audit_bucket: str = "medrecord-audit-dev"
     s3_consent_bucket: str = "medrecord-consent-dev"
+    file_upload_max_bytes: int = 250 * 1024 * 1024
+    file_signed_url_ttl_seconds: int = 300
+    malware_scan_required: bool = True
 
     # SES (appointment notifications). Must be a VERIFIED SES identity
     # in `aws_region`. Empty disables sending (best-effort no-op).
@@ -63,6 +66,7 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             if v.startswith("["):
                 import json
+
                 return json.loads(v)  # type: ignore
             return [i.strip() for i in v.split(",")]
         if isinstance(v, list):
@@ -80,7 +84,6 @@ def get_settings() -> Settings:
     return Settings()
 
 
-
 # ── Secrets Manager Cache ──
 
 _secrets_cache: dict[str, tuple[float, dict[str, Any]]] = {}
@@ -92,9 +95,7 @@ def _get_sm_client() -> Any:
 
     global _sm_client
     if _sm_client is None:
-        _sm_client = boto3.client(
-            "secretsmanager", region_name=get_settings().aws_region
-        )
+        _sm_client = boto3.client("secretsmanager", region_name=get_settings().aws_region)
     return _sm_client
 
 
@@ -144,10 +145,7 @@ def get_database_url() -> str:
 
     dbname = os.environ.get("DB_NAME") or secret.get("dbname", "postgres")
 
-    return (
-        f"postgresql+asyncpg://{secret['username']}:{secret['password']}"
-        f"@{host}:{port}/{dbname}"
-    )
+    return f"postgresql+asyncpg://{secret['username']}:{secret['password']}@{host}:{port}/{dbname}"
 
 
 # Backward compat: some files import `settings` directly.

@@ -21,6 +21,7 @@ from app.api.v1 import (
     citas,
     consentimientos,
     expedientes,
+    files,
     messages,
     notas,
     pacientes,
@@ -138,9 +139,8 @@ app.add_middleware(
 # ── Routes ──
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Autenticación"])
 app.include_router(pacientes.router, prefix="/api/v1/pacientes", tags=["Pacientes"])
-app.include_router(
-    expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"]
-)
+app.include_router(expedientes.router, prefix="/api/v1/expedientes", tags=["Expedientes"])
+app.include_router(files.router, prefix="/api/v1/files", tags=["Archivos clínicos"])
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
 app.include_router(cie10.router, prefix="/api/v1/cie10", tags=["CIE-10"])
@@ -150,9 +150,7 @@ app.include_router(
 )
 app.include_router(messages.router, prefix="/api/v1/messages", tags=["Mensajes"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
-app.include_router(
-    reminders.router, prefix="/api/v1/reminders", tags=["Recordatorios"]
-)
+app.include_router(reminders.router, prefix="/api/v1/reminders", tags=["Recordatorios"])
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 
@@ -188,6 +186,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         except Exception as e:
             logger.error("Migrations failed", exc_info=True)
             return {"statusCode": 500, "body": f"Migrations failed: {e}"}
+
+    if isinstance(event, dict) and event.get("verify_file_storage"):
+        from scripts.verify_file_storage import run_phase
+
+        phase = event["verify_file_storage"]
+        logger.info(f"Verifying clinical file storage (phase={phase})...")
+        try:
+            verify_result = run_phase(phase, s3_key=event.get("s3_key"))
+            return {
+                "statusCode": 200 if verify_result.get("ok") else 500,
+                "body": verify_result,
+            }
+        except Exception as e:
+            logger.error("verify_file_storage failed", exc_info=True)
+            return {"statusCode": 500, "body": f"verify_file_storage failed: {e}"}
 
     if isinstance(event, dict) and event.get("upgrade_tenant"):
         import asyncio
@@ -359,6 +372,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return {"statusCode": 500, "body": f"purge_clerk_users failed: {e}"}
 
     import asyncio
+
     try:
         asyncio.get_event_loop()
     except RuntimeError:
