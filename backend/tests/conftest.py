@@ -67,9 +67,7 @@ async def setup_database():
             )
         )
         await conn.execute(
-            text(
-                "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app"
-            )
+            text("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medrecord_app")
         )
 
         # Enable RLS on core tables
@@ -78,6 +76,8 @@ async def setup_database():
             "expedientes",
             "notas",
             "citas",
+            "clinical_files",
+            "tenant_storage_usage",
         ]:
             await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
             await conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))

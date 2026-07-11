@@ -11,6 +11,16 @@ variable "kms_key_arn" {
   type = string
 }
 
+variable "clinical_file_cors_origins" {
+  type        = list(string)
+  description = "Browser origins allowed to use short-lived clinical file upload forms"
+
+  validation {
+    condition     = length(var.clinical_file_cors_origins) > 0
+    error_message = "At least one clinical file upload CORS origin is required."
+  }
+}
+
 # ── Expedientes Bucket (clinical files) ──
 resource "aws_s3_bucket" "expedientes" {
   bucket = "medrecord-expedientes-${var.environment}-${data.aws_caller_identity.current.account_id}"
@@ -26,6 +36,13 @@ resource "aws_s3_bucket_versioning" "expedientes" {
   bucket = aws_s3_bucket.expedientes.id
   versioning_configuration {
     status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "expedientes" {
+  bucket = aws_s3_bucket.expedientes.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
   }
 }
 
@@ -48,6 +65,62 @@ resource "aws_s3_bucket_public_access_block" "expedientes" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_cors_configuration" "expedientes" {
+  bucket = aws_s3_bucket.expedientes.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["POST"]
+    allowed_origins = var.clinical_file_cors_origins
+    expose_headers  = ["ETag", "x-amz-version-id"]
+    max_age_seconds = 300
+  }
+}
+
+data "aws_iam_policy_document" "expedientes_bucket" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    actions   = ["s3:*"]
+    resources = [aws_s3_bucket.expedientes.arn, "${aws_s3_bucket.expedientes.arn}/*"]
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+  statement {
+    sid    = "DenyWrongEncryption"
+    effect = "Deny"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.expedientes.arn}/*"]
+    condition {
+      test     = "StringNotEquals"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = ["aws:kms"]
+    }
+    condition {
+      test     = "Null"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "expedientes" {
+  bucket = aws_s3_bucket.expedientes.id
+  policy = data.aws_iam_policy_document.expedientes_bucket.json
+}
+
 # NOM-004 Lifecycle: 5-year retention with tiered storage
 resource "aws_s3_bucket_lifecycle_configuration" "expedientes" {
   bucket = aws_s3_bucket.expedientes.id
@@ -68,10 +141,133 @@ resource "aws_s3_bucket_lifecycle_configuration" "expedientes" {
       storage_class = "GLACIER_IR" # 83% cheaper
     }
 
+    # No automatic expiry: retention is calculated from the clinical record,
+    # not from the individual object's upload date.
+  }
+
+  # Deploy-time verification probes are synthetic and must self-clean:
+  # the Lambda role deliberately has no s3:DeleteObject.
+  rule {
+    id     = "expire-healthcheck-probes"
+    status = "Enabled"
+
+    filter {
+      prefix = "tenants/healthcheck/"
+    }
+
     expiration {
-      days = 1825 # 5 years = NOM-004 minimum
+      days = 1
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 1
     }
   }
+}
+
+# ── GuardDuty Malware Protection for newly uploaded clinical files ──
+resource "aws_iam_role" "guardduty_malware" {
+  name = "medrecord-guardduty-s3-${var.environment}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "malware-protection-plan.guardduty.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "guardduty_malware" {
+  name = "clinical-file-scan"
+  role = aws_iam_role.guardduty_malware.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ManageEventBridgeRule"
+        Effect   = "Allow"
+        Action   = ["events:PutRule", "events:DeleteRule", "events:PutTargets", "events:RemoveTargets"]
+        Resource = "arn:aws:events:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+        Condition = {
+          StringLike = {
+            "events:ManagedBy" = "malware-protection-plan.guardduty.amazonaws.com"
+          }
+        }
+      },
+      {
+        Sid      = "InspectEventBridgeRule"
+        Effect   = "Allow"
+        Action   = ["events:DescribeRule", "events:ListTargetsByRule"]
+        Resource = "arn:aws:events:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:rule/DO-NOT-DELETE-AmazonGuardDutyMalwareProtectionS3*"
+      },
+      {
+        Sid      = "TagScannedObjects"
+        Effect   = "Allow"
+        Action   = ["s3:PutObjectTagging", "s3:GetObjectTagging", "s3:PutObjectVersionTagging", "s3:GetObjectVersionTagging"]
+        Resource = "${aws_s3_bucket.expedientes.arn}/tenants/*"
+      },
+      {
+        Sid      = "ConfigureBucketEvents"
+        Effect   = "Allow"
+        Action   = ["s3:PutBucketNotification", "s3:GetBucketNotification"]
+        Resource = aws_s3_bucket.expedientes.arn
+      },
+      {
+        Sid      = "ValidationObject"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.expedientes.arn}/malware-protection-resource-validation-object"
+      },
+      {
+        Sid      = "ValidateBucketOwnership"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.expedientes.arn
+      },
+      {
+        Sid      = "ScanObjects"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion"]
+        Resource = "${aws_s3_bucket.expedientes.arn}/tenants/*"
+      },
+      {
+        Sid      = "DecryptObjects"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = var.kms_key_arn
+        Condition = {
+          StringLike = {
+            "kms:ViaService" = "s3.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_guardduty_malware_protection_plan" "expedientes" {
+  role = aws_iam_role.guardduty_malware.arn
+
+  protected_resource {
+    s3_bucket {
+      bucket_name     = aws_s3_bucket.expedientes.id
+      object_prefixes = ["tenants/"]
+    }
+  }
+
+  actions {
+    tagging {
+      status = "ENABLED"
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy.guardduty_malware,
+    aws_s3_bucket_policy.expedientes,
+  ]
 }
 
 # ── Audit Logs Bucket (WORM — immutable) ──
@@ -209,6 +405,7 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
 
 # ── Data Sources ──
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 # ── Outputs ──
 output "expedientes_bucket_name" {

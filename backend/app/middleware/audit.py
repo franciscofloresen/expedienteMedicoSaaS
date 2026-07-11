@@ -26,6 +26,7 @@ _CLINICAL_PREFIXES = (
     "/api/v1/expedientes",
     "/api/v1/notas",
     "/api/v1/recetas",
+    "/api/v1/files",
 )
 
 
@@ -50,9 +51,7 @@ def _client_ip(request: Request) -> str | None:
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start = time.monotonic()
         response = await call_next(request)
 

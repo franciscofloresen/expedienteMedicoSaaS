@@ -4,6 +4,7 @@ import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lu
 import { UserProfile } from '@clerk/react';
 import { useToast } from '../hooks/useToast';
 import UpgradeBanner from '../components/UpgradeBanner';
+import StorageUsageCard from '../components/StorageUsageCard';
 import { authApi } from '../services/api';
 
 export default function Settings() {
@@ -130,6 +131,8 @@ export default function Settings() {
               </div>
             </div>
           </div>
+
+          <StorageUsageCard />
 
             {/* Perfil de Usuario de Clerk */}
             <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s', padding: 0, overflow: 'hidden' }}>

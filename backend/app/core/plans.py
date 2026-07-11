@@ -21,10 +21,13 @@ PLANS: dict[str, dict[str, Any]] = {
     BASICO: {
         "max_expedientes": 5,
         "audit_log": False,
+        "file_storage_quota_bytes": 0,
     },
     PRO: {
         "max_expedientes": None,
         "audit_log": True,
+        # Quotas use binary units internally: 15 GiB.
+        "file_storage_quota_bytes": 15 * 1024 * 1024 * 1024,
     },
 }
 

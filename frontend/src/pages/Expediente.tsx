@@ -10,8 +10,9 @@ import { useAutosave } from '../hooks/useAutosave';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10Search from '../components/Cie10Search';
+import ClinicalFiles from '../components/ClinicalFiles';
 
-type TabKey = 'resumen' | 'consultas' | 'historia' | 'consentimientos';
+type TabKey = 'resumen' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
 
 function initials(nombre?: string): string {
   if (!nombre) return '';
@@ -559,6 +560,9 @@ export default function Expediente() {
         <button role="tab" aria-selected={activeTab === 'historia'} className={activeTab === 'historia' ? 'tab active' : 'tab'} onClick={() => setActiveTab('historia')}>
           Historia clínica
         </button>
+        <button role="tab" aria-selected={activeTab === 'archivos'} className={activeTab === 'archivos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('archivos')}>
+          Archivos
+        </button>
         <button role="tab" aria-selected={activeTab === 'consentimientos'} className={activeTab === 'consentimientos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('consentimientos')}>
           Consentimientos <span className="tab-count">{consentimientos.length}</span>
         </button>
@@ -837,6 +841,10 @@ export default function Expediente() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'archivos' && (
+        <ClinicalFiles expedienteId={expediente.id} />
       )}
 
       {activeTab === 'consentimientos' && (

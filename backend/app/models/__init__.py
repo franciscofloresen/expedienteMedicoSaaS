@@ -2,6 +2,7 @@ from .audit_log import AuditLog
 from .base import Base
 from .cie10 import CIE10
 from .cita import Cita
+from .clinical_file import ClinicalFile, TenantStorageUsage
 from .consentimiento import Consentimiento
 from .expediente import Expediente
 from .message_log import MessageLog
@@ -27,4 +28,6 @@ __all__ = [
     "CIE10",
     "Receta",
     "Reminder",
+    "ClinicalFile",
+    "TenantStorageUsage",
 ]
