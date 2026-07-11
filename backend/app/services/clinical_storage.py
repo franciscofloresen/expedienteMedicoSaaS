@@ -5,6 +5,7 @@ from pathlib import PurePath
 from typing import Any, cast
 
 import boto3
+from botocore.config import Config
 
 from app.core.config import settings
 
@@ -42,7 +43,14 @@ def validate_upload(filename: str, content_type: str, size_bytes: int) -> tuple[
 
 @lru_cache
 def get_s3_client() -> Any:
-    return boto3.client("s3", region_name=settings.aws_region)
+    # SigV4 is mandatory: S3 rejects presigned requests that specify SSE-KMS
+    # (uploads AND downloads of KMS-encrypted objects) when signed with the
+    # legacy SigV2 that boto3 still defaults to for presigning in us-east-1.
+    return boto3.client(
+        "s3",
+        region_name=settings.aws_region,
+        config=Config(signature_version="s3v4"),
+    )
 
 
 def create_upload_post(
