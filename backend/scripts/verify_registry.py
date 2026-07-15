@@ -46,16 +46,17 @@ _FORCE_EXPECTED = {
     "tenant_storage_usage",
 }
 
-# Final clinical documents that must not be hard-deletable by the app role
-# (NOM-004 §5.14). The app never issues DELETE on these; a granted DELETE
-# privilege is a regression (it happened for consentimientos/recetas when later
-# migrations did GRANT ALL). This is a hard check, not a warning.
+# Records the app role must never hard-delete: the clinical record and its
+# documents (NOM-004 §5.14 conservation) plus the verification tokens that anchor
+# signed-document integrity (NOM-024). A granted DELETE here is a regression (it
+# happened when later migrations did GRANT ALL). This is a hard check.
 _DELETE_PROTECTED = {
     "pacientes",
     "expedientes",
     "notas",
     "consentimientos",
     "recetas",
+    "verification_tokens",
 }
 
 
@@ -164,7 +165,7 @@ async def verify_rls() -> dict[str, Any]:
             ).scalar_one()
             checks.append(
                 _check(
-                    f"{table}: app role cannot DELETE (NOM-004 §5.14)",
+                    f"{table}: app role cannot DELETE (retention/integrity)",
                     not app_can_delete,
                     f"medrecord_app has DELETE={app_can_delete}",
                 )
