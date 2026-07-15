@@ -51,6 +51,48 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.alarm_email
 }
 
+# ── Topic access policy ──
+# Setting an explicit policy REPLACES the SNS default policy, so we must
+# re-grant the owning account (this is what lets CloudWatch alarm actions
+# publish here) and additionally allow AWS Backup to publish backup/restore
+# failure notifications (see terraform/modules/database/backup.tf).
+data "aws_caller_identity" "current" {}
+
+resource "aws_sns_topic_policy" "alarms" {
+  arn = aws_sns_topic.alarms.arn
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "OwnerAccountFullAccess"
+        Effect    = "Allow"
+        Principal = { AWS = "*" }
+        Action = [
+          "SNS:GetTopicAttributes",
+          "SNS:SetTopicAttributes",
+          "SNS:AddPermission",
+          "SNS:RemovePermission",
+          "SNS:DeleteTopic",
+          "SNS:Subscribe",
+          "SNS:ListSubscriptionsByTopic",
+          "SNS:Publish",
+        ]
+        Resource  = aws_sns_topic.alarms.arn
+        Condition = { StringEquals = { "AWS:SourceOwner" = data.aws_caller_identity.current.account_id } }
+      },
+      {
+        Sid       = "AllowAWSBackupPublish"
+        Effect    = "Allow"
+        Principal = { Service = "backup.amazonaws.com" }
+        Action    = "SNS:Publish"
+        Resource  = aws_sns_topic.alarms.arn
+        Condition = { StringEquals = { "AWS:SourceAccount" = data.aws_caller_identity.current.account_id } }
+      },
+    ]
+  })
+}
+
 # ── Alarm 1: Lambda Error Rate > 5% ──
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   alarm_name          = "medrecord-lambda-errors-${var.environment}"
@@ -232,12 +274,12 @@ resource "aws_route53_health_check" "api" {
   count = var.health_check_fqdn != "" ? 1 : 0
 
   fqdn              = var.health_check_fqdn
-  port               = 443
-  type               = "HTTPS"
-  resource_path      = "/health"
-  failure_threshold  = 3
-  request_interval   = 30
-  regions            = ["us-east-1", "us-west-2", "eu-west-1"]
+  port              = 443
+  type              = "HTTPS"
+  resource_path     = "/health"
+  failure_threshold = 3
+  request_interval  = 30
+  regions           = ["us-east-1", "us-west-2", "eu-west-1"]
 
   tags = {
     Name        = "medrecord-health-${var.environment}"

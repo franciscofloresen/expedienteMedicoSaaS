@@ -24,6 +24,11 @@ variable "kms_key_arn" {
   description = "ARN of the KMS CMK for encryption at rest"
 }
 
+variable "ops_sns_topic_arn" {
+  type        = string
+  description = "SNS topic (observability alarms) for AWS Backup job/restore failure notifications."
+}
+
 variable "db_master_username" {
   type    = string
   default = "medrecord_admin"
@@ -76,37 +81,37 @@ resource "aws_db_parameter_group" "postgresql_audit" {
 
 # ── RDS PostgreSQL Instance ──
 resource "aws_db_instance" "main" {
-  identifier                  = "medrecord-${var.environment}"
-  engine                      = "postgres"
-  engine_version              = "15.17"
-  instance_class              = "db.t4g.small"
-  
-  allocated_storage           = 20
-  max_allocated_storage       = 100
-  storage_type                = "gp3"
+  identifier     = "medrecord-${var.environment}"
+  engine         = "postgres"
+  engine_version = "15.17"
+  instance_class = "db.t4g.small"
+
+  allocated_storage     = 20
+  max_allocated_storage = 100
+  storage_type          = "gp3"
 
   db_name                     = "medrecord"
   username                    = var.db_master_username
   manage_master_user_password = true
 
-  storage_encrypted           = true
-  kms_key_id                  = var.kms_key_arn
+  storage_encrypted = true
+  kms_key_id        = var.kms_key_arn
 
-  db_subnet_group_name        = aws_db_subnet_group.main.name
-  vpc_security_group_ids      = [var.rds_security_group_id]
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [var.rds_security_group_id]
 
-  parameter_group_name        = aws_db_parameter_group.postgresql_audit.name
+  parameter_group_name = aws_db_parameter_group.postgresql_audit.name
 
-  backup_retention_period     = 35
-  backup_window               = "03:00-04:00"
-  copy_tags_to_snapshot       = true
+  backup_retention_period = 35
+  backup_window           = "03:00-04:00"
+  copy_tags_to_snapshot   = true
 
   performance_insights_enabled          = true
   performance_insights_retention_period = 7
 
-  deletion_protection         = var.environment == "prod" ? true : false
-  skip_final_snapshot         = var.environment == "prod" ? false : true
-  final_snapshot_identifier   = var.environment == "prod" ? "medrecord-final-${var.environment}" : null
+  deletion_protection       = var.environment == "prod" ? true : false
+  skip_final_snapshot       = var.environment == "prod" ? false : true
+  final_snapshot_identifier = var.environment == "prod" ? "medrecord-final-${var.environment}" : null
 
   tags = {
     Name        = "medrecord-rds-${var.environment}"

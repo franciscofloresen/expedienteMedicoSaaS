@@ -147,6 +147,16 @@ resource "aws_iam_role_policy" "lambda_app_permissions" {
           "ses:SendRawEmail"
         ]
         Resource = "*"
+      },
+      {
+        # Read-only: the `backups` verifier (scripts/verify_registry.py) checks
+        # the 5-year legal vault has a recent recovery point (NOM-004 §5.14).
+        Effect = "Allow"
+        Action = [
+          "backup:DescribeBackupVault",
+          "backup:ListRecoveryPointsByBackupVault"
+        ]
+        Resource = "arn:aws:backup:*:*:backup-vault:medrecord-legal-5yr-${var.environment}"
       }
     ]
   })

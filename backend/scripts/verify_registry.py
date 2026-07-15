@@ -26,10 +26,18 @@ Adding a phase verifier = add an ``async def verify_<phase>()`` and one line in
 """
 
 import asyncio
+import os
 from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import text
+
+# A recovery point must exist and be no older than this for the 5-year archive to
+# be considered healthy. The plan is monthly (~31 days), so 40 days tolerates one
+# late/slow job while still catching the exact failure mode of the old incident:
+# the pipeline was "alive in code" but produced zero objects for months.
+_BACKUP_MAX_AGE_DAYS = 40
 
 # Clinical tables that MUST carry FORCE ROW LEVEL SECURITY per §1.2 of the
 # roadmap (they hold NOM-004 clinical documents). RLS still applies to the
@@ -351,10 +359,82 @@ async def verify_medicos() -> dict[str, Any]:
     return _envelope("medicos", checks, warnings=warnings, counts=counts)
 
 
+async def verify_backups() -> dict[str, Any]:
+    """Assert the NOM-004 §5.14 5-year archive is actually producing backups.
+
+    Read-only, no PHI: only queries AWS Backup control-plane metadata (vault
+    lock state and recovery-point timestamps), never the backups' contents.
+
+    This is the proactive half of the anti-silent-failure guard (the reactive
+    half is the SNS notification on ``BACKUP_JOB_FAILED``). It catches the exact
+    failure of the original incident — infrastructure present but producing no
+    recovery points — by requiring at least one COMPLETED recovery point younger
+    than ``_BACKUP_MAX_AGE_DAYS`` in the legal vault.
+    """
+    import boto3
+
+    environment = os.environ.get("ENVIRONMENT", "prod")
+    vault_name = f"medrecord-legal-5yr-{environment}"
+    client = boto3.client("backup")
+
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    # Vault exists and (once locked) is immutable. A missing lock is a warning,
+    # not a hard failure: governance mode still protects, and the two-step
+    # rollout is intentionally unlocked at first.
+    try:
+        vault = client.describe_backup_vault(BackupVaultName=vault_name)
+    except client.exceptions.ResourceNotFoundException:
+        checks.append(_check("legal vault exists", False, f"vault {vault_name!r} not found"))
+        return _envelope("backups", checks, warnings=warnings, counts=counts)
+
+    checks.append(_check("legal vault exists", True, vault_name))
+    if not vault.get("Locked"):
+        warnings.append(f"{vault_name}: Vault Lock not yet in compliance mode (WORM)")
+
+    # Paginate recovery points; find the most recent COMPLETED one.
+    paginator = client.get_paginator("list_recovery_points_by_backup_vault")
+    completed = 0
+    newest: datetime | None = None
+    for page in paginator.paginate(BackupVaultName=vault_name):
+        for rp in page.get("RecoveryPoints", []):
+            if rp.get("Status") != "COMPLETED":
+                continue
+            completed += 1
+            created = rp.get("CompletionDate") or rp.get("CreationDate")
+            if created is not None and (newest is None or created > newest):
+                newest = created
+
+    counts["completed_recovery_points"] = completed
+
+    if newest is None:
+        checks.append(
+            _check(
+                f"recent recovery point (< {_BACKUP_MAX_AGE_DAYS}d)",
+                False,
+                "no COMPLETED recovery points in the legal vault",
+            )
+        )
+    else:
+        age_days = (datetime.now(timezone.utc) - newest).total_seconds() / 86400
+        checks.append(
+            _check(
+                f"recent recovery point (< {_BACKUP_MAX_AGE_DAYS}d)",
+                age_days < _BACKUP_MAX_AGE_DAYS,
+                f"newest recovery point is {age_days:.1f} days old",
+            )
+        )
+
+    return _envelope("backups", checks, warnings=warnings, counts=counts)
+
+
 # action name → verifier coroutine. Each phase appends one entry.
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
+    "backups": verify_backups,
 }
 
 
