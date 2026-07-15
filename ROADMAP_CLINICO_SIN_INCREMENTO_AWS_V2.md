@@ -261,15 +261,18 @@ Como V1, con:
 - La relación cita→encuentro usa la tabla `citas` existente (`estado`:
   Programada/Cancelada/Completada); citas canceladas jamás generan encuentro.
 
-**Backend implementado** (rama `feature/fase2-encuentros`, ver `WALKTHROUGH_FASE2.md`).
-El índice parcial solo cubre `estado='completado'`: dos `primera_vez` pueden coexistir en
-`programado`/`iniciado` y solo la *finalización* está guardada, devolviendo un **409 legible**
-(`PrimeraVezDuplicadaError`) al segundo en completar. El **frontend** de esta fase (etiqueta
-visible primera_vez/subsecuente + precarga historia/evolución, V1 §7.2) debe **manejar ese
-409** como conflicto conciliable, no como error opaco.
+**Backend + capa de servicio del frontend implementados** (rama `feature/fase2-encuentros`,
+ver `WALKTHROUGH_FASE2.md`). El índice parcial solo cubre `estado='completado'`: dos
+`primera_vez` pueden coexistir en `programado`/`iniciado` y solo la *finalización* está
+guardada. El segundo en completar recibe un **409 estructurado**
+(`detail.code = 'primera_vez_duplicada'`, mensaje legible aparte), que el cliente
+(`encuentrosApi` + guard `isPrimeraVezConflict`) distingue del 409 terminal de "cancelado"
+para tratarlo como **conflicto conciliable** (re-consultar y ofrecer completar como
+`subsecuente`). La UI visible (etiqueta primera_vez/subsecuente + precarga historia/evolución,
+V1 §7.2) consume esa capa cuando se conecte.
 
 **Aceptación:** V1 + prueba explícita de concurrencia contra el índice parcial +
-`verify_encuentros` en prod + (frontend) manejo del 409 de `primera_vez` concurrente.
+`verify_encuentros` en prod + 409 estructurado con `code` + guard de conflicto en el cliente.
 
 ### Fase 3 — CIE-10 completo y diagnósticos (2 semanas)
 

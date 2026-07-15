@@ -16,6 +16,7 @@ import asyncio
 import uuid
 
 import pytest
+from httpx import AsyncClient
 from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -275,3 +276,61 @@ async def test_concurrent_primera_vez_only_one_wins(setup_database) -> None:
     assert len(oks) == 1, f"expected exactly one winner, got {results}"
     assert len(conflicts) == 1
     assert "uq_encuentro_primera_vez" in conflicts[0], conflicts[0]
+
+
+async def test_completar_segunda_primera_vez_returns_conflict_code(
+    client: AsyncClient,
+) -> None:
+    """End-to-end over HTTP: completing a second ``primera_vez`` returns 409 with the
+    machine-readable ``code='primera_vez_duplicada'`` the frontend guard branches on
+    (roadmap Fase 2 → Aceptación: the 409 is a reconcilable conflict, not opaque)."""
+    headers = {"X-Tenant-ID": TENANT_A_ID, "X-Plan": "pro"}
+
+    # Valid CURP shape (^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$), randomized for uniqueness
+    # across runs (pacientes is unique on tenant_id+curp).
+    _h = uuid.uuid4().hex
+    curp = f"CEAA{int(_h[:8], 16) % 1000000:06d}MXYZAB{_h[8].upper()}{int(_h[9], 16) % 10}"
+
+    res = await client.post(
+        "/api/v1/pacientes/",
+        json={
+            "nombre_completo": "Paciente Encuentro 409",
+            "sexo": "F",
+            "fecha_nacimiento": "1990-01-01",
+            "curp": curp,
+            "telefono": "555-000-9090",
+            "domicilio": "Calle Encuentro 1",
+            "ocupacion": "Docente",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201, res.text
+    paciente_id = res.json()["id"]
+
+    res = await client.post(
+        "/api/v1/expedientes/", json={"paciente_id": paciente_id}, headers=headers
+    )
+    assert res.status_code == 201, res.text
+    expediente_id = res.json()["id"]
+
+    async def _crear_primera_vez() -> str:
+        res = await client.post(
+            "/api/v1/encuentros/",
+            json={"expediente_id": expediente_id, "tipo": "primera_vez"},
+            headers=headers,
+        )
+        assert res.status_code == 201, res.text
+        return res.json()["id"]
+
+    e1, e2 = await _crear_primera_vez(), await _crear_primera_vez()
+
+    res = await client.post(f"/api/v1/encuentros/{e1}/completar", headers=headers)
+    assert res.status_code == 200, res.text
+    assert res.json()["estado"] == "completado"
+
+    # The second one collides with the partial unique index → structured 409.
+    res = await client.post(f"/api/v1/encuentros/{e2}/completar", headers=headers)
+    assert res.status_code == 409, res.text
+    detail = res.json()["detail"]
+    assert detail["code"] == "primera_vez_duplicada", detail
+    assert detail["message"]

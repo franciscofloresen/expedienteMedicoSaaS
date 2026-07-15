@@ -213,7 +213,13 @@ async def completar(
     try:
         await completar_encuentro(db, encuentro)
     except PrimeraVezDuplicadaError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        # Structured detail so the frontend can tell this reconcilable conflict (the
+        # patient already has a completed primera_vez → offer "complete as subsecuente")
+        # apart from the terminal "cancelado" 409 above. ``message`` stays human-readable.
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "primera_vez_duplicada", "message": str(exc)},
+        ) from exc
     await db.refresh(encuentro)
     return encuentro
 

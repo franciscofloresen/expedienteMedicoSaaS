@@ -111,6 +111,8 @@ export interface Nota {
 
 export interface NotaCreate {
   expediente_id: string;
+  // Fase 2: optional link to the clinical encounter, written only at creation.
+  encuentro_clinico_id?: string | null;
   tipo_nota: string;
   contenido: NotaContenido;
   signos_vitales: SignosVitales;
@@ -174,7 +176,50 @@ export interface Cita extends CitaBase {
   tenant_id: string;
   creado_en: string;
   modificado_en: string;
-  
+
   // Useful for frontend only
   paciente?: Paciente;
+}
+
+// ── Encuentros clínicos (Fase 2) ──
+
+export type EncuentroTipo =
+  | 'primera_vez'
+  | 'subsecuente'
+  | 'procedimiento'
+  | 'urgencia'
+  | 'otro';
+
+export type EncuentroEstado =
+  | 'programado'
+  | 'iniciado'
+  | 'completado'
+  | 'cancelado';
+
+export interface Encuentro {
+  id: string;
+  tenant_id: string;
+  paciente_id: string;
+  expediente_id: string;
+  cita_id?: string | null;
+  medico_id: string;
+  tipo: EncuentroTipo;
+  estado: EncuentroEstado;
+  clasificacion_origen: string;
+  nota_inicial_id?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  creado_en: string;
+}
+
+export interface EncuentroCreate {
+  expediente_id: string;
+  cita_id?: string | null;
+  // Omit to let the backend suggest the type from the patient's history.
+  tipo?: EncuentroTipo;
+}
+
+export interface TipoSugerido {
+  paciente_id: string;
+  tipo_sugerido: EncuentroTipo;
 }

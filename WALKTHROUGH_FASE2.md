@@ -131,7 +131,33 @@ aprobación del GitHub Environment `production`).
 
 ---
 
-## 6. Criterio de "listo para deploy" (checklist de la fase)
+## 6. Manejo del 409 en el frontend (conflicto conciliable, no error opaco)
+
+El índice parcial solo guarda `estado='completado'`, así que dos `primera_vez` pueden
+existir en `programado`/`iniciado` y el choque aparece al **completar** la segunda. Para que
+la UI lo trate como conflicto conciliable —y no lo confunda con el 409 terminal de un
+encuentro "cancelado"— el backend devuelve un **409 estructurado**:
+
+```json
+{ "detail": { "code": "primera_vez_duplicada", "message": "El paciente ya tiene una consulta de primera vez completada." } }
+```
+
+- **Backend** (`api/v1/encuentros.py`): la `PrimeraVezDuplicadaError` se traduce a ese
+  `detail` con `code` legible por máquina; el `message` sigue siendo mostrable.
+- **Cliente** (`services/api.ts`): `fetchClient` ahora preserva `error.code` de
+  `detail.code`; `encuentrosApi` expone `create/iniciar/completar/list/sugerencia`, y el guard
+  `isPrimeraVezConflict(error)` detecta el caso (`status === 409 && code ===
+  'primera_vez_duplicada'`). El futuro componente re-consulta y ofrece completar como
+  `subsecuente` en vez de mostrar un error crudo.
+- **Prueba** (`test_encuentros.py::test_completar_segunda_primera_vez_returns_conflict_code`):
+  crea paciente→expediente→dos `primera_vez` vía HTTP, completa la primera (200) y afirma que
+  la segunda devuelve 409 con `detail.code == 'primera_vez_duplicada'` — el contrato exacto del
+  que depende el guard.
+
+`tipo` sigue siendo inmutable por endpoint hoy: "reconciliar como subsecuente" en la UI
+implicará un endpoint de cambio de tipo cuando se construya el componente; queda anotado.
+
+## 7. Criterio de "listo para deploy" (checklist de la fase)
 
 - [x] Migración reversible (`upgrade head` / `downgrade -1` / `upgrade head`).
 - [x] Test de integración verde con **migración real** (RLS, índice parcial, protección de
@@ -147,7 +173,7 @@ aprobación del GitHub Environment `production`).
 
 ---
 
-## 7. Fuera de alcance (deuda registrada)
+## 8. Fuera de alcance (deuda registrada)
 
 - **`compliance_matrix.md`** sigue en el formato binario "Cumple ✅" heredado. Pasarla a la
   matriz viva (`no evaluado/parcial/implementado/verificado independiente`) es una tarea
@@ -155,10 +181,10 @@ aprobación del GitHub Environment `production`).
   una primitiva criptográfica/de integridad nueva mapeable a una fila NOM; el encuentro es
   estructura de clasificación de la atención, así que no se fuerza una fila en el formato
   deprecado.
-- El `frontend` (etiqueta visible de primera vez/subsecuente y precarga de historia/evolución,
-  V1 §7.2) se aborda cuando el flujo se conecte en la UI; el backend ya expone `/sugerencia`.
-  Ese frontend debe manejar el **409** de `primera_vez` concurrente como conflicto conciliable
-  (registrado en el roadmap, Fase 2 → Aceptación).
+- La **UI visible** de encuentros (etiqueta primera_vez/subsecuente y precarga de
+  historia/evolución, V1 §7.2) se aborda cuando el flujo se conecte; el backend ya expone
+  `/sugerencia` y la **capa de servicio del frontend ya está lista** (ver §6). El componente
+  visual solo tiene que consumir `encuentrosApi` y ramificar con `isPrimeraVezConflict`.
 - **`medico_id` asume un médico por tenant.** `create_encuentro` resuelve el médico con
   `_resolve_medico_id` (LIMIT 1 activo), correcto hoy (Fase 1 estableció un médico por tenant)
   y a prueba de fallos (solo hay uno que elegir). Cuando lleguen varios médicos, el endpoint
