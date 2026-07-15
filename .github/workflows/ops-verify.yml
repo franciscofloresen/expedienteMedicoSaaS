@@ -1,0 +1,64 @@
+name: Ops — Verify (Production)
+
+# Verificación en producción, SOLO LECTURA, tras un deploy o bajo demanda.
+# Invoca el Lambda con {"verify": "<action>"} y falla el job si algún check
+# no pasa. Cada fase del roadmap registra su verificador en
+# backend/scripts/verify_registry.py y añade su nombre a las opciones de abajo.
+#
+#   rls  — RLS activo (enabled + policy) en toda tabla con tenant_id; avisa si
+#          una tabla clínica no tiene FORCE ROW LEVEL SECURITY (§1.2).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Verificador a ejecutar (read-only)"
+        required: true
+        default: "rls"
+        type: choice
+        options:
+          - rls
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+
+jobs:
+  verify:
+    name: Verify (${{ inputs.action }}) in Production
+    runs-on: ubuntu-latest
+    environment: production  # Aprobación manual vía GitHub Environment (auditoría)
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Invoke Lambda
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          PAYLOAD=$(jq -nc --arg a "$ACTION" '{verify: $a}')
+          echo "Invocando ${LAMBDA_FUNCTION_PROD} con payload: ${PAYLOAD}"
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload "${PAYLOAD}" \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/verify_result.json
+          echo "--- Resultado ---"
+          jq '.' /tmp/verify_result.json || cat /tmp/verify_result.json
+          echo ""
+          # Warnings son informativos (no fallan el job); statusCode 200 => todos los checks pasaron.
+          if jq -e '.body.warnings | length > 0' /tmp/verify_result.json >/dev/null 2>&1; then
+            echo "⚠️ Warnings:"; jq -r '.body.warnings[]' /tmp/verify_result.json
+          fi
+          if grep -q '"statusCode": 200' /tmp/verify_result.json; then
+            echo "✅ Verificación '${ACTION}' pasó (todos los checks OK)."
+          else
+            echo "❌ Verificación '${ACTION}' falló (revisa los checks arriba)."
+            exit 1
+          fi
