@@ -187,6 +187,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error("Migrations failed", exc_info=True)
             return {"statusCode": 500, "body": f"Migrations failed: {e}"}
 
+    if isinstance(event, dict) and event.get("verify"):
+        from scripts.verify_registry import run_verify
+
+        action = str(event["verify"])
+        logger.info(f"Running verify action={action}...")
+        try:
+            verify_result = run_verify(action)
+            return {
+                "statusCode": 200 if verify_result.get("ok") else 500,
+                "body": verify_result,
+            }
+        except Exception as e:
+            logger.error(f"verify action={action} failed", exc_info=True)
+            return {"statusCode": 500, "body": f"verify failed: {e}"}
+
     if isinstance(event, dict) and event.get("verify_file_storage"):
         from scripts.verify_file_storage import run_phase
 

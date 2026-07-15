@@ -54,6 +54,13 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+markers = [
+    # Tests that must run against the REAL migrated schema (RLS policies, grants,
+    # immutability triggers created by Alembic — not create_all). The CI
+    # migration job runs `pytest -m migration_schema` with TEST_SCHEMA_MODE=migrations.
+    # Each phase that adds a trigger/RLS/backfill adds its regression test here.
+    "migration_schema: exercise behavior only present after `alembic upgrade head`",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
