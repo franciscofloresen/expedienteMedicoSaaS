@@ -26,9 +26,12 @@ from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.conftest import TENANT_A_ID
+from tests.conftest import TENANT_A_ID, use_migrations
 
-pytestmark = pytest.mark.asyncio
+# migration_schema: also runs in the CI migration job against the real Alembic
+# trigger (TEST_SCHEMA_MODE=migrations). In the default suite it runs in create_all
+# mode against the hand-rolled mirror trigger — defense in depth in both.
+pytestmark = [pytest.mark.asyncio, pytest.mark.migration_schema]
 
 
 @pytest_asyncio.fixture
@@ -38,7 +41,15 @@ async def signed_note_immutability_trigger(setup_database):
     Mirrors backend/alembic/versions/a1b2c3d4e5f6_rls_audit_immutability.py so the
     signing flow runs against the same DB rule as production. Dropped on teardown
     to keep other tests isolated.
+
+    In migration mode (TEST_SCHEMA_MODE=migrations) the real trigger already exists
+    from the Alembic chain, so this fixture is a no-op — the test then exercises the
+    genuine production trigger instead of this hand-rolled mirror.
     """
+    if use_migrations():
+        yield
+        return
+
     engine = create_async_engine(os.environ["DATABASE_URL"])
     async with engine.begin() as conn:
         await conn.execute(
@@ -87,8 +98,13 @@ async def _purge_chain(
     expediente_id: str | None = None,
     nota_id: str | None = None,
 ) -> None:
-    """Delete committed rows in FK-safe order (superuser bypasses RLS; no DELETE
-    triggers are installed in the test DB)."""
+    """Delete committed rows in FK-safe order (superuser bypasses RLS).
+
+    Skipped in migration mode: the real clinical-records immutability triggers
+    (prevent_notas_deletion / prevent_expedientes_deletion) block DELETE even for
+    superusers, and that DB is throwaway, so there is nothing to clean up."""
+    if use_migrations():
+        return
     engine = create_async_engine(os.environ["DATABASE_URL"])
     async with engine.begin() as conn:
         if nota_id:

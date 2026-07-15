@@ -110,7 +110,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .
+        pip install -e ".[dev]"
 
     - name: Create DB role for RLS
       env:
@@ -130,6 +130,17 @@ jobs:
 
     - name: Verify RLS tenant isolation on migrated schema
       run: PYTHONPATH=. python scripts/verify_rls.py
+
+    # Runs the trigger/RLS-sensitive tests against the REAL migrated schema, not
+    # create_all. This is the only place immutability triggers, FORCE RLS policies
+    # and backfills are exercised as production runs them (§1.4). Every phase that
+    # adds such behavior tags its regression test @pytest.mark.migration_schema.
+    - name: Run trigger/RLS regression tests on migrated schema
+      env:
+        JWT_DEV_SECRET: testing-secret-key-123
+        CLERK_SECRET_KEY: testing-clerk-key-123
+        TEST_SCHEMA_MODE: migrations
+      run: pytest -m migration_schema -v
 
   frontend-build:
     runs-on: ubuntu-latest
