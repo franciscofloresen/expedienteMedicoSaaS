@@ -13,6 +13,7 @@ from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.models.receta import Receta
 from app.models.tenant import Tenant
+from app.services.credenciales import get_credencial_para_firma
 from app.services.firma import sign_note
 from app.services.verification import (
     get_or_create_verification_token,
@@ -179,7 +180,10 @@ async def firmar_receta(id: str, request: Request, db: AsyncSession = Depends(ge
     tenant = (
         await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     ).scalar_one_or_none()
-    if not tenant or not tenant.cedula:
+    if not tenant:
+        raise HTTPException(status_code=400, detail="Perfil médico no encontrado")
+    credencial = await get_credencial_para_firma(db, tenant)
+    if not credencial.cedula or not credencial.cedula.strip():
         raise HTTPException(status_code=400, detail="Cédula profesional requerida para firmar")
 
     content = json.dumps(
@@ -197,9 +201,9 @@ async def firmar_receta(id: str, request: Request, db: AsyncSession = Depends(ge
         content=content,
         tenant_id=str(tenant_id),
         nota_id=str(receta.id),
-        medico_nombre=tenant.nombre_medico,
-        medico_cedula=tenant.cedula,
-        medico_especialidad=tenant.especialidad or "General",
+        medico_nombre=credencial.nombre,
+        medico_cedula=credencial.cedula,
+        medico_especialidad=credencial.especialidad,
     )
     receta.firma_digital = signature_data["firma_digital"]
     receta.firma_hash_contenido = signature_data["firma_hash_contenido"]

@@ -44,6 +44,8 @@ _FORCE_EXPECTED = {
     "citas",
     "clinical_files",
     "tenant_storage_usage",
+    "medicos",
+    "medico_credenciales",
 }
 
 # Records the app role must never hard-delete: the clinical record and its
@@ -57,6 +59,10 @@ _DELETE_PROTECTED = {
     "consentimientos",
     "recetas",
     "verification_tokens",
+    # Fase 1: a credential used in a signed document is deactivated, never deleted;
+    # the médico identity behind signed documents must likewise survive (§5.1).
+    "medicos",
+    "medico_credenciales",
 }
 
 
@@ -174,9 +180,181 @@ async def verify_rls() -> dict[str, Any]:
     return _envelope("rls", checks, warnings=warnings)
 
 
+async def _table_rls_checks(session: Any, table: str) -> tuple[list[dict[str, Any]], list[str]]:
+    """Structural RLS/force/delete checks for one tenant-scoped table (read-only)."""
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    rls_row = (
+        await session.execute(
+            text(
+                """
+                SELECT relrowsecurity, relforcerowsecurity
+                FROM pg_class
+                WHERE relname = :t AND relnamespace = 'public'::regnamespace
+                """
+            ),
+            {"t": table},
+        )
+    ).first()
+    policy_count = (
+        await session.execute(
+            text(
+                "SELECT count(*) FROM pg_policies "
+                "WHERE schemaname = 'public' AND tablename = :t"
+            ),
+            {"t": table},
+        )
+    ).scalar_one()
+    rls_enabled = bool(rls_row and rls_row[0])
+    forced = bool(rls_row and rls_row[1])
+
+    checks.append(
+        _check(
+            f"{table}: RLS enabled with a policy",
+            rls_enabled and policy_count >= 1,
+            f"rls_enabled={rls_enabled}, policies={policy_count}",
+        )
+    )
+    if table in _FORCE_EXPECTED and not forced:
+        warnings.append(
+            f"{table}: clinical table lacks FORCE ROW LEVEL SECURITY (§1.2 defense-in-depth)"
+        )
+    if table in _DELETE_PROTECTED:
+        app_can_delete = (
+            await session.execute(
+                text("SELECT has_table_privilege('medrecord_app', :t, 'DELETE')"),
+                {"t": table},
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                f"{table}: app role cannot DELETE (retention/integrity)",
+                not app_can_delete,
+                f"medrecord_app has DELETE={app_can_delete}",
+            )
+        )
+    return checks, warnings
+
+
+async def verify_medicos() -> dict[str, Any]:
+    """Fase 1: médicos + credenciales landed with isolation, protection and backfill.
+
+    Read-only, no PHI (structural facts + aggregate counts only). Runs against
+    production after the Fase 1 deploy. Confirms:
+
+    * ``medicos`` / ``medico_credenciales`` have RLS + policy + no app DELETE.
+    * Backfill completeness: every tenant has a médico; every tenant with a cédula
+      has a default-active credential.
+    * ``tenants.cedula`` stays in lockstep with the default credential's normalized
+      number (§1.3), so onboarding's uniqueness check and ``release_cedula`` keep working.
+
+    Note: aggregate counts span all tenants, so this must run as the RLS-bypassing
+    connection role (the same one ``verify_rls`` uses — not demoted to medrecord_app).
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    async with factory() as session, session.begin():
+        for table in ("medicos", "medico_credenciales"):
+            tchecks, twarn = await _table_rls_checks(session, table)
+            checks.extend(tchecks)
+            warnings.extend(twarn)
+
+        counts = {
+            "tenants": (
+                await session.execute(text("SELECT count(*) FROM tenants"))
+            ).scalar_one(),
+            "medicos": (
+                await session.execute(text("SELECT count(*) FROM medicos"))
+            ).scalar_one(),
+            "credenciales": (
+                await session.execute(text("SELECT count(*) FROM medico_credenciales"))
+            ).scalar_one(),
+            "credenciales_predeterminadas": (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM medico_credenciales "
+                        "WHERE es_predeterminada AND activa"
+                    )
+                )
+            ).scalar_one(),
+        }
+
+        tenants_sin_medico = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM tenants t "
+                    "WHERE NOT EXISTS (SELECT 1 FROM medicos m WHERE m.tenant_id = t.id)"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "every tenant has a médico (backfill complete)",
+                tenants_sin_medico == 0,
+                f"tenants without médico={tenants_sin_medico}",
+            )
+        )
+
+        # A tenant with a real cédula must have a default-active credential.
+        cedula_sin_credencial = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM tenants t
+                    JOIN medicos m ON m.tenant_id = t.id
+                    WHERE coalesce(t.cedula, '') <> ''
+                      AND NOT EXISTS (
+                          SELECT 1 FROM medico_credenciales c
+                          WHERE c.medico_id = m.id AND c.es_predeterminada AND c.activa
+                      )
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "every tenant with a cédula has a default credential",
+                cedula_sin_credencial == 0,
+                f"tenants missing default credential={cedula_sin_credencial}",
+            )
+        )
+
+        # §1.3 sync: tenants.cedula == default credential's normalized number.
+        cedula_desincronizada = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM tenants t
+                    JOIN medicos m ON m.tenant_id = t.id
+                    JOIN medico_credenciales c
+                      ON c.medico_id = m.id AND c.es_predeterminada AND c.activa
+                    WHERE coalesce(t.cedula, '') <> ''
+                      AND c.numero_normalizado
+                          <> upper(regexp_replace(coalesce(t.cedula, ''), '\\s+', '', 'g'))
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "tenants.cedula in sync with default credential (§1.3)",
+                cedula_desincronizada == 0,
+                f"out-of-sync tenants={cedula_desincronizada}",
+            )
+        )
+
+    return _envelope("medicos", checks, warnings=warnings, counts=counts)
+
+
 # action name → verifier coroutine. Each phase appends one entry.
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
+    "medicos": verify_medicos,
 }
 
 

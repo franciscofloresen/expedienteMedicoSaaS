@@ -138,6 +138,17 @@ async def update_profile(
 
     await db.flush()
 
+    if data.cedula or data.especialidad is not None:
+        # §1.3: keep the default credential in lockstep with tenants.cedula.
+        from app.services.credenciales import sync_credencial_predeterminada
+
+        await sync_credencial_predeterminada(
+            db,
+            tenant_id=tenant.id,
+            cedula=tenant.cedula,
+            especialidad=tenant.especialidad,
+        )
+
     if user_id:
         try:
             import httpx
@@ -348,7 +359,18 @@ async def onboarding(
         db.add(new_tenant)
 
         from sqlalchemy.exc import IntegrityError
+
+        from app.services.credenciales import provision_medico_para_tenant
         try:
+            # §1.3 dual-write: a new tenant gets its médico + default credential in the
+            # same transaction, so tenants.cedula and the credential are born in sync.
+            await provision_medico_para_tenant(
+                db,
+                tenant_id=new_tenant_id,
+                nombre_completo=data.nombre_medico,
+                cedula=data.cedula,
+                especialidad=data.especialidad or None,
+            )
             await db.commit()
         except IntegrityError:
             await db.rollback()

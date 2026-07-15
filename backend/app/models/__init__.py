@@ -5,6 +5,7 @@ from .cita import Cita
 from .clinical_file import ClinicalFile, TenantStorageUsage
 from .consentimiento import Consentimiento
 from .expediente import Expediente
+from .medico import Medico, MedicoCredencial
 from .message_log import MessageLog
 from .nota import Nota
 from .paciente import Paciente
@@ -30,4 +31,6 @@ __all__ = [
     "Reminder",
     "ClinicalFile",
     "TenantStorageUsage",
+    "Medico",
+    "MedicoCredencial",
 ]

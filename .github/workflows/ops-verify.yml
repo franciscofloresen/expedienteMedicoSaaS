@@ -5,8 +5,11 @@ name: Ops — Verify (Production)
 # no pasa. Cada fase del roadmap registra su verificador en
 # backend/scripts/verify_registry.py y añade su nombre a las opciones de abajo.
 #
-#   rls  — RLS activo (enabled + policy) en toda tabla con tenant_id; avisa si
-#          una tabla clínica no tiene FORCE ROW LEVEL SECURITY (§1.2).
+#   rls      — RLS activo (enabled + policy) en toda tabla con tenant_id; avisa si
+#              una tabla clínica no tiene FORCE ROW LEVEL SECURITY (§1.2).
+#   medicos  — Fase 1: medicos/medico_credenciales con RLS + protección de borrado,
+#              backfill completo y tenants.cedula sincronizada con la credencial
+#              predeterminada (§1.3).
 
 on:
   workflow_dispatch:
@@ -18,6 +21,7 @@ on:
         type: choice
         options:
           - rls
+          - medicos
 
 permissions:
   id-token: write

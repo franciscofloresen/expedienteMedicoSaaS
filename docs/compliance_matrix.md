@@ -35,9 +35,9 @@ o extraordinaria si el DOF publica cambios.
 |---|---|---|---|
 | 5.3 Identificación del paciente | Modelo `Paciente` exige `nombre_completo`, `sexo`, `fecha_nacimiento`; validación en frontend/schema | implementado | Segundo identificador / banner de identidad pendiente (Fase 12) |
 | 5.4 Historia clínica completa | Antecedentes en JSONB cifrado (KMS envelope) en `expedientes` | parcial | Historia longitudinal estructurada (alergias/problemas/medicamentos) pendiente (Fase 12) |
-| 5.8 Nota con fecha, hora, nombre y firma | `notas` con timestamp, firma KMS ECDSA, snapshot inmutable de `medico_nombre/cedula/especialidad` | implementado | Snapshot vive en `tenants` (una credencial); modelo `medicos` multi-credencial pendiente (Fase 1) |
+| 5.8 Nota con fecha, hora, nombre y firma | `notas` con timestamp, firma KMS ECDSA, snapshot inmutable de `medico_nombre/cedula/especialidad`; identidad del firmante resuelta por un adaptador único desde `medicos`/`medico_credenciales` (Fase 1) con fallback a `tenants` | implementado | El retiro de los campos de firma en `tenants` es la última migración (Fase 8); múltiples credenciales por documento aún no seleccionables en UI |
 | 5.10 Corrección / addenda | Nota firmada inmutable por trigger; corrección solo como nota nueva | parcial | Flujo de addenda formal con referencia al original pendiente (Fase 12) |
-| 5.14 Conservación (≥5 años) | `REVOKE DELETE` + triggers `prevent_*_deletion` en pacientes, notas, expedientes, recetas y consentimientos; `activo` soft-delete | parcial | Retención calculada desde el último acto médico y lifecycle S3→Glacier no verificados |
+| 5.14 Conservación (≥5 años) | `REVOKE DELETE` + triggers `prevent_*_deletion` en pacientes, notas, expedientes, recetas, consentimientos y (Fase 1) `medicos`/`medico_credenciales`; `activo` soft-delete | parcial | Retención calculada desde el último acto médico y lifecycle S3→Glacier no verificados |
 
 ## Resumen — NOM-024-SSA3-2012 (sistemas de registro e intercambio)
 
@@ -56,19 +56,19 @@ o extraordinaria si el DOF publica cambios.
 ### NOM-004 §5.8 — Nota con fecha, hora, nombre y firma
 - **Interpretación:** toda nota médica debe registrar fecha/hora, identidad y firma del médico responsable, y ser inalterable tras firmarse.
 - **Responsable:** médico responsable (contenido) · CloudMedRecord encargado (control técnico).
-- **Control técnico:** `notas` con `firmado_en`, firma KMS ECDSA (`firma_digital`, `firma_hash_contenido`, `firma_kms_key_id`), snapshot `medico_nombre/cedula/especialidad`; trigger `notas_signed_immutable` bloquea UPDATE cuando `es_editable=false`.
-- **Procedimiento operativo:** el médico firma desde la UI; el backend persiste firma + token de verificación en la misma transacción.
-- **Prueba:** `tests/integration/test_nota_signing_immutability_trigger.py` (corre contra el trigger real de Alembic en el job de migración, `@pytest.mark.migration_schema`).
-- **Evidencia:** migración `a1b2c3d4e5f6`; regresión verde en CI.
-- **Estado:** implementado · **Riesgo residual:** la credencial de firma vive en `tenants` (una sola); el modelo `medicos` multi-credencial (Fase 1) mejora la fidelidad NOM del firmante.
+- **Control técnico:** `notas` con `firmado_en`, firma KMS ECDSA (`firma_digital`, `firma_hash_contenido`, `firma_kms_key_id`), snapshot `medico_nombre/cedula/especialidad`; trigger `notas_signed_immutable` bloquea UPDATE cuando `es_editable=false`. La identidad estampada la resuelve el adaptador único `get_credencial_para_firma` desde la credencial predeterminada activa de `medicos`/`medico_credenciales` (Fase 1), con fallback a los campos de `tenants` durante la transición; `tenants.cedula` se mantiene sincronizada con la credencial predeterminada.
+- **Procedimiento operativo:** el médico firma desde la UI; el backend persiste firma + token de verificación en la misma transacción. Onboarding crea médico + credencial predeterminada en la misma transacción (doble escritura); `update_profile` sincroniza la credencial al editar cédula/especialidad.
+- **Prueba:** `tests/integration/test_nota_signing_immutability_trigger.py` y `tests/integration/test_medicos_credenciales.py` (adaptador, RLS, unicidades, protección de borrado, provisión/sincronización), ambos `@pytest.mark.migration_schema` contra el esquema migrado real.
+- **Evidencia:** migraciones `a1b2c3d4e5f6` (trigger), `efb69dbb7dfb` (medicos/credenciales + backfill); regresión verde en CI.
+- **Estado:** implementado · **Riesgo residual:** el retiro de los campos de firma en `tenants` es la última migración (Fase 8); selección de credencial por documento en UI pendiente.
 
 ### NOM-004 §5.14 — Conservación mínima
 - **Interpretación:** el expediente debe conservarse al menos 5 años a partir del último acto médico.
 - **Responsable:** CloudMedRecord encargado.
-- **Control técnico:** `REVOKE DELETE` sobre tablas clínicas para `medrecord_app`; triggers `prevent_{pacientes,notas,expedientes,recetas,consentimientos}_deletion` bloquean DELETE incluso a owner/superuser; `pacientes.activo` para baja lógica. Los tokens de verificación (integridad de firmas) también tienen `REVOKE DELETE` de la app.
-- **Procedimiento operativo:** no existen endpoints de hard-delete clínico; las bajas son lógicas.
-- **Prueba:** verificador estructural `verify_rls` (`scripts/verify_registry.py`) con check de delete-protection por tabla; guardián de regresión en `test_verify_rls_structure.py`.
-- **Evidencia:** migraciones `a1b2c3d4e5f6`, `f1e2d3c4b5a6`, `5eb13dab23be`, `8d3d86bc8393`.
+- **Control técnico:** `REVOKE DELETE` sobre tablas clínicas para `medrecord_app`; triggers `prevent_{pacientes,notas,expedientes,recetas,consentimientos,medicos,medico_credenciales}_deletion` bloquean DELETE incluso a owner/superuser; `pacientes.activo` / `medicos.activo` / `medico_credenciales.activa` para baja lógica. Los tokens de verificación (integridad de firmas) también tienen `REVOKE DELETE` de la app. Una credencial usada en un documento firmado se **desactiva, nunca se borra**.
+- **Procedimiento operativo:** no existen endpoints de hard-delete clínico; las bajas son lógicas. Excepción controlada: `release_cedula.py` puede liberar la cédula de un tenant **huérfano** (sin datos clínicos) deshabilitando transaccionalmente los triggers de `medicos`/`medico_credenciales` para retirar solo la identidad backfilled no usada; si el tenant tiene datos clínicos la FK aborta el borrado y el rollback restaura triggers y filas.
+- **Prueba:** verificadores estructurales `verify_rls` y `verify_medicos` (`scripts/verify_registry.py`) con check de delete-protection por tabla; guardianes de regresión en `test_verify_rls_structure.py` y `test_medicos_credenciales.py`.
+- **Evidencia:** migraciones `a1b2c3d4e5f6`, `f1e2d3c4b5a6`, `5eb13dab23be`, `8d3d86bc8393`, `efb69dbb7dfb`.
 - **Estado:** parcial · **Riesgo residual:** la conservación calculada **desde el último acto médico** y el lifecycle S3→Glacier IR (1825 días) no están verificados como política computada; separar retención legal vs. recuperación (Fase 10).
 
 ### NOM-024 — Trazabilidad / bitácora inalterable
