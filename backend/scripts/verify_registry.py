@@ -46,6 +46,18 @@ _FORCE_EXPECTED = {
     "tenant_storage_usage",
 }
 
+# Final clinical documents that must not be hard-deletable by the app role
+# (NOM-004 §5.14). The app never issues DELETE on these; a granted DELETE
+# privilege is a regression (it happened for consentimientos/recetas when later
+# migrations did GRANT ALL). This is a hard check, not a warning.
+_DELETE_PROTECTED = {
+    "pacientes",
+    "expedientes",
+    "notas",
+    "consentimientos",
+    "recetas",
+}
+
 
 def _check(name: str, ok: bool, detail: str = "") -> dict[str, Any]:
     return {"name": name, "ok": ok, "detail": detail}
@@ -139,6 +151,24 @@ async def verify_rls() -> dict[str, Any]:
                     f"{table}: clinical table lacks FORCE ROW LEVEL SECURITY "
                     "(§1.2 defense-in-depth; RLS still applies to the app role)"
                 )
+
+        # NOM-004 §5.14: final clinical documents must not be app-deletable.
+        for table in sorted(_DELETE_PROTECTED):
+            if table not in tenant_tables:
+                continue
+            app_can_delete = (
+                await session.execute(
+                    text("SELECT has_table_privilege('medrecord_app', :t, 'DELETE')"),
+                    {"t": table},
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    f"{table}: app role cannot DELETE (NOM-004 §5.14)",
+                    not app_can_delete,
+                    f"medrecord_app has DELETE={app_can_delete}",
+                )
+            )
 
     return _envelope("rls", checks, warnings=warnings)
 

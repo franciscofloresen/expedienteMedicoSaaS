@@ -37,7 +37,7 @@ o extraordinaria si el DOF publica cambios.
 | 5.4 Historia clínica completa | Antecedentes en JSONB cifrado (KMS envelope) en `expedientes` | parcial | Historia longitudinal estructurada (alergias/problemas/medicamentos) pendiente (Fase 12) |
 | 5.8 Nota con fecha, hora, nombre y firma | `notas` con timestamp, firma KMS ECDSA, snapshot inmutable de `medico_nombre/cedula/especialidad` | implementado | Snapshot vive en `tenants` (una credencial); modelo `medicos` multi-credencial pendiente (Fase 1) |
 | 5.10 Corrección / addenda | Nota firmada inmutable por trigger; corrección solo como nota nueva | parcial | Flujo de addenda formal con referencia al original pendiente (Fase 12) |
-| 5.14 Conservación (≥5 años) | `REVOKE DELETE` + triggers `prevent_notas/expedientes_deletion`; `activo` soft-delete | parcial | Retención calculada desde el último acto médico y lifecycle S3→Glacier no verificados |
+| 5.14 Conservación (≥5 años) | `REVOKE DELETE` + triggers `prevent_*_deletion` en notas, expedientes, recetas y consentimientos; `activo` soft-delete | parcial | Retención calculada desde el último acto médico y lifecycle S3→Glacier no verificados |
 
 ## Resumen — NOM-024-SSA3-2012 (sistemas de registro e intercambio)
 
@@ -65,10 +65,10 @@ o extraordinaria si el DOF publica cambios.
 ### NOM-004 §5.14 — Conservación mínima
 - **Interpretación:** el expediente debe conservarse al menos 5 años a partir del último acto médico.
 - **Responsable:** CloudMedRecord encargado.
-- **Control técnico:** `REVOKE DELETE` sobre tablas clínicas para `medrecord_app`; triggers `prevent_notas_deletion` / `prevent_expedientes_deletion` bloquean DELETE incluso a superuser; `pacientes.activo` para baja lógica.
+- **Control técnico:** `REVOKE DELETE` sobre tablas clínicas para `medrecord_app`; triggers `prevent_{notas,expedientes,recetas,consentimientos}_deletion` bloquean DELETE incluso a owner/superuser; `pacientes.activo` para baja lógica.
 - **Procedimiento operativo:** no existen endpoints de hard-delete clínico; las bajas son lógicas.
-- **Prueba:** `scripts/verify_rls.py` y el verificador estructural `verify_rls` (registro `scripts/verify_registry.py`).
-- **Evidencia:** migraciones `a1b2c3d4e5f6`, `f1e2d3c4b5a6`.
+- **Prueba:** verificador estructural `verify_rls` (`scripts/verify_registry.py`) con check de delete-protection por tabla; guardián de regresión en `test_verify_rls_structure.py`.
+- **Evidencia:** migraciones `a1b2c3d4e5f6`, `f1e2d3c4b5a6`, `5eb13dab23be` (recetas/consentimientos).
 - **Estado:** parcial · **Riesgo residual:** la conservación calculada **desde el último acto médico** y el lifecycle S3→Glacier IR (1825 días) no están verificados como política computada; separar retención legal vs. recuperación (Fase 10).
 
 ### NOM-024 — Trazabilidad / bitácora inalterable

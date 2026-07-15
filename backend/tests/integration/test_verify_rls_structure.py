@@ -38,3 +38,13 @@ async def test_verify_rls_passes_on_migrated_schema(setup_database) -> None:
     assert "consentimientos" not in warned_tables, result["warnings"]
     assert "recetas" not in warned_tables, result["warnings"]
     assert result["warnings"] == [], result["warnings"]
+
+    # Regression guard for NOM-004 §5.14 delete-protection (migration 5eb13dab23be):
+    # recetas and consentimientos must be delete-protected like notas. If a future
+    # migration re-grants DELETE, the corresponding check flips to ok=False.
+    delete_checks = {
+        c["name"]: c["ok"] for c in result["checks"] if "cannot DELETE" in c["name"]
+    }
+    assert any("recetas" in n for n in delete_checks)
+    assert any("consentimientos" in n for n in delete_checks)
+    assert all(delete_checks.values()), delete_checks
