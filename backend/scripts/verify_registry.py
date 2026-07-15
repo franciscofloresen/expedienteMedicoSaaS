@@ -54,6 +54,8 @@ _FORCE_EXPECTED = {
     "tenant_storage_usage",
     "medicos",
     "medico_credenciales",
+    # Fase 2: a clinical encounter is clinical evidence — RLS FORCE + never deletable.
+    "encuentros_clinicos",
 }
 
 # Records the app role must never hard-delete: the clinical record and its
@@ -71,6 +73,8 @@ _DELETE_PROTECTED = {
     # the médico identity behind signed documents must likewise survive (§5.1).
     "medicos",
     "medico_credenciales",
+    # Fase 2: an encuentro is cancelled (estado), never physically removed (§5.1).
+    "encuentros_clinicos",
 }
 
 
@@ -359,6 +363,90 @@ async def verify_medicos() -> dict[str, Any]:
     return _envelope("medicos", checks, warnings=warnings, counts=counts)
 
 
+async def verify_encuentros() -> dict[str, Any]:
+    """Fase 2: encuentros_clinicos landed with isolation, delete-protection and the
+    one-primera_vez invariant intact.
+
+    Read-only, no PHI (structural facts + aggregate counts only). Runs against
+    production after the Fase 2 deploy. Confirms:
+
+    * ``encuentros_clinicos`` has RLS + policy + FORCE + no app DELETE.
+    * The partial unique index ``uq_encuentro_primera_vez`` exists (the real §3
+      enforcement) — a missing index would silently allow two first consultations.
+    * Data invariant: at most one completed ``primera_vez`` per (tenant, paciente).
+
+    Note: aggregate counts span all tenants, so this must run as the RLS-bypassing
+    connection role (the same one ``verify_rls`` uses — not demoted to medrecord_app).
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "encuentros_clinicos")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+
+        # The partial unique index is the enforcement of "one primera_vez" (§3).
+        index_exists = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_indexes "
+                    "WHERE schemaname = 'public' AND indexname = 'uq_encuentro_primera_vez'"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "partial unique index uq_encuentro_primera_vez present (§3)",
+                index_exists == 1,
+                f"found={index_exists}",
+            )
+        )
+
+        # Data invariant: the index must never have allowed a duplicate. Counts any
+        # (tenant, paciente) with >1 completed primera_vez — should always be zero.
+        duplicados = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM (
+                        SELECT tenant_id, paciente_id
+                        FROM encuentros_clinicos
+                        WHERE tipo = 'primera_vez' AND estado = 'completado'
+                        GROUP BY tenant_id, paciente_id
+                        HAVING count(*) > 1
+                    ) dups
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "at most one completed primera_vez per patient (§3)",
+                duplicados == 0,
+                f"patients with duplicate primera_vez={duplicados}",
+            )
+        )
+
+        counts = {
+            "encuentros": (
+                await session.execute(text("SELECT count(*) FROM encuentros_clinicos"))
+            ).scalar_one(),
+            "encuentros_completados": (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM encuentros_clinicos WHERE estado = 'completado'"
+                    )
+                )
+            ).scalar_one(),
+        }
+
+    return _envelope("encuentros", checks, warnings=warnings, counts=counts)
+
+
 async def verify_backups() -> dict[str, Any]:
     """Assert the NOM-004 §5.14 5-year archive is actually producing backups.
 
@@ -434,6 +522,7 @@ async def verify_backups() -> dict[str, Any]:
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
+    "encuentros": verify_encuentros,
     "backups": verify_backups,
 }
 

@@ -4,6 +4,7 @@ from .cie10 import CIE10
 from .cita import Cita
 from .clinical_file import ClinicalFile, TenantStorageUsage
 from .consentimiento import Consentimiento
+from .encuentro import EncuentroClinico
 from .expediente import Expediente
 from .medico import Medico, MedicoCredencial
 from .message_log import MessageLog
@@ -23,6 +24,7 @@ __all__ = [
     "Expediente",
     "Nota",
     "Consentimiento",
+    "EncuentroClinico",
     "VerificationToken",
     "MessageLog",
     "Cita",

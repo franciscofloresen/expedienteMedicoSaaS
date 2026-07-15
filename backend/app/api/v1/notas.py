@@ -119,6 +119,9 @@ async def _build_legal_note_payload(
 
 class NotaCreate(BaseModel):
     expediente_id: UUID
+    # Fase 2: optional link to the clinical encounter. Written ONLY here, at creation
+    # — never UPDATEd onto a signed nota (§1.1). Historical notes stay unlinked.
+    encuentro_clinico_id: UUID | None = None
     tipo_nota: str = Field(..., description="evolucion, interconsulta, ingreso, egreso")
     contenido: dict[str, Any]
     signos_vitales: dict[str, Any] = Field(default_factory=dict)
@@ -228,6 +231,7 @@ async def create_nota(
     nota = Nota(
         tenant_id=tenant_id,
         expediente_id=str(data.expediente_id),
+        encuentro_clinico_id=data.encuentro_clinico_id,
         tipo_nota=data.tipo_nota,
         contenido=contenido_completo,
         signos_vitales=data.signos_vitales,
