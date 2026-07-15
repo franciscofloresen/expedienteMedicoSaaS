@@ -10,6 +10,9 @@ import type {
   Cita,
   CitaBase,
   Receta,
+  Encuentro,
+  EncuentroCreate,
+  TipoSugerido,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -70,6 +73,7 @@ async function fetchClient<T>(
   
   if (!response.ok) {
     let errorDetail = `HTTP Error ${response.status}`;
+    let errorCode: string | undefined;
     try {
       const errBody = await response.json();
       if (errBody.detail) {
@@ -77,6 +81,9 @@ async function fetchClient<T>(
           errorDetail = errBody.detail.map((e: any) => `${e.loc?.[e.loc?.length-1] || 'Campo'}: ${e.msg}`).join(', ');
         } else if (typeof errBody.detail === 'object' && errBody.detail.message) {
           errorDetail = errBody.detail.message;
+          // Structured errors may carry a machine-readable code alongside the message
+          // (e.g. primera_vez_duplicada) so callers can branch without parsing text.
+          errorCode = errBody.detail.code;
         } else {
           errorDetail = errBody.detail;
         }
@@ -88,6 +95,7 @@ async function fetchClient<T>(
     }
     const error = new Error(errorDetail) as any;
     error.status = response.status;
+    if (errorCode) error.code = errorCode;
     throw error;
   }
 
@@ -193,6 +201,44 @@ export const citasApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/citas/${id}`);
   }
+};
+
+/**
+ * A completed `primera_vez` already exists for the patient (backend HTTP 409 with
+ * code `primera_vez_duplicada`, enforced by the partial unique index). This is a
+ * reconcilable conflict, NOT a crash: the patient's first consultation was recorded
+ * elsewhere (another tab / concurrent request), so the UI should re-fetch and offer
+ * to complete this encounter as `subsecuente` (roadmap Fase 2 → Aceptación).
+ */
+export function isPrimeraVezConflict(
+  error: unknown,
+): error is Error & { status: 409; code: 'primera_vez_duplicada' } {
+  const e = error as { status?: number; code?: string } | null;
+  return Boolean(e) && e!.status === 409 && e!.code === 'primera_vez_duplicada';
+}
+
+export const encuentrosApi = {
+  list: async (pacienteId?: string): Promise<Encuentro[]> => {
+    return api.get<Encuentro[]>(
+      '/encuentros/',
+      pacienteId ? { paciente_id: pacienteId } : undefined,
+    );
+  },
+  getById: async (id: string): Promise<Encuentro> => {
+    return api.get<Encuentro>(`/encuentros/${id}`);
+  },
+  sugerencia: async (pacienteId: string): Promise<TipoSugerido> => {
+    return api.get<TipoSugerido>('/encuentros/sugerencia', { paciente_id: pacienteId });
+  },
+  create: async (data: EncuentroCreate): Promise<Encuentro> => {
+    return api.post<Encuentro>('/encuentros/', data);
+  },
+  iniciar: async (id: string): Promise<Encuentro> => {
+    return api.post<Encuentro>(`/encuentros/${id}/iniciar`);
+  },
+  completar: async (id: string): Promise<Encuentro> => {
+    return api.post<Encuentro>(`/encuentros/${id}/completar`);
+  },
 };
 
 export interface AuditEntry {

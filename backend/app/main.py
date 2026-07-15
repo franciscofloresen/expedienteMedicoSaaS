@@ -20,6 +20,7 @@ from app.api.v1 import (
     cie10,
     citas,
     consentimientos,
+    encuentros,
     expedientes,
     files,
     messages,
@@ -143,6 +144,9 @@ app.include_router(expedientes.router, prefix="/api/v1/expedientes", tags=["Expe
 app.include_router(files.router, prefix="/api/v1/files", tags=["Archivos clínicos"])
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
+app.include_router(
+    encuentros.router, prefix="/api/v1/encuentros", tags=["Encuentros Clínicos"]
+)
 app.include_router(cie10.router, prefix="/api/v1/cie10", tags=["CIE-10"])
 app.include_router(recetas.router, prefix="/api/v1/recetas", tags=["Recetas"])
 app.include_router(

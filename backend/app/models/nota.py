@@ -48,6 +48,13 @@ class Nota(Base):
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
     diagnostico_cie10: Mapped[str | None] = mapped_column(String(255))
 
+    # Fase 2: the clinical encounter this note belongs to. Nullable and written
+    # ONLY at note creation — never UPDATEd onto a signed (immutable) nota (§1.1).
+    # Historical notes stay NULL; their encounter link lives on the encounter side.
+    encuentro_clinico_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("encuentros_clinicos.id")
+    )
+
     # Encounter fields
     motivo_consulta: Mapped[str | None] = mapped_column(Text)
     exploracion_fisica: Mapped[str | None] = mapped_column(Text)
