@@ -155,7 +155,9 @@ encuentro "cancelado"— el backend devuelve un **409 estructurado**:
   que depende el guard.
 
 `tipo` sigue siendo inmutable por endpoint hoy: "reconciliar como subsecuente" en la UI
-implicará un endpoint de cambio de tipo cuando se construya el componente; queda anotado.
+implicará un endpoint de **corrección manual de `tipo`** (con `motivo_correccion`, ya en el
+modelo) cuando se construya el componente. Registrado como `[DEUDA FASE 2]` en el roadmap V2
+(sección Fase 2).
 
 ## 7. Criterio de "listo para deploy" (checklist de la fase)
 

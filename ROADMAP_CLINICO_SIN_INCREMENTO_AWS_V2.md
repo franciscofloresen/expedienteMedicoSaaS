@@ -271,6 +271,13 @@ para tratarlo como **conflicto conciliable** (re-consultar y ofrecer completar c
 `subsecuente`). La UI visible (etiqueta primera_vez/subsecuente + precarga historia/evolución,
 V1 §7.2) consume esa capa cuando se conecte.
 
+- **[DEUDA FASE 2]** Endpoint de **corrección manual de `tipo`** (con `motivo_correccion` y
+  `clasificacion_origen='manual'`, ya presentes en el modelo — V1 §6.3). Hoy `tipo` es
+  inmutable por endpoint, así que la reconciliación "completar como subsecuente" del guard
+  `isPrimeraVezConflict` no puede cerrarse aún: falta ese endpoint. Se construye junto con la
+  UI visible de encuentros (V1 §7.2); registra usuario, fecha y motivo, y **nunca** hace UPDATE
+  a notas firmadas (§1.1).
+
 **Aceptación:** V1 + prueba explícita de concurrencia contra el índice parcial +
 `verify_encuentros` en prod + 409 estructurado con `code` + guard de conflicto en el cliente.
 
