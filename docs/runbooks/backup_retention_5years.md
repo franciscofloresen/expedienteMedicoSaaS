@@ -1,8 +1,9 @@
 # Runbook — Retención de 5 años y recuperación de la base de datos (NOM-004 §5.14)
 
-> Estado: **código aplicado en la rama, pendiente de `terraform apply` + ensayo de restore**.
-> Corrige un hallazgo de confiabilidad/cumplimiento verificado el 2026-07-15: el pipeline de export
-> de snapshots RDS a S3 (la supuesta red de retención a 5 años) **está caído** y nunca ha
+> Estado: **implementado en prod (2026-07-15)**. `terraform apply` aplicado (PR #117); ensayo de
+> restore superado (RTO ~17 min, ver §5.2); Vault Lock compliance finaliza **2026-07-18 01:29 (-06:00)**.
+> Corrigió un hallazgo de confiabilidad/cumplimiento verificado el 2026-07-15: el pipeline de export
+> de snapshots RDS a S3 (la supuesta red de retención a 5 años) **estaba caído** y nunca había
 > funcionado en su forma actual.
 >
 > Alcance: **solo la base de datos relacional** (RDS PostgreSQL: notas, expedientes, recetas,
@@ -348,6 +349,23 @@ Sin esto, la retención es teatro. Runbook:
 
 **Cadencia:** ejecutar el ensayo **una vez ahora** (cierra §2.4) y luego **trimestralmente** (Fase 10).
 
+> #### Evidencia del ensayo — 2026-07-15 (cierra §2.4)
+>
+> - Backup on-demand `e45d9f3c-44de-437a-bd83-c3f7fb6b1c68` → **COMPLETED** (~4.5 min); recovery point
+>   en `medrecord-legal-5yr-prod`.
+> - Restore `731d771e-16cc-4c9b-a4c6-6a36c7efd07b` → **COMPLETED**; instancia `medrecord-restore-drill`
+>   (subred privada, misma SG que prod) alcanzó `available`. **RTO ≈ 17 min · RPO ≈ 0** (recovery point
+>   de minutos). Instancia de ensayo destruida; prod intacta (`deletion_protection=true`).
+> - Verificador `backups` (Lambda `medrecord-api-prod`, `verify=backups`) → `ok:true`, 1 recovery point
+>   0.0 d; suscripción SNS de alarmas **confirmada** y notificaciones del vault activas.
+> - **Diferido al primer ensayo trimestral:** los checks de contenido (conteos vs. prod, `firma_hash_contenido`
+>   de una nota firmada, RLS/triggers) — el instante de restore es una instancia en subred privada y no
+>   hay jump host; requieren ruta de red al VPC (Lambda efímero en VPC o VPN). Script: `drill_checks.sql`.
+> - **Gotchas de `start-restore-job`** (para el próximo ensayo): del metadata de
+>   `get-recovery-point-restore-metadata` hay que **quitar `DBSnapshotIdentifier`**, poner **`Port=5432`**
+>   (el template devuelve 0) y **quitar `DBName`** (Postgres); además sobreescribir `DBInstanceIdentifier`
+>   y `DeletionProtection="false"`.
+
 ### 5.3 Guardián anti-regresión (que no vuelva a morir en silencio)
 
 Dos capas, ambas baratas:
@@ -439,12 +457,12 @@ mayormente aditivos (baja rotación). Muy dentro de la envolvente de USD 150/mes
 
 ## 10. Checklist de aceptación
 
-- [ ] `backup.tf` aplicado; plan mensual + selección de la instancia RDS visibles.
-- [ ] Backup on-demand de validación en estado `COMPLETED` con recovery point en el vault.
-- [ ] **Ensayo de restore ejecutado**; RTO/RPO registrados; instancia de ensayo destruida.
-- [ ] Notificaciones SNS de fallo activas y probadas (forzar un fallo o revisar la suscripción).
-- [ ] Verificador `backups` en `verify_registry.py` + `action=backups` en `ops-verify.yml`, verde.
-- [ ] Pipeline Parquet (`snapshot_export.tf`) decomisionado; `terraform plan` limpio.
-- [ ] Vault Lock en **compliance** (paso 7) — solo tras validar 1–4.
-- [ ] `docs/compliance_matrix.md` §5.14 actualizado a `implementado` con evidencia del ensayo.
-- [ ] Ensayo de restore agendado trimestralmente (Fase 10).
+- [x] `backup.tf` aplicado (PR #117); plan mensual + selección de la instancia RDS visibles.
+- [x] Backup on-demand de validación en estado `COMPLETED` con recovery point en el vault.
+- [x] **Ensayo de restore ejecutado**; RTO/RPO registrados (§5.2); instancia de ensayo destruida.
+- [x] Notificaciones SNS de fallo activas; suscripción de email **confirmada** y vault notifications activas.
+- [x] Verificador `backups` en `verify_registry.py` + `action=backups` en `ops-verify.yml`, verde.
+- [x] Pipeline Parquet (`snapshot_export.tf`) decomisionado; `terraform plan` limpio.
+- [x] Vault Lock en **compliance** aplicado (cooling-off); se vuelve permanente **2026-07-18 01:29 (-06:00)**.
+- [x] `docs/compliance_matrix.md` §5.14 actualizado a `implementado` con evidencia del ensayo.
+- [ ] Ensayo de restore agendado trimestralmente (Fase 10) — **pendiente**; incluye los checks de contenido diferidos.
