@@ -21,6 +21,43 @@ class TenantHasDataError(Exception):
     """El tenant tiene datos clínicos asociados y no debe borrarse a ciegas."""
 
 
+# Tablas de identidad (Fase 1): NO son evidencia clínica. Todo tenant tiene un médico
+# + credencial predeterminada tras el backfill, así que estas filas no deben contar
+# como "tiene datos" ni impedir liberar una cédula huérfana.
+_IDENTITY_TABLES = {"medicos", "medico_credenciales"}
+
+
+def _has_clinical_data(related: dict[str, int]) -> bool:
+    """True si hay filas hijas que NO sean la identidad backfilled (médico/credencial)."""
+    return any(
+        table_col.split(".", 1)[0] not in _IDENTITY_TABLES for table_col in related
+    )
+
+
+async def _delete_medico_identity(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """Borra el médico + credencial backfilled de un tenant HUÉRFANO para liberar su cédula.
+
+    Son filas de identidad no usadas (un huérfano no firmó nada), así que borrarlas es
+    conforme a NOM-004. Deshabilita temporalmente los triggers de protección de borrado
+    (solo el owner puede) alrededor del DELETE. El DISABLE/ENABLE es transaccional: si el
+    borrado posterior del tenant falla por una FK (el tenant sí tenía datos clínicos), el
+    rollback restaura los triggers y las filas automáticamente — nunca se pierde identidad
+    de un tenant real.
+    """
+    await db.execute(
+        text("SELECT set_config('app.current_tenant', :tid, true)"),
+        {"tid": str(tenant_id)},
+    )
+    for table in ("medico_credenciales", "medicos"):
+        await db.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER prevent_{table}_deletion"))
+    await db.execute(
+        text("DELETE FROM medico_credenciales WHERE tenant_id = :tid"), {"tid": str(tenant_id)}
+    )
+    await db.execute(text("DELETE FROM medicos WHERE tenant_id = :tid"), {"tid": str(tenant_id)})
+    for table in ("medico_credenciales", "medicos"):
+        await db.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER prevent_{table}_deletion"))
+
+
 async def _count_related_rows(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, int]:
     """Cuenta filas de cada tabla que referencia tenants.id para este tenant.
 
@@ -84,7 +121,7 @@ async def _tenant_report(db: AsyncSession, tenant: Tenant) -> dict[str, Any]:
         "plan": getattr(tenant, "plan", None),
         "created_at": str(getattr(tenant, "created_at", None)),
         "related_rows": related,
-        "has_data": bool(related),
+        "has_data": _has_clinical_data(related),
     }
 
 
@@ -109,7 +146,7 @@ async def inspect_cedula(cedula: str) -> dict[str, Any]:
             "plan": getattr(tenant, "plan", None),
             "created_at": str(getattr(tenant, "created_at", None)),
             "related_rows": related,
-            "has_data": bool(related),
+            "has_data": _has_clinical_data(related),
         }
 
 
@@ -141,6 +178,10 @@ async def release_cedula(cedula: str) -> str:
             f"Encontrado tenant {tenant_id} ({identity}) con cédula {cedula}. Borrando..."
         )
 
+        # Quita la identidad backfilled (médico/credencial) para poder borrar el tenant.
+        # Si el tenant tiene datos clínicos, el DELETE de abajo falla por FK y todo
+        # (incluida esta limpieza) se revierte.
+        await _delete_medico_identity(db, tenant_id)
         await db.delete(tenant)
         try:
             await db.commit()
@@ -198,6 +239,9 @@ async def release_email(email: str) -> str:
         identity = f"{tenant.email} / {tenant.nombre_medico} (cédula {tenant.cedula})"
         logger.info(f"Encontrado tenant {tenant_id} ({identity}). Borrando...")
 
+        # Ver release_cedula: limpia la identidad backfilled; se revierte si el tenant
+        # resulta tener datos clínicos (FK).
+        await _delete_medico_identity(db, tenant_id)
         await db.delete(tenant)
         try:
             await db.commit()

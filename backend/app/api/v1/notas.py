@@ -14,6 +14,7 @@ from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
 from app.models.paciente import Paciente
+from app.services.credenciales import get_credencial_para_firma
 from app.services.firma import sign_note, verify_signature
 from app.services.verification import (
     get_or_create_verification_token,
@@ -405,13 +406,14 @@ async def firmar_nota(
             detail="No se encontró el perfil médico asociado para firmar la nota.",
         )
 
-    medico_nombre = tenant_row.nombre_medico
-    medico_cedula = tenant_row.cedula
+    credencial = await get_credencial_para_firma(db, tenant_row)
+    medico_nombre = credencial.nombre
+    medico_cedula = credencial.cedula
 
     if not medico_cedula or not medico_cedula.strip():
         raise HTTPException(status_code=400, detail="Cédula profesional requerida para firmar")
 
-    medico_especialidad = tenant_row.especialidad or "General"
+    medico_especialidad = credencial.especialidad
 
     # Only the KMS/signing call is guarded as "servicio de firma no disponible".
     # DB persistence and the verification token are handled separately so their

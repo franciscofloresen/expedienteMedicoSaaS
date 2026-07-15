@@ -102,6 +102,46 @@ async def _seed_tenants(engine) -> None:
         )
 
 
+async def _backfill_medicos(engine) -> None:
+    """Give every seeded tenant a médico + default credential (Fase 1).
+
+    Migration mode only: the Fase 1 migration backfill ran against an empty tenants
+    table (tenants are seeded afterwards), so we replay the same idempotent INSERTs
+    here to reproduce the real post-migration prod state — every tenant has a médico
+    and a synced default credential. Runs on the bypass-RLS seed connection and mirrors
+    the SQL in migration efb69dbb7dfb exactly.
+    """
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                INSERT INTO medicos (id, tenant_id, nombre_completo, activo)
+                SELECT gen_random_uuid(), t.id, t.nombre_medico, true
+                FROM tenants t
+                WHERE NOT EXISTS (SELECT 1 FROM medicos m WHERE m.tenant_id = t.id)
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                INSERT INTO medico_credenciales
+                    (id, tenant_id, medico_id, numero, numero_normalizado,
+                     tipo, especialidad, es_predeterminada, activa)
+                SELECT gen_random_uuid(), t.id, m.id, t.cedula,
+                       upper(regexp_replace(coalesce(t.cedula, ''), '\\s+', '', 'g')),
+                       'general', t.especialidad, true, true
+                FROM tenants t
+                JOIN medicos m ON m.tenant_id = t.id
+                WHERE coalesce(t.cedula, '') <> ''
+                  AND NOT EXISTS (
+                      SELECT 1 FROM medico_credenciales c WHERE c.medico_id = m.id
+                  )
+                """
+            )
+        )
+
+
 @pytest_asyncio.fixture(scope="session")
 async def setup_database():
     """Create the schema in the test database once per session.
@@ -117,6 +157,7 @@ async def setup_database():
         # the immutability triggers — do NOT hand-roll any of them here.
         _run_migrations()
         await _seed_tenants(engine)
+        await _backfill_medicos(engine)
         yield
         # No drop_all: the CI migration DB is throwaway and local re-runs are
         # idempotent. Dropping would also trip the clinical-records immutability

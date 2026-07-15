@@ -13,6 +13,7 @@ from app.models.consentimiento import Consentimiento
 from app.models.expediente import Expediente
 from app.models.paciente import Paciente
 from app.models.tenant import Tenant
+from app.services.credenciales import CredencialFirma, get_credencial_para_firma
 from app.services.firma import sign_note
 from app.services.verification import (
     get_or_create_verification_token,
@@ -107,7 +108,7 @@ def _render_content(
     *,
     template: dict[str, str],
     paciente: Paciente,
-    tenant: Tenant,
+    credencial: CredencialFirma,
     procedimiento: str,
     riesgos: str,
 ) -> str:
@@ -115,8 +116,8 @@ def _render_content(
         f"{template['nombre']}\n\n"
         f"Paciente: {paciente.nombre_completo}\n"
         f"Procedimiento: {procedimiento}\n"
-        f"Médico: {tenant.nombre_medico}\n"
-        f"Cédula profesional: {tenant.cedula}\n"
+        f"Médico: {credencial.nombre}\n"
+        f"Cédula profesional: {credencial.cedula}\n"
         f"Fecha: {datetime.now(timezone.utc).date().isoformat()}\n\n"
         f"Descripción del procedimiento:\n{template['descripcion']}\n\n"
         f"Beneficios esperados:\n{template['beneficios']}\n\n"
@@ -197,6 +198,7 @@ async def create_consentimiento(
         raise HTTPException(status_code=404, detail="Paciente o expediente no encontrado")
 
     paciente, _expediente, tenant = row
+    credencial = await get_credencial_para_firma(db, tenant)
     riesgos = data.riesgos_principales or template["riesgos"]
     consentimiento = Consentimiento(
         tenant_id=tenant_id,
@@ -209,13 +211,13 @@ async def create_consentimiento(
         contenido_renderizado=_render_content(
             template=template,
             paciente=paciente,
-            tenant=tenant,
+            credencial=credencial,
             procedimiento=data.procedimiento,
             riesgos=riesgos,
         ),
-        medico_nombre=tenant.nombre_medico,
-        medico_cedula=tenant.cedula,
-        medico_especialidad=tenant.especialidad or "General",
+        medico_nombre=credencial.nombre,
+        medico_cedula=credencial.cedula,
+        medico_especialidad=credencial.especialidad,
         status="draft",
     )
     db.add(consentimiento)
