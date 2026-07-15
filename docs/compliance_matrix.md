@@ -87,7 +87,7 @@ o extraordinaria si el DOF publica cambios.
 - **Procedimiento operativo:** cada transacción hace `SET LOCAL ROLE medrecord_app` + `set_config('app.current_tenant', ...)`.
 - **Prueba:** `scripts/verify_rls.py` (job de migración CI) + `verify_rls` estructural en prod (read-only).
 - **Evidencia:** migración `a1b2c3d4e5f6`; job `migration-check` en `.github/workflows/ci.yml`.
-- **Estado:** parcial · **Riesgo residual (conocido):** `consentimientos` y `recetas` perdieron `FORCE ROW LEVEL SECURITY` al ser recreadas por migraciones posteriores (defensa en profundidad; RLS aún aplica al rol no-owner). Roles internos y validación completa de claims Clerk pendientes (Fases 14 y 9).
+- **Estado:** parcial · **Riesgo residual:** el drift de `FORCE ROW LEVEL SECURITY` en `consentimientos` y `recetas` fue corregido (migración `45fd65e2a92f`; guardián de regresión en `test_verify_rls_structure.py`). Pendientes: roles internos (Fase 14) y validación completa de claims Clerk (Fase 9).
 
 ---
 
@@ -110,7 +110,7 @@ honestamente para no dar impresión de cobertura inexistente.
 
 ## Brechas abiertas priorizadas
 
-1. **FORCE RLS en `consentimientos` y `recetas`** — migración corta pendiente; el test `test_verify_rls_structure.py` lo documenta y se invertirá al corregirse.
+1. ~~**FORCE RLS en `consentimientos` y `recetas`**~~ — corregido (migración `45fd65e2a92f`); `test_verify_rls_structure.py` es ahora el guardián de regresión.
 2. **Modelo `medicos` multi-credencial (Fase 1)** — mejora fidelidad del firmante NOM-004.
 3. **Validación completa de claims Clerk + MFA/reauth (Fase 9)** — bloqueo de venta.
 4. **Retención calculada desde el último acto médico (Fase 10)** — separar retención legal de recuperación.

@@ -29,11 +29,12 @@ async def test_verify_rls_passes_on_migrated_schema(setup_database) -> None:
     assert result["ok"] is True, f"failing checks: {failed}"
     assert result["action"] == "rls"
 
-    # Documents the known §1.2 FORCE drift: consentimientos and recetas are
-    # clinical tables whose FORCE ROW LEVEL SECURITY was lost when a later
-    # migration recreated them. These are warnings (not failures) because RLS
-    # still applies to the non-owner app role. When the drift is fixed, this
-    # assertion flips and this test becomes the regression guard.
+    # Regression guard for the §1.2 FORCE drift fixed in migration 45fd65e2a92f:
+    # consentimientos and recetas are clinical tables that had lost FORCE ROW
+    # LEVEL SECURITY when later migrations recreated them. They must now be forced,
+    # so no FORCE warning should mention them (and, given every clinical table is
+    # forced, there should be no FORCE warnings at all).
     warned_tables = " ".join(result["warnings"])
-    assert "consentimientos" in warned_tables
-    assert "recetas" in warned_tables
+    assert "consentimientos" not in warned_tables, result["warnings"]
+    assert "recetas" not in warned_tables, result["warnings"]
+    assert result["warnings"] == [], result["warnings"]
