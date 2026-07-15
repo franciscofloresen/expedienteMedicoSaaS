@@ -63,6 +63,7 @@ module "database" {
   private_subnet_ids    = module.networking.private_subnet_ids
   rds_security_group_id = module.networking.rds_security_group_id
   kms_key_arn           = module.security.encryption_key_arn
+  ops_sns_topic_arn     = module.observability.sns_topic_arn
 }
 
 # ── Compute (Lambda + API Gateway) ──
@@ -96,7 +97,11 @@ module "observability" {
   health_check_fqdn    = var.custom_domain
   lambda_function_name = "medrecord-api-${var.environment}"
   api_name             = "medrecord-api-${var.environment}"
-  depends_on           = [module.compute]
+  # NOTE: no `depends_on = [module.compute]`. Observability targets compute only
+  # by string name (lambda_function_name/api_name), never by module output, so it
+  # needs no ordering edge — and adding one would create a cycle now that
+  # `database` consumes `module.observability.sns_topic_arn` for backup
+  # notifications (database → observability → compute → database).
 }
 
 # ── SES (transactional email: cita notifications) ──

@@ -1,12 +1,36 @@
 # Runbook — Retención de 5 años y recuperación de la base de datos (NOM-004 §5.14)
 
-> Estado: **propuesta de implementación**. Corrige un hallazgo de confiabilidad/cumplimiento
-> verificado el 2026-07-15: el pipeline de export de snapshots RDS a S3 (la supuesta red de
-> retención a 5 años) **está caído** y nunca ha funcionado en su forma actual.
+> Estado: **código aplicado en la rama, pendiente de `terraform apply` + ensayo de restore**.
+> Corrige un hallazgo de confiabilidad/cumplimiento verificado el 2026-07-15: el pipeline de export
+> de snapshots RDS a S3 (la supuesta red de retención a 5 años) **está caído** y nunca ha
+> funcionado en su forma actual.
 >
 > Alcance: **solo la base de datos relacional** (RDS PostgreSQL: notas, expedientes, recetas,
 > consentimientos, pacientes, medicos…). Los archivos clínicos en S3 (`expedientes` bucket) ya
 > tienen versioning + lifecycle sin expiración y **no** requieren cambios.
+
+> ### 🛠️ Qué ya está en el código (esta rama)
+>
+> - `terraform/modules/database/backup.tf` (nuevo): vault, IAM, plan mensual 1825 d, selección RDS,
+>   notificaciones SNS. **`changeable_for_days = 3` viene DESCOMENTADO** → el Vault Lock arranca en
+>   modo **compliance** con ventana de enfriamiento de 72 h.
+> - `terraform/modules/database/snapshot_export.tf`: **eliminado** (pipeline Parquet muerto).
+> - `terraform/modules/observability/main.tf`: `aws_sns_topic_policy` que permite a
+>   `backup.amazonaws.com` publicar (reemplaza la policy default, re-otorga a la cuenta dueña para
+>   no romper las alarmas CloudWatch existentes).
+> - `terraform/main.tf`: se pasa `ops_sns_topic_arn` a `database` y se quitó
+>   `depends_on = [module.compute]` de `observability` (rompía un ciclo nuevo).
+> - Guardián proactivo: verificador `backups` en `backend/scripts/verify_registry.py`,
+>   opción `backups` en `.github/workflows/ops-verify.yml`, permiso IAM read-only en el Lambda y
+>   tests en `backend/tests/unit/test_verify_backups.py`.
+>
+> **⚠️ Consecuencia del apply:** como `changeable_for_days` ya está descomentado y el pipeline viejo
+> se elimina, **un solo `terraform apply` crea el vault en compliance (arranca las 72 h), destruye el
+> pipeline viejo, y monta todo lo demás**. El lock sigue siendo REVERSIBLE dentro de esas 72 h. Por
+> eso el **ensayo de restore (§5.2) debe correrse DENTRO de la ventana de 72 h** tras el apply. Si el
+> ensayo falla, revierte el vault dentro de la ventana. Si prefieres separar los pasos, **comenta
+> `changeable_for_days` en `backup.tf` antes del apply** para quedarte en gobernanza y descomentarlo
+> después del ensayo (secuencia original §6).
 
 ---
 
