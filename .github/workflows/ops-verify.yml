@@ -12,6 +12,9 @@ name: Ops — Verify (Production)
 #              predeterminada (§1.3).
 #   encuentros — Fase 2: encuentros_clinicos con RLS + FORCE + protección de borrado,
 #              índice único parcial de primera vez presente y sin duplicados (§3).
+#   cie10    — Fase 3: nota_diagnosticos con RLS + FORCE + protección de borrado,
+#              catálogo CIE-10 importado (pg_trgm + índice GIN + descripción normalizada)
+#              y un solo diagnóstico principal por nota (§5.3).
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
 
@@ -27,6 +30,7 @@ on:
           - rls
           - medicos
           - encuentros
+          - cie10
           - backups
 
 permissions:

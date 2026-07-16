@@ -56,6 +56,8 @@ _FORCE_EXPECTED = {
     "medico_credenciales",
     # Fase 2: a clinical encounter is clinical evidence — RLS FORCE + never deletable.
     "encuentros_clinicos",
+    # Fase 3: a structured diagnosis is clinical evidence attached to a note.
+    "nota_diagnosticos",
 }
 
 # Records the app role must never hard-delete: the clinical record and its
@@ -75,7 +77,13 @@ _DELETE_PROTECTED = {
     "medico_credenciales",
     # Fase 2: an encuentro is cancelled (estado), never physically removed (§5.1).
     "encuentros_clinicos",
+    # Fase 3: a diagnosis is corrected with a new version/state, never deleted (§5.3).
+    "nota_diagnosticos",
 }
+
+# The full CIE-10 catalog is ~14.5k rows; require a comfortable floor so a truncated or
+# never-run import is caught (the empty-catalog failure mode the search silently degrades on).
+_CIE10_MIN_ROWS = 10000
 
 
 def _check(name: str, ok: bool, detail: str = "") -> dict[str, Any]:
@@ -447,6 +455,140 @@ async def verify_encuentros() -> dict[str, Any]:
     return _envelope("encuentros", checks, warnings=warnings, counts=counts)
 
 
+async def verify_cie10() -> dict[str, Any]:
+    """Fase 3: CIE-10 catalog imported + nota_diagnosticos landed with isolation and the
+    one-principal invariant intact.
+
+    Read-only, no PHI (structural facts + aggregate counts only). Runs against production
+    after the Fase 3 deploy + import. Confirms:
+
+    * ``nota_diagnosticos`` has RLS + policy + FORCE + no app DELETE.
+    * The ``pg_trgm`` GIN index over ``normalized_description`` exists (the search degrades
+      to a table scan without it) and the extension is installed.
+    * The catalog was actually imported: ``cie10`` row count ≥ the floor and no active row
+      is missing its ``normalized_description`` (which would make it invisible to search).
+    * The partial unique index ``uq_nota_diagnostico_principal`` exists, and the data
+      invariant holds: at most one ``es_principal`` diagnosis per note.
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "nota_diagnosticos")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+
+        ext_present = (
+            await session.execute(
+                text("SELECT count(*) FROM pg_extension WHERE extname = 'pg_trgm'")
+            )
+        ).scalar_one()
+        checks.append(
+            _check("pg_trgm extension installed", ext_present == 1, f"found={ext_present}")
+        )
+
+        trgm_index = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_indexes "
+                    "WHERE schemaname = 'public' AND indexname = 'ix_cie10_norm_desc_trgm'"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "GIN trigram index ix_cie10_norm_desc_trgm present (§3)",
+                trgm_index == 1,
+                f"found={trgm_index}",
+            )
+        )
+
+        cie10_total = (
+            await session.execute(text("SELECT count(*) FROM cie10"))
+        ).scalar_one()
+        checks.append(
+            _check(
+                f"CIE-10 catalog imported (≥ {_CIE10_MIN_ROWS} rows)",
+                cie10_total >= _CIE10_MIN_ROWS,
+                f"cie10 rows={cie10_total}",
+            )
+        )
+
+        # An active row without a normalized description is invisible to trigram search.
+        sin_normalizar = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM cie10 "
+                    "WHERE active AND (normalized_description IS NULL "
+                    "OR normalized_description = '')"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "every active CIE-10 row has a normalized_description",
+                sin_normalizar == 0,
+                f"active rows missing normalization={sin_normalizar}",
+            )
+        )
+
+        principal_index = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_indexes WHERE schemaname = 'public' "
+                    "AND indexname = 'uq_nota_diagnostico_principal'"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "partial unique index uq_nota_diagnostico_principal present (§5.3)",
+                principal_index == 1,
+                f"found={principal_index}",
+            )
+        )
+
+        # Data invariant: the index must never have allowed a second principal per note.
+        multi_principal = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM (
+                        SELECT nota_id FROM nota_diagnosticos
+                        WHERE es_principal
+                        GROUP BY nota_id
+                        HAVING count(*) > 1
+                    ) dups
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "at most one principal diagnosis per note (§5.3)",
+                multi_principal == 0,
+                f"notes with >1 principal={multi_principal}",
+            )
+        )
+
+        counts = {
+            "cie10_total": cie10_total,
+            "cie10_active": (
+                await session.execute(
+                    text("SELECT count(*) FROM cie10 WHERE active")
+                )
+            ).scalar_one(),
+            "nota_diagnosticos": (
+                await session.execute(text("SELECT count(*) FROM nota_diagnosticos"))
+            ).scalar_one(),
+        }
+
+    return _envelope("cie10", checks, warnings=warnings, counts=counts)
+
+
 async def verify_backups() -> dict[str, Any]:
     """Assert the NOM-004 §5.14 5-year archive is actually producing backups.
 
@@ -523,6 +665,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
     "encuentros": verify_encuentros,
+    "cie10": verify_cie10,
     "backups": verify_backups,
 }
 

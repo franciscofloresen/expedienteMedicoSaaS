@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../services/api';
+import { cie10Api } from '../services/api';
 import type { CIE10 } from '../types';
 import { Search } from 'lucide-react';
+
+const MIN_QUERY_LEN = 2;
 
 interface Cie10SearchProps {
   onSelect: (code: string, description: string) => void;
@@ -24,11 +26,14 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
 
   const { data: results = [], isLoading } = useQuery({
     queryKey: ['cie10', debouncedQuery],
-    queryFn: async () => {
-      if (!debouncedQuery || debouncedQuery.length < 2) return [];
-      return await api.get<CIE10[]>(`/cie10?q=${debouncedQuery}`);
-    },
-    enabled: debouncedQuery.length >= 2,
+    // React Query passes an AbortSignal; forwarding it cancels a stale in-flight request
+    // as soon as the query text changes, so results never arrive out of order.
+    queryFn: ({ signal }) => cie10Api.search(debouncedQuery, { signal }),
+    enabled: debouncedQuery.length >= MIN_QUERY_LEN,
+    // Session cache: identical searches within the session are served from cache
+    // instead of re-hitting the API.
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   return (
@@ -56,7 +61,7 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
         />
       </div>
 
-      {isOpen && query.length >= 2 && (
+      {isOpen && query.length >= MIN_QUERY_LEN && (
         <div className="autocomplete-menu" role="listbox">
           {isLoading ? (
             <div className="autocomplete-empty">Buscando…</div>

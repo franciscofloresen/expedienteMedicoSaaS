@@ -9,6 +9,7 @@ from .expediente import Expediente
 from .medico import Medico, MedicoCredencial
 from .message_log import MessageLog
 from .nota import Nota
+from .nota_diagnostico import NotaDiagnostico
 from .paciente import Paciente
 from .receta import Receta
 from .reminder import Reminder
@@ -23,6 +24,7 @@ __all__ = [
     "Paciente",
     "Expediente",
     "Nota",
+    "NotaDiagnostico",
     "Consentimiento",
     "EncuentroClinico",
     "VerificationToken",
