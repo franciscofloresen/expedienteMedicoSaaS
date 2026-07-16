@@ -154,10 +154,10 @@ encuentro "cancelado"— el backend devuelve un **409 estructurado**:
   la segunda devuelve 409 con `detail.code == 'primera_vez_duplicada'` — el contrato exacto del
   que depende el guard.
 
-`tipo` sigue siendo inmutable por endpoint hoy: "reconciliar como subsecuente" en la UI
-implicará un endpoint de **corrección manual de `tipo`** (con `motivo_correccion`, ya en el
-modelo) cuando se construya el componente. Registrado como `[DEUDA FASE 2]` en el roadmap V2
-(sección Fase 2).
+La deuda del endpoint quedó cerrada: `PATCH /encuentros/{id}/tipo` sólo opera antes de
+`completado/cancelado`, exige un motivo, cambia el origen a `manual` y actualiza la fecha.
+`encuentrosApi.corregirTipo` expone el contrato. La prueba del 409 continúa el flujo:
+corrige la segunda atención a `subsecuente` y confirma que después puede completarse.
 
 ## 7. Criterio de "listo para deploy" (checklist de la fase)
 
@@ -170,6 +170,7 @@ modelo) cuando se construya el componente. Registrado como `[DEUDA FASE 2]` en e
 - [x] Vínculo `encuentro_clinico_id` **solo al crear** notas; `firmar`/`update` intactos.
 - [x] Regresión de `firmar` end-to-end verde (esquema de `notas` tocado).
 - [x] Suite rápida (create_all) y `migration_schema` verdes; ruff limpio.
+- [x] Reconciliación HTTP 409 → corrección manual de tipo → completar como subsecuente.
 - [ ] **Snapshot de RDS antes del deploy** (paso operativo, al desplegar).
 - [ ] Regresión de `firmar` end-to-end en prod tras el deploy + `ops-verify action=encuentros`.
 

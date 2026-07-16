@@ -1,0 +1,188 @@
+name: Ops — CIE-10 Catalog (Production)
+
+# Importación administrativa, auditada y fuera de Alembic (§1.5 del roadmap).
+# production_rollout ejecuta el procedimiento completo y ordenado: snapshot RDS,
+# import dry-run/apply y extracción legacy dry-run/apply. Los apply verifican CIE-10.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Operación CIE-10"
+        required: true
+        default: "import_dry_run"
+        type: choice
+        options:
+          - import_dry_run
+          - import_apply
+          - extract_legacy_dry_run
+          - extract_legacy_apply
+          - production_rollout
+      confirm_production:
+        description: "Para cualquier apply/rollout escribe APLICAR_CIE10_PROD"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+  RDS_INSTANCE_PROD: "medrecord-prod"
+
+concurrency:
+  group: cie10-production
+  cancel-in-progress: false
+
+jobs:
+  cie10-op:
+    name: CIE-10 (${{ inputs.action }}) in Production
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate production write gate
+        if: ${{ inputs.action == 'production_rollout' || endsWith(inputs.action, '_apply') }}
+        env:
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Las escrituras CIE-10 sólo pueden ejecutarse desde main; recibido ${GITHUB_REF}."
+            exit 1
+          fi
+          if [ "${CONFIRM_PRODUCTION}" != "APLICAR_CIE10_PROD" ]; then
+            echo "Confirmación inválida. Escribe exactamente APLICAR_CIE10_PROD."
+            exit 1
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create and wait for pre-rollout RDS snapshot
+        if: ${{ inputs.action == 'production_rollout' }}
+        id: snapshot
+        run: |
+          SNAPSHOT_ID="medrecord-prod-pre-cie10-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "Creando snapshot ${SNAPSHOT_ID} de ${RDS_INSTANCE_PROD}..."
+          aws rds create-db-snapshot \
+            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
+            --db-snapshot-identifier "${SNAPSHOT_ID}" \
+            --tags Key=Purpose,Value=pre-cie10-production-rollout Key=GitHubRun,Value="${GITHUB_RUN_ID}"
+          aws rds wait db-snapshot-completed \
+            --db-snapshot-identifier "${SNAPSHOT_ID}"
+          SNAPSHOT_ARN=$(aws rds describe-db-snapshots \
+            --db-snapshot-identifier "${SNAPSHOT_ID}" \
+            --query 'DBSnapshots[0].DBSnapshotArn' \
+            --output text)
+          echo "snapshot_id=${SNAPSHOT_ID}" >> "${GITHUB_OUTPUT}"
+          echo "snapshot_arn=${SNAPSHOT_ARN}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "## Snapshot previo al rollout"
+            echo "- ID: \`${SNAPSHOT_ID}\`"
+            echo "- ARN: \`${SNAPSHOT_ARN}\`"
+            echo "- Estado: available"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Invoke CIE-10 operation
+        if: ${{ inputs.action != 'production_rollout' }}
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            import_dry_run) KEY="import_cie10"; MODE="dry-run" ;;
+            import_apply) KEY="import_cie10"; MODE="apply" ;;
+            extract_legacy_dry_run) KEY="extract_legacy_diagnosticos"; MODE="dry-run" ;;
+            extract_legacy_apply) KEY="extract_legacy_diagnosticos"; MODE="apply" ;;
+            *) echo "Acción no soportada: $ACTION"; exit 2 ;;
+          esac
+
+          PAYLOAD=$(jq -nc --arg k "$KEY" --arg m "$MODE" '{($k): $m}')
+          echo "Invocando ${LAMBDA_FUNCTION_PROD}: ${KEY}=${MODE}"
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload "$PAYLOAD" \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/cie10_result.json
+          jq '.' /tmp/cie10_result.json
+          jq -e '.statusCode == 200 and .body.ok == true' /tmp/cie10_result.json >/dev/null || {
+            echo "La operación CIE-10 falló."; exit 1;
+          }
+
+      - name: Verify complete catalog after apply
+        if: ${{ inputs.action != 'production_rollout' && endsWith(inputs.action, '_apply') }}
+        run: |
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload '{"verify":"cie10"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/cie10_verify.json
+          jq '.' /tmp/cie10_verify.json
+          jq -e '.statusCode == 200 and .body.ok == true' /tmp/cie10_verify.json >/dev/null || {
+            echo "La verificación CIE-10 posterior a apply falló."; exit 1;
+          }
+
+      - name: Run guarded production rollout
+        if: ${{ inputs.action == 'production_rollout' }}
+        env:
+          SNAPSHOT_ID: ${{ steps.snapshot.outputs.snapshot_id }}
+        run: |
+          invoke_admin() {
+            KEY="$1"
+            MODE="$2"
+            OUTPUT="$3"
+            PAYLOAD=$(jq -nc --arg k "$KEY" --arg m "$MODE" '{($k): $m}')
+            echo "Invocando ${KEY}=${MODE}..."
+            aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+              --payload "$PAYLOAD" \
+              --cli-binary-format raw-in-base64-out \
+              "$OUTPUT"
+            jq '.' "$OUTPUT"
+            jq -e '.statusCode == 200 and .body.ok == true' "$OUTPUT" >/dev/null
+          }
+
+          verify_cie10() {
+            OUTPUT="$1"
+            aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+              --payload '{"verify":"cie10"}' \
+              --cli-binary-format raw-in-base64-out \
+              "$OUTPUT"
+            jq '.' "$OUTPUT"
+            jq -e '.statusCode == 200 and .body.ok == true' "$OUTPUT" >/dev/null
+          }
+
+          # 2. Importación: dry-run y validación de la fuente antes de escribir.
+          invoke_admin import_cie10 dry-run /tmp/import_dry_run.json
+          jq -e '
+            .body.counts.total >= 10000 and
+            (.body.counts.would_insert + .body.counts.would_update == .body.counts.total)
+          ' /tmp/import_dry_run.json >/dev/null
+
+          # 3. Importación: apply idempotente y verificación estructural inmediata.
+          invoke_admin import_cie10 apply /tmp/import_apply.json
+          verify_cie10 /tmp/verify_after_import.json
+
+          # 4. Extracción legacy: dry-run; la identidad scanned=matched+unmatched evita
+          # aplicar si el reporte administrativo está incompleto o es inconsistente.
+          invoke_admin extract_legacy_diagnosticos dry-run /tmp/extract_dry_run.json
+          jq -e '
+            .body.counts.scanned ==
+            (.body.counts.matched + .body.counts.unmatched)
+          ' /tmp/extract_dry_run.json >/dev/null
+
+          # 5. Extracción legacy: apply create-only. No modifica la nota histórica.
+          invoke_admin extract_legacy_diagnosticos apply /tmp/extract_apply.json
+          jq -e '.body.counts.inserted == .body.counts.matched' \
+            /tmp/extract_apply.json >/dev/null
+          verify_cie10 /tmp/verify_final.json
+
+          {
+            echo "## Rollout CIE-10 completado"
+            echo "- Snapshot: \`${SNAPSHOT_ID}\`"
+            echo "- Import dry-run: \`$(jq -c '.body.counts' /tmp/import_dry_run.json)\`"
+            echo "- Import apply: \`$(jq -c '.body.counts' /tmp/import_apply.json)\`"
+            echo "- Extract dry-run: \`$(jq -c '.body.counts' /tmp/extract_dry_run.json)\`"
+            echo "- Extract apply: \`$(jq -c '.body.counts' /tmp/extract_apply.json)\`"
+            echo "- Verificación final: OK"
+          } >> "${GITHUB_STEP_SUMMARY}"

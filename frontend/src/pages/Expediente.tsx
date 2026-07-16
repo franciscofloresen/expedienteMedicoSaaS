@@ -4,12 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, RefreshCcw, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
 import { consentimientosApi, expedientesApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
-import type { Nota, NotaCreate } from '../types';
+import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
-import Cie10Search from '../components/Cie10Search';
+import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
 import ClinicalFiles from '../components/ClinicalFiles';
 
 type TabKey = 'resumen' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
@@ -56,6 +56,7 @@ export default function Expediente() {
 
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [editingNota, setEditingNota] = useState<Nota | null>(null);
+  const [diagnosticosCie10, setDiagnosticosCie10] = useState<NotaDiagnosticoCie10[]>([]);
 
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [notaToSign, setNotaToSign] = useState<Nota | null>(null);
@@ -194,6 +195,7 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSidePanelOpen(false);
       setEditingNota(null);
+      setDiagnosticosCie10([]);
       clearDraft();
       showToast("Borrador de nota médica guardado.", "success");
     },
@@ -211,6 +213,7 @@ export default function Expediente() {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSidePanelOpen(false);
       setEditingNota(null);
+      setDiagnosticosCie10([]);
       clearDraft();
       showToast("Borrador de nota médica actualizado.", "success");
     },
@@ -242,6 +245,10 @@ export default function Expediente() {
   const handleSubmitNota = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!expediente) return;
+    if (!editingNota && diagnosticosCie10.length === 0) {
+      showToast("Agrega al menos un diagnóstico CIE-10 antes de guardar la nota.", "error");
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
 
@@ -268,10 +275,16 @@ export default function Expediente() {
           motivo_consulta,
           exploracion_fisica,
           plan_tratamiento,
-          diagnostico_cie10: formData.get('diagnostico_cie10') as string || undefined,
         }
       });
     } else {
+      const diagnosticos_cie10 = diagnosticosCie10.map((item, orden) => ({
+        code: item.code,
+        es_principal: item.es_principal,
+        certeza: item.certeza,
+        orden,
+      }));
+      const principal = diagnosticosCie10.find((item) => item.es_principal);
       draftNotaMutation.mutate({
         expediente_id: expediente.id,
         tipo_nota: 'evolucion',
@@ -282,14 +295,21 @@ export default function Expediente() {
         motivo_consulta,
         exploracion_fisica,
         plan_tratamiento,
-        diagnostico_cie10: formData.get('diagnostico_cie10') as string || undefined,
+        // Preserve the principal code in the legacy snapshot while the structured
+        // payload carries every diagnosis with certainty and ordering.
+        diagnostico_cie10: principal
+          ? `${principal.code} - ${principal.description || ''}`.trim()
+          : undefined,
+        diagnosticos_cie10,
       });
     }
   };
 
-  const handleFormChange = (e: FormEvent<HTMLFormElement>) => {
-    if (editingNota) return; // Only autosave new drafts
-    const formData = new FormData(e.currentTarget);
+  const saveNotaDraft = (
+    form: HTMLFormElement,
+    cie10: NotaDiagnosticoCie10[] = diagnosticosCie10,
+  ) => {
+    const formData = new FormData(form);
     saveDraft({
       fc: formData.get('fc'),
       fr: formData.get('fr'),
@@ -298,9 +318,21 @@ export default function Expediente() {
       motivo_consulta: formData.get('motivo_consulta'),
       exploracion_fisica: formData.get('exploracion_fisica'),
       diagnostico: formData.get('diagnostico'),
-      diagnostico_cie10: formData.get('diagnostico_cie10'),
+      diagnosticos_cie10: cie10,
       plan_tratamiento: formData.get('plan_tratamiento')
     });
+  };
+
+  const handleFormChange = (e: FormEvent<HTMLFormElement>) => {
+    if (editingNota) return; // Only autosave new drafts
+    saveNotaDraft(e.currentTarget);
+  };
+
+  const handleCie10Change = (next: NotaDiagnosticoCie10[]) => {
+    setDiagnosticosCie10(next);
+    if (editingNota) return;
+    const form = document.getElementById('nota-form') as HTMLFormElement | null;
+    if (form) saveNotaDraft(form, next);
   };
 
   const applyDraft = () => {
@@ -323,7 +355,7 @@ export default function Expediente() {
     setVal('motivo_consulta', draft.motivo_consulta);
     setVal('exploracion_fisica', draft.exploracion_fisica);
     setVal('diagnostico', draft.diagnostico);
-    setVal('diagnostico_cie10', draft.diagnostico_cie10);
+    setDiagnosticosCie10(draft.diagnosticos_cie10 || []);
     setVal('plan_tratamiento', draft.plan_tratamiento);
     showToast("Borrador recuperado", "success");
   };
@@ -543,7 +575,7 @@ export default function Expediente() {
           <button className="btn btn-outline no-print" onClick={() => window.print()}>
             <Printer size={16} /> Imprimir / PDF
           </button>
-          <button className="btn btn-primary" onClick={() => { setEditingNota(null); setIsSidePanelOpen(true); }}>
+          <button className="btn btn-primary" onClick={() => { setEditingNota(null); setDiagnosticosCie10(draft?.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }}>
             <Plus size={16} /> Nueva consulta
           </button>
         </div>
@@ -666,7 +698,7 @@ export default function Expediente() {
               <div className="spinner" />
             </div>
           ) : notas.length === 0 ? (
-            <EmptyNotas onCreate={() => { setEditingNota(null); setIsSidePanelOpen(true); }} />
+            <EmptyNotas onCreate={() => { setEditingNota(null); setDiagnosticosCie10(draft?.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }} />
           ) : (
             <div className="timeline">
               {notas.map((nota: Nota) => (
@@ -700,7 +732,7 @@ export default function Expediente() {
                           <button
                             className="btn btn-outline"
                             style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                            onClick={() => { setEditingNota(nota); setIsSidePanelOpen(true); }}
+                            onClick={() => { setEditingNota(nota); setDiagnosticosCie10(nota.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }}
                           >
                             <Edit3 size={13} /> Editar
                           </button>
@@ -740,7 +772,19 @@ export default function Expediente() {
 
                       <div className="field-block">
                         <span className="overline">Diagnóstico (CIE-10)</span>
-                        <p style={{ margin: 0 }}>{nota.contenido.diagnosticos?.[0] || nota.diagnostico_cie10 || 'N/A'}</p>
+                        {nota.diagnosticos_cie10?.length ? (
+                          <div className="cie10-diagnosis-list">
+                            {nota.diagnosticos_cie10.map((diagnostico) => (
+                              <div key={diagnostico.code}>
+                                <strong className="mono">{diagnostico.code}</strong>
+                                {' — '}{diagnostico.description}
+                                {diagnostico.es_principal && <span className="badge badge-gold" style={{ marginLeft: '0.5rem' }}>Principal</span>}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ margin: 0 }}>{nota.contenido.diagnosticos?.[0] || nota.diagnostico_cie10 || 'N/A'}</p>
+                        )}
                       </div>
 
                       <div className="field-block">
@@ -909,7 +953,7 @@ export default function Expediente() {
             <FileSignature size={20} color="var(--color-primary)" />
             {editingNota ? 'Editar borrador' : 'Nueva consulta'}
           </h2>
-          <button className="btn-icon" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); }} aria-label="Cerrar panel">
+          <button className="btn-icon" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); }} aria-label="Cerrar panel">
             <X size={20} />
           </button>
         </div>
@@ -982,12 +1026,18 @@ export default function Expediente() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Diagnóstico CIE-10</label>
-                <Cie10Search
-                  name="diagnostico_cie10"
-                  defaultValue={editingNota?.diagnostico_cie10 || draft?.diagnostico_cie10}
-                  onSelect={() => undefined}
+                <label className="form-label">Diagnósticos CIE-10</label>
+                <Cie10DiagnosisSelector
+                  value={diagnosticosCie10}
+                  onChange={handleCie10Change}
+                  readOnly={Boolean(editingNota)}
                 />
+                {editingNota && (
+                  <p className="text-muted" style={{ marginTop: '0.45rem' }}>
+                    Los diagnósticos estructurados se fijan al crear la nota. Para corregirlos,
+                    crea un nuevo borrador antes de firmar.
+                  </p>
+                )}
               </div>
 
               <div className="form-group">
@@ -998,7 +1048,7 @@ export default function Expediente() {
           </div>
 
           <div style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-outline" onClick={() => setIsSidePanelOpen(false)}>Cancelar</button>
+            <button type="button" className="btn btn-outline" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); }}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={draftNotaMutation.isPending || updateNotaMutation.isPending}>
               {draftNotaMutation.isPending || updateNotaMutation.isPending ? 'Guardando nota…' : (editingNota ? 'Actualizar borrador' : 'Guardar borrador')}
             </button>

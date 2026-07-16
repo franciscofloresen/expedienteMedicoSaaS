@@ -12,6 +12,7 @@ import type {
   Receta,
   Encuentro,
   EncuentroCreate,
+  EncuentroTipo,
   TipoSugerido,
   CIE10,
 } from '../types';
@@ -112,6 +113,7 @@ export const api = {
     fetchClient<T>(url, { method: 'GET', params, signal: options?.signal }),
   post: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'POST', data }),
   put: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'PUT', data }),
+  patch: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'PATCH', data }),
   delete: <T>(url: string) => fetchClient<T>(url, { method: 'DELETE' }),
 };
 
@@ -251,6 +253,16 @@ export const encuentrosApi = {
   },
   completar: async (id: string): Promise<Encuentro> => {
     return api.post<Encuentro>(`/encuentros/${id}/completar`);
+  },
+  corregirTipo: async (
+    id: string,
+    tipo: EncuentroTipo,
+    motivoCorreccion: string,
+  ): Promise<Encuentro> => {
+    return api.patch<Encuentro>(`/encuentros/${id}/tipo`, {
+      tipo,
+      motivo_correccion: motivoCorreccion,
+    });
   },
 };
 

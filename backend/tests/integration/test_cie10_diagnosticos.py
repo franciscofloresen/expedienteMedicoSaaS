@@ -304,6 +304,17 @@ async def test_create_nota_writes_structured_diagnosticos(
     assert principal[0].descripcion_snapshot
     assert principal[0].version_snapshot == "CIE-10-MX"
 
+    # The clinical read path returns every structured diagnosis and the canonical
+    # note JSON contains the same snapshots so signing covers them.
+    res = await client.get(
+        f"/api/v1/notas/expediente/{expediente_id}", headers=headers
+    )
+    assert res.status_code == 200, res.text
+    saved = next(item for item in res.json() if item["id"] == nota_id)
+    assert [d["code"] for d in saved["diagnosticos_cie10"]] == ["E11.9", "I10"]
+    assert saved["diagnosticos_cie10"][0]["es_principal"] is True
+    assert saved["contenido"]["diagnosticos_cie10"] == saved["diagnosticos_cie10"]
+
 
 async def test_create_nota_rejects_two_principal_diagnosticos(
     client: AsyncClient, cie10_catalog

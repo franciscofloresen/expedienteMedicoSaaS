@@ -9,10 +9,11 @@ const MIN_QUERY_LEN = 2;
 interface Cie10SearchProps {
   onSelect: (code: string, description: string) => void;
   defaultValue?: string;
-  name: string;
+  name?: string;
+  clearOnSelect?: boolean;
 }
 
-export default function Cie10Search({ onSelect, defaultValue, name }: Cie10SearchProps) {
+export default function Cie10Search({ onSelect, defaultValue, name, clearOnSelect = false }: Cie10SearchProps) {
   const [query, setQuery] = useState(defaultValue || '');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
     return () => clearTimeout(timer);
   }, [query]);
 
-  const { data: results = [], isLoading } = useQuery({
+  const { data: results = [], isLoading, isError, error } = useQuery({
     queryKey: ['cie10', debouncedQuery],
     // React Query passes an AbortSignal; forwarding it cancels a stale in-flight request
     // as soon as the query text changes, so results never arrive out of order.
@@ -75,7 +76,7 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
                 onMouseDown={(e) => e.preventDefault()} // Prevent blur before click
                 onClick={() => {
                   const val = `${item.code} - ${item.description}`;
-                  setQuery(val);
+                  setQuery(clearOnSelect ? '' : val);
                   setIsOpen(false);
                   onSelect(item.code, item.description);
                 }}
@@ -85,6 +86,10 @@ export default function Cie10Search({ onSelect, defaultValue, name }: Cie10Searc
                 {item.category && <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{item.category}</div>}
               </div>
             ))
+          ) : isError ? (
+            <div className="autocomplete-empty" role="alert">
+              {error instanceof Error ? error.message : 'No se pudo consultar el catálogo CIE-10.'}
+            </div>
           ) : (
             <div className="autocomplete-empty">No se encontraron resultados</div>
           )}

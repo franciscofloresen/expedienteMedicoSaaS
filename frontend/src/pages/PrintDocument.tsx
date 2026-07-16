@@ -15,6 +15,12 @@ interface PrintDoc {
   motivo_consulta?: string;
   exploracion_fisica?: string;
   plan_tratamiento?: string;
+  diagnosticos_cie10?: {
+    code: string;
+    description?: string;
+    es_principal?: boolean;
+    certeza?: string;
+  }[];
 }
 
 function contentText(doc: PrintDoc) {
@@ -22,9 +28,17 @@ function contentText(doc: PrintDoc) {
     return (doc.medicamentos || []).map((m) => m.descripcion || JSON.stringify(m)).join('\n\n');
   }
   if (doc.tipo_documento === 'consentimiento') return doc.contenido_renderizado;
+  const diagnosticos = doc.diagnosticos_cie10?.map((diagnostico) => {
+    const atributos = [
+      diagnostico.es_principal ? 'principal' : undefined,
+      diagnostico.certeza,
+    ].filter(Boolean).join(', ');
+    return `- ${diagnostico.code} — ${diagnostico.description || 'Sin descripción'}${atributos ? ` (${atributos})` : ''}`;
+  }).join('\n');
   return [
     doc.motivo_consulta && `Motivo de consulta:\n${doc.motivo_consulta}`,
     doc.exploracion_fisica && `Exploración física:\n${doc.exploracion_fisica}`,
+    diagnosticos && `Diagnósticos CIE-10:\n${diagnosticos}`,
     doc.plan_tratamiento && `Plan / Tratamiento:\n${doc.plan_tratamiento}`,
   ].filter(Boolean).join('\n\n');
 }

@@ -271,12 +271,11 @@ para tratarlo como **conflicto conciliable** (re-consultar y ofrecer completar c
 `subsecuente`). La UI visible (etiqueta primera_vez/subsecuente + precarga historia/evolución,
 V1 §7.2) consume esa capa cuando se conecte.
 
-- **[DEUDA FASE 2]** Endpoint de **corrección manual de `tipo`** (con `motivo_correccion` y
-  `clasificacion_origen='manual'`, ya presentes en el modelo — V1 §6.3). Hoy `tipo` es
-  inmutable por endpoint, así que la reconciliación "completar como subsecuente" del guard
-  `isPrimeraVezConflict` no puede cerrarse aún: falta ese endpoint. Se construye junto con la
-  UI visible de encuentros (V1 §7.2); registra usuario, fecha y motivo, y **nunca** hace UPDATE
-  a notas firmadas (§1.1).
+- **[RESUELTO DEUDA FASE 2]** `PATCH /encuentros/{id}/tipo` permite corregir el tipo antes
+  de completar, exige `motivo_correccion`, fija `clasificacion_origen='manual'` y registra
+  la fecha de actualización. `encuentrosApi.corregirTipo` expone el contrato al cliente y
+  la prueba HTTP cubre el ciclo 409 → corregir a `subsecuente` → completar. No toca notas.
+  La UI visible general de encuentros sigue dentro de V1 §7.2.
 
 **Aceptación:** V1 + prueba explícita de concurrencia contra el índice parcial +
 `verify_encuentros` en prod + 409 estructurado con `code` + guard de conflicto en el cliente.
@@ -297,11 +296,19 @@ V1 §7.2) consume esa capa cuando se conecte.
 **Aceptación:** V1 + importador re-ejecutable sin duplicados + plan de ejecución de la
 búsqueda revisado con el catálogo completo + `verify_cie10` en prod.
 
-- **[DEUDA FASE 3]** UI del editor de notas para **múltiples diagnósticos** (seleccionar
-  varios códigos, marcar uno como principal). El backend ya acepta
-  `NotaCreate.diagnosticos_cie10` y la capa de servicio del frontend (`cie10Api.search`
-  con cancelación + caché) ya está lista; falta solo el componente visual que los liste y
-  ramifique. Mismo patrón que la Fase 2 (backend + servicio listos, componente diferido).
+- **[RESUELTO DEUDA FASE 3]** El editor permite seleccionar múltiples diagnósticos,
+  elegir el principal, indicar certeza y retirar elementos antes de crear la nota. Envía
+  `NotaCreate.diagnosticos_cie10`, conserva el principal en el snapshot legado y muestra
+  la lista estructurada al leer la nota. Los snapshots también quedan dentro del JSON
+  canónico que cubre la firma y se imprimen en el documento legal con código, descripción,
+  certeza y marca de principal.
+- **[CORRECCIÓN OPERATIVA FASE 3]** El deploy de la migración no importa datos por diseño.
+  Se agregó `ops-cie10.yml` para `dry-run/apply` del catálogo y extracción de legado, con
+  aprobación de `production` y `verify_cie10` automático después de cada `apply`. El modo
+  `production_rollout` encadena snapshot RDS → import dry-run/apply → extracción legacy
+  dry-run/apply, con confirmación explícita, invariantes de conteo y evidencia del job. La
+  API ya no oculta un catálogo incompleto con seis códigos estáticos: devuelve 503
+  estructurado `cie10_catalog_not_ready` hasta que haya al menos 10 000 filas activas.
 - **[DEUDA FASE 3]** `cie10.catalog_version` es hoy una constante (`CIE-10-MX`) sellada por
   el importador; una tabla de release del catálogo versionada se aborda con el retiro de
   campos legados (Fase 8+). Los diagnósticos ya guardan `version_snapshot`, así que una

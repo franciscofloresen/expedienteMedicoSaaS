@@ -152,6 +152,13 @@ En prod, tras el deploy: RDS snapshot → migración → `verify_rls` → **Ops 
 (dry-run, luego apply) → `verify cie10` de nuevo. (Requiere aprobación del GitHub
 Environment `production`.)
 
+La operación ya tiene workflow propio: **Ops — CIE-10 Catalog (Production)**
+(`ops-cie10.yml`), con opciones de importación/extracción en `dry-run` o `apply`. Todo
+`apply` ejecuta `verify_cie10` al finalizar. Para el rollout inicial se usa la opción
+`production_rollout`, que crea y espera el snapshot RDS, ejecuta los cuatro pasos en orden
+y publica sus conteos en el resumen del job. El procedimiento detallado está en
+`docs/runbooks/cie10_production_rollout.md`.
+
 ---
 
 ## 7. Criterio de "listo para deploy" (checklist de la fase)
@@ -165,6 +172,13 @@ Environment `production`.)
 - [x] Diagnósticos **solo al crear** notas; `firmar`/`update` intactos.
 - [x] Regresión de `firmar` end-to-end verde (la Fase 3 no altera `notas`).
 - [x] Suite rápida (create_all) y `migration_schema` verdes; ruff limpio; frontend compila.
+- [x] Editor multi-diagnóstico conectado a `NotaCreate.diagnosticos_cie10`, con principal,
+      certeza, orden, lectura posterior, snapshot dentro del contenido firmado y salida en
+      el documento legal imprimible.
+- [x] Catálogo incompleto falla explícitamente con `cie10_catalog_not_ready`; ya no se
+      disfraza con el fallback estático de seis códigos.
+- [x] Workflow operativo de importación/extracción con snapshot, dry-run, confirmación,
+      aplicación ordenada y verificación.
 - [ ] **Snapshot de RDS antes del deploy** (paso operativo, al desplegar).
 - [ ] Migración → `ops-verify action=cie10` → `import_cie10 apply` →
       `extract_legacy_diagnosticos apply` → `verify cie10` en prod.
@@ -173,11 +187,6 @@ Environment `production`.)
 
 ## 8. Fuera de alcance (deuda registrada)
 
-- **UI del editor de notas para múltiples diagnósticos** (seleccionar varios códigos,
-  marcar el principal). El backend acepta `diagnosticos_cie10` y la **capa de servicio del
-  frontend ya está lista** (`cie10Api.search` con cancelación de requests obsoletos y caché
-  de sesión; `Cie10Search.tsx` adaptado). Solo falta el componente visual que los liste.
-  Registrado como `[DEUDA FASE 3]` en el roadmap V2 (mismo patrón que la Fase 2).
 - **`catalog_version`** es hoy la constante `CIE-10-MX` sellada por el importador; una tabla
   de release del catálogo versionada se aborda con el retiro de campos legados (Fase 8+).
   Los diagnósticos guardan `version_snapshot`, así que una re-versión nunca reescribe la

@@ -84,6 +84,7 @@ export interface NotaContenido {
   evolucion_y_actualizacion_cuadro?: string;
   diagnosticos?: string[];
   tratamiento?: string;
+  diagnosticos_cie10?: NotaDiagnosticoCie10[];
   contenido?: string;
   [key: string]: unknown;
 }
@@ -97,6 +98,7 @@ export interface Nota {
   exploracion_fisica?: string;
   plan_tratamiento?: string;
   diagnostico_cie10?: string;
+  diagnosticos_cie10?: NotaDiagnosticoCie10[];
   estado?: string;
   firmada: boolean;
   es_editable: boolean;
@@ -119,6 +121,7 @@ export interface NotaCreate {
   diagnosticos: string[];
   tratamiento: string;
   diagnostico_cie10?: string;
+  diagnosticos_cie10?: NotaDiagnosticoCie10Input[];
   motivo_consulta?: string;
   exploracion_fisica?: string;
   plan_tratamiento?: string;
@@ -154,6 +157,20 @@ export interface CIE10 {
   code: string;
   description: string;
   category?: string;
+}
+
+export type Cie10Certeza = 'confirmado' | 'presuntivo' | 'descartado';
+
+export interface NotaDiagnosticoCie10Input {
+  code: string;
+  es_principal: boolean;
+  certeza: Cie10Certeza;
+  orden?: number;
+}
+
+export interface NotaDiagnosticoCie10 extends NotaDiagnosticoCie10Input {
+  description?: string;
+  catalog_version?: string;
 }
 
 // ── API Responses ──
@@ -206,10 +223,12 @@ export interface Encuentro {
   tipo: EncuentroTipo;
   estado: EncuentroEstado;
   clasificacion_origen: string;
+  motivo_correccion?: string | null;
   nota_inicial_id?: string | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   creado_en: string;
+  actualizado_en?: string;
 }
 
 export interface EncuentroCreate {
