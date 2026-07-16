@@ -16,7 +16,10 @@ permissions:
 
 env:
   AWS_REGION: "us-east-1"
+  RELEASE_SHA: "${{ github.event.workflow_run.head_sha || github.sha }}"
   LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+  S3_LAMBDA_ARTIFACTS_PROD: "medrecord-lambda-artifacts-prod-${{ secrets.AWS_ACCOUNT_ID }}"
+  LAMBDA_ARTIFACT_KEY: "lambda/medrecord-api-prod/${{ github.event.workflow_run.head_sha || github.sha }}/backend.zip"
   S3_FRONTEND_PROD: "medrecord-frontend-prod-${{ secrets.AWS_ACCOUNT_ID }}"
   CLOUDFRONT_DIST_PROD: ""  # Fill after first Terraform apply
 
@@ -41,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -100,6 +105,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       # NOTE: Requerido por docs/runbooks/aurora_migration.md
       # Antes de aprobar este step, asegúrate de validar si hay migraciones destructivas 
@@ -152,6 +159,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -185,6 +194,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -193,22 +204,11 @@ jobs:
 
       - name: Package Lambda
         working-directory: backend
-        run: |
-          mkdir -p /tmp/lambda-package
-          pip install -t /tmp/lambda-package .
-          cp -r app /tmp/lambda-package/
-          cp -r alembic /tmp/lambda-package/
-          cp -r scripts /tmp/lambda-package/
-          cp alembic.ini /tmp/lambda-package/
-          cd /tmp/lambda-package && zip -r /tmp/backend.zip . -x "*.pyc" "__pycache__/*"
-
-      - name: Enforce Lambda package limits
-        run: |
-          ZIP_BYTES=$(stat -c%s /tmp/backend.zip)
-          UNZIPPED_BYTES=$(du -sb /tmp/lambda-package | cut -f1)
-          echo "Lambda package: ${ZIP_BYTES} bytes zipped; ${UNZIPPED_BYTES} bytes unzipped"
-          test "${ZIP_BYTES}" -le 52428800
-          test "${UNZIPPED_BYTES}" -le 262144000
+        run: >-
+          python scripts/build_lambda_package.py
+          --package-dir /tmp/lambda-package
+          --zip-path /tmp/backend.zip
+          --manifest-path /tmp/lambda-package-manifest.json
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -218,9 +218,14 @@ jobs:
 
       - name: Deploy to Lambda (Production)
         run: |
+          aws s3 cp /tmp/backend.zip \
+            "s3://${{ env.S3_LAMBDA_ARTIFACTS_PROD }}/${{ env.LAMBDA_ARTIFACT_KEY }}" \
+            --sse AES256 \
+            --only-show-errors
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
-            --zip-file fileb:///tmp/backend.zip \
+            --s3-bucket ${{ env.S3_LAMBDA_ARTIFACTS_PROD }} \
+            --s3-key ${{ env.LAMBDA_ARTIFACT_KEY }} \
             --publish
 
       - name: Wait for Lambda update
@@ -253,6 +258,13 @@ jobs:
       - name: Run Smoke Test
         working-directory: backend
         run: PYTHONPATH=. python3 scripts/smoke_test.py
+
+      - name: Remove transient Lambda artifact
+        if: always()
+        run: >-
+          aws s3 rm
+          "s3://${{ env.S3_LAMBDA_ARTIFACTS_PROD }}/${{ env.LAMBDA_ARTIFACT_KEY }}"
+          --only-show-errors
 
   # ── Verify Clinical File Storage end-to-end (Production) ──
   # Exercises the real presigned POST → KMS → GuardDuty scan → gated download
@@ -346,6 +358,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
