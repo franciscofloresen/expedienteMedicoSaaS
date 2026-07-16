@@ -1,0 +1,117 @@
+name: Ops — Consent Templates (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Operación de plantillas"
+        required: true
+        default: "dry_run"
+        type: choice
+        options:
+          - dry_run
+          - production_rollout
+      confirm_production:
+        description: "Para rollout escribe PUBLICAR_PLANTILLAS_PROD"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+  RDS_INSTANCE_PROD: "medrecord-prod"
+
+concurrency:
+  group: consent-templates-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Consent templates (${{ inputs.action }})
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate production write gate
+        if: ${{ inputs.action == 'production_rollout' }}
+        env:
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "La publicación sólo puede ejecutarse desde main."
+            exit 1
+          fi
+          if [ "${CONFIRM_PRODUCTION}" != "PUBLICAR_PLANTILLAS_PROD" ]; then
+            echo "Confirmación inválida."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create and wait for pre-publication RDS snapshot
+        if: ${{ inputs.action == 'production_rollout' }}
+        id: snapshot
+        run: |
+          SNAPSHOT_ID="medrecord-prod-pre-consent-templates-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws rds create-db-snapshot \
+            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
+            --db-snapshot-identifier "${SNAPSHOT_ID}" \
+            --tags Key=Purpose,Value=pre-consent-template-publication Key=GitHubRun,Value="${GITHUB_RUN_ID}"
+          aws rds wait db-snapshot-completed --db-snapshot-identifier "${SNAPSHOT_ID}"
+          echo "snapshot_id=${SNAPSHOT_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Dry-run publication
+        run: |
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload '{"import_consent_templates":"dry-run"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/templates_dry_run.json
+          jq '.' /tmp/templates_dry_run.json
+          jq -e '
+            .statusCode == 200 and .body.ok == true and
+            .body.counts.templates_total == 5
+          ' /tmp/templates_dry_run.json >/dev/null
+
+      - name: Publish immutable v1.0 templates
+        if: ${{ inputs.action == 'production_rollout' }}
+        run: |
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload '{"import_consent_templates":"apply"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/templates_apply.json
+          jq '.' /tmp/templates_apply.json
+          jq -e '
+            .statusCode == 200 and .body.ok == true and
+            (.body.counts.versions_inserted + .body.counts.versions_unchanged == 5)
+          ' /tmp/templates_apply.json >/dev/null
+
+      - name: Verify Fase 4 in production
+        if: ${{ inputs.action == 'production_rollout' }}
+        run: |
+          aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --payload '{"verify":"plantillas"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/templates_verify.json
+          jq '.' /tmp/templates_verify.json
+          jq -e '.statusCode == 200 and .body.ok == true' \
+            /tmp/templates_verify.json >/dev/null
+
+      - name: Record rollout evidence
+        if: ${{ inputs.action == 'production_rollout' }}
+        env:
+          SNAPSHOT_ID: ${{ steps.snapshot.outputs.snapshot_id }}
+        run: |
+          {
+            echo "## Fase 4 — plantillas publicadas"
+            echo "- Snapshot: \`${SNAPSHOT_ID}\`"
+            echo "- Dry-run: \`$(jq -c '.body.counts' /tmp/templates_dry_run.json)\`"
+            echo "- Apply: \`$(jq -c '.body.counts' /tmp/templates_apply.json)\`"
+            echo "- verify_plantillas: OK"
+          } >> "${GITHUB_STEP_SUMMARY}"
