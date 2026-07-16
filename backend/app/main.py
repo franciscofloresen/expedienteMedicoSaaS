@@ -393,48 +393,6 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error(f"Failed to release tenant by email {email}", exc_info=True)
             return {"statusCode": 500, "body": f"Failed to release by email: {e}"}
 
-    if isinstance(event, dict) and event.get("wipe_all_data"):
-        import asyncio
-
-        from scripts.reset_environment import wipe_all_data
-
-        confirm = str(event["wipe_all_data"])
-        logger.warning("DESTRUCTIVE: wipe_all_data invoked.")
-        try:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            wipe_result = loop.run_until_complete(wipe_all_data(confirm))
-            return {"statusCode": 200, "body": wipe_result}
-        except ValueError as e:
-            return {"statusCode": 400, "body": str(e)}
-        except Exception as e:
-            logger.error("wipe_all_data failed", exc_info=True)
-            return {"statusCode": 500, "body": f"wipe_all_data failed: {e}"}
-
-    if isinstance(event, dict) and event.get("purge_clerk_users"):
-        import asyncio
-
-        from scripts.reset_environment import purge_clerk_users
-
-        confirm = str(event["purge_clerk_users"])
-        logger.warning("DESTRUCTIVE: purge_clerk_users invoked.")
-        try:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            purge_result = loop.run_until_complete(purge_clerk_users(confirm))
-            return {"statusCode": 200, "body": purge_result}
-        except ValueError as e:
-            return {"statusCode": 400, "body": str(e)}
-        except Exception as e:
-            logger.error("purge_clerk_users failed", exc_info=True)
-            return {"statusCode": 500, "body": f"purge_clerk_users failed: {e}"}
-
     import asyncio
 
     try:

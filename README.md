@@ -31,7 +31,7 @@ Abre una terminal:
 cd backend
 python -m venv .venv
 source .venv/bin/activate  # Mac/Linux
-pip install -r requirements.txt
+pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8000
 ```
 El API estará en `http://localhost:8000`.

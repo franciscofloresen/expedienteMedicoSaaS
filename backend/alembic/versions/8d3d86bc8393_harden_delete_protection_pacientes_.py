@@ -9,8 +9,8 @@ grants audit:
 
   * pacientes — root of the clinical record (NOM-004 §5.14). Already REVOKE'd
     DELETE from the app role (a1b2c3d4e5f6) but lacked the owner/superuser-level
-    trigger that notas/expedientes have. Add prevent_pacientes_deletion. Safe
-    for the reset tooling: wipe_all_data uses TRUNCATE, which does not fire
+    trigger that notas/expedientes have. Add prevent_pacientes_deletion.
+    Explicit database maintenance can still use TRUNCATE, which does not fire
     BEFORE DELETE triggers.
 
   * verification_tokens — anchors public verification/integrity of signed

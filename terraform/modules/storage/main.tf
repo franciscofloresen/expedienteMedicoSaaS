@@ -403,6 +403,123 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
   restrict_public_buckets = true
 }
 
+# ── Lambda Deployment Artifacts ──
+# The Lambda ZIP is transient, contains no clinical data and is uploaded by the
+# production GitHub Actions role. S3-backed deployment avoids the 50 MiB direct
+# upload ceiling while preserving Lambda's 250 MiB uncompressed limit.
+resource "aws_s3_bucket" "lambda_artifacts" {
+  bucket        = "medrecord-lambda-artifacts-${var.environment}-${data.aws_caller_identity.current.account_id}"
+  force_destroy = true
+
+  tags = {
+    Name        = "medrecord-lambda-artifacts-${var.environment}"
+    Environment = var.environment
+    Purpose     = "lambda-deployment-artifacts"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
+  bucket                  = aws_s3_bucket.lambda_artifacts.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+
+  rule {
+    id     = "expire-transient-lambda-artifacts"
+    status = "Enabled"
+
+    filter {
+      prefix = "lambda/"
+    }
+
+    expiration {
+      days = 1
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+data "aws_iam_policy_document" "lambda_artifacts" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.lambda_artifacts.arn,
+      "${aws_s3_bucket.lambda_artifacts.arn}/*",
+    ]
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+  statement {
+    sid     = "AllowProductionDeploymentArtifactListing"
+    effect  = "Allow"
+    actions = ["s3:ListBucket"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/github-actions-deploy-prod"]
+    }
+    resources = [aws_s3_bucket.lambda_artifacts.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["lambda/*"]
+    }
+  }
+
+  statement {
+    sid    = "AllowProductionDeploymentArtifacts"
+    effect = "Allow"
+    actions = [
+      "s3:DeleteObject",
+      "s3:GetObject",
+      "s3:PutObject",
+    ]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/github-actions-deploy-prod"]
+    }
+    resources = ["${aws_s3_bucket.lambda_artifacts.arn}/lambda/*"]
+  }
+}
+
+resource "aws_s3_bucket_policy" "lambda_artifacts" {
+  bucket = aws_s3_bucket.lambda_artifacts.id
+  policy = data.aws_iam_policy_document.lambda_artifacts.json
+}
+
 # ── Data Sources ──
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
@@ -438,4 +555,8 @@ output "frontend_bucket_id" {
 
 output "frontend_bucket_regional_domain_name" {
   value = aws_s3_bucket.frontend.bucket_regional_domain_name
+}
+
+output "lambda_artifacts_bucket_name" {
+  value = aws_s3_bucket.lambda_artifacts.id
 }
