@@ -334,3 +334,22 @@ async def test_completar_segunda_primera_vez_returns_conflict_code(
     detail = res.json()["detail"]
     assert detail["code"] == "primera_vez_duplicada", detail
     assert detail["message"]
+
+    # The documented reconciliation path is now complete: correct the suggested type
+    # with an auditable reason, then complete the encounter as subsecuente.
+    res = await client.patch(
+        f"/api/v1/encuentros/{e2}/tipo",
+        json={
+            "tipo": "subsecuente",
+            "motivo_correccion": "Ya existe una consulta de primera vez completada.",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["tipo"] == "subsecuente"
+    assert res.json()["clasificacion_origen"] == "manual"
+    assert res.json()["motivo_correccion"].startswith("Ya existe")
+
+    res = await client.post(f"/api/v1/encuentros/{e2}/completar", headers=headers)
+    assert res.status_code == 200, res.text
+    assert res.json()["estado"] == "completado"

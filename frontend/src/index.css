@@ -1088,6 +1088,54 @@ input[type="radio"], input[type="checkbox"] {
   font-size: 0.85rem;
 }
 
+.cie10-diagnosis-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.cie10-diagnosis-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 130px auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.cie10-principal {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.cie10-principal.active { color: var(--color-gold); }
+.cie10-principal:disabled { cursor: default; }
+
+.cie10-diagnosis-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.82rem;
+}
+
+.cie10-diagnosis-copy span {
+  color: var(--color-muted-strong);
+  white-space: normal;
+}
+
+.cie10-diagnosis-copy small { color: var(--color-gold); }
+.cie10-certainty { padding: 0.4rem 0.55rem; font-size: 0.78rem; }
+
+@media (max-width: 720px) {
+  .cie10-diagnosis-item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .cie10-certainty { grid-column: 2; width: 100%; }
+}
+
 /* ── Alerts and loading states ─────────────────────────────── */
 .alert {
   display: flex;

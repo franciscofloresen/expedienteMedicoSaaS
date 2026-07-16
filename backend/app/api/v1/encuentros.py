@@ -52,10 +52,12 @@ class EncuentroResponse(BaseModel):
     tipo: str
     estado: str
     clasificacion_origen: str
+    motivo_correccion: Optional[str]
     nota_inicial_id: Optional[UUID]
     fecha_inicio: Optional[datetime]
     fecha_fin: Optional[datetime]
     creado_en: datetime
+    actualizado_en: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +65,11 @@ class EncuentroResponse(BaseModel):
 class SugerenciaResponse(BaseModel):
     paciente_id: UUID
     tipo_sugerido: str
+
+
+class EncuentroTipoCorreccion(BaseModel):
+    tipo: str = Field(..., max_length=20)
+    motivo_correccion: str = Field(..., min_length=5, max_length=1000)
 
 
 async def _get_encuentro_or_404(
@@ -220,6 +227,32 @@ async def completar(
             status_code=409,
             detail={"code": "primera_vez_duplicada", "message": str(exc)},
         ) from exc
+    await db.refresh(encuentro)
+    return encuentro
+
+
+@router.patch("/{encuentro_id}/tipo", response_model=EncuentroResponse)
+async def corregir_tipo_encuentro(
+    encuentro_id: UUID,
+    data: EncuentroTipoCorreccion,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Correct a suggested encounter type before completion, with an audit reason."""
+    tenant_id = UUID(str(request.state.tenant_id))
+    encuentro = await _get_encuentro_or_404(db, encuentro_id, tenant_id)
+    if data.tipo not in TIPOS:
+        raise HTTPException(status_code=422, detail="Tipo de encuentro inválido")
+    if encuentro.estado in ("completado", "cancelado"):
+        raise HTTPException(
+            status_code=409,
+            detail="Sólo se puede corregir el tipo antes de completar el encuentro.",
+        )
+    encuentro.tipo = data.tipo
+    encuentro.clasificacion_origen = "manual"
+    encuentro.motivo_correccion = data.motivo_correccion.strip()
+    encuentro.actualizado_en = datetime.now(timezone.utc)
+    await db.flush()
     await db.refresh(encuentro)
     return encuentro
 

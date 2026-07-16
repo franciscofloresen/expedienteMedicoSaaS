@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
+from app.models.nota_diagnostico import NotaDiagnostico
 from app.models.paciente import Paciente
 from app.services.credenciales import get_credencial_para_firma
 from app.services.diagnosticos import (
@@ -41,6 +42,35 @@ def _signature_preview(signature: bytes | str | None) -> str | None:
     if isinstance(signature, bytes):
         return signature.hex()[:32]
     return signature[:32]
+
+
+def _serialize_diagnostico(diagnostico: NotaDiagnostico) -> dict[str, Any]:
+    return {
+        "code": diagnostico.cie10_code,
+        "description": diagnostico.descripcion_snapshot,
+        "catalog_version": diagnostico.version_snapshot,
+        "es_principal": diagnostico.es_principal,
+        "certeza": diagnostico.certeza,
+        "orden": diagnostico.orden,
+    }
+
+
+async def _diagnosticos_por_nota(
+    db: AsyncSession, nota_ids: list[UUID]
+) -> dict[UUID, list[dict[str, Any]]]:
+    if not nota_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(NotaDiagnostico)
+            .where(NotaDiagnostico.nota_id.in_(nota_ids))
+            .order_by(NotaDiagnostico.nota_id, NotaDiagnostico.orden, NotaDiagnostico.creado_en)
+        )
+    ).scalars()
+    grouped: dict[UUID, list[dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(row.nota_id, []).append(_serialize_diagnostico(row))
+    return grouped
 
 
 async def _build_legal_note_payload(
@@ -83,6 +113,8 @@ async def _build_legal_note_payload(
     )
     verification_url = public_verification_url(plain_token)
 
+    diagnosticos_cie10 = (await _diagnosticos_por_nota(db, [nota.id])).get(nota.id, [])
+
     return {
         "id": str(nota.id),
         "folio": f"NOTA-{str(nota.id)[:8].upper()}",
@@ -108,6 +140,7 @@ async def _build_legal_note_payload(
         "exploracion_fisica": nota.exploracion_fisica,
         "plan_tratamiento": nota.plan_tratamiento,
         "diagnostico_cie10": nota.diagnostico_cie10,
+        "diagnosticos_cie10": diagnosticos_cie10,
         "signos_vitales": nota.signos_vitales or {},
         "firma": {
             "hash": nota.firma_hash_contenido,
@@ -268,7 +301,7 @@ async def create_nota(
     # is never UPDATEd for this — the diagnoses point at it.
     if data.diagnosticos_cie10:
         try:
-            await crear_diagnosticos_para_nota(
+            diagnosticos_creados = await crear_diagnosticos_para_nota(
                 db,
                 tenant_id=tenant_id,
                 nota_id=nota.id,
@@ -283,6 +316,15 @@ async def create_nota(
                 ],
                 creado_por=tenant_id,
             )
+            # Keep the structured snapshots inside the note's canonical JSON as well.
+            # The note is still a draft here, so this remains create-time data and is
+            # subsequently covered by the existing signature payload.
+            contenido_con_cie10 = json.loads(nota.contenido)
+            contenido_con_cie10["diagnosticos_cie10"] = [
+                _serialize_diagnostico(d) for d in diagnosticos_creados
+            ]
+            nota.contenido = json.dumps(contenido_con_cie10, ensure_ascii=False)
+            await db.flush()
         except DiagnosticoInvalidoError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -359,6 +401,7 @@ async def list_notas_by_expediente(
     )
     result = await db.execute(stmt)
     notas = result.scalars().all()
+    diagnosticos_por_nota = await _diagnosticos_por_nota(db, [n.id for n in notas])
 
     return [
         {
@@ -366,6 +409,11 @@ async def list_notas_by_expediente(
             "tipo_nota": n.tipo_nota,
             "contenido": json.loads(n.contenido) if n.contenido else {},
             "signos_vitales": n.signos_vitales,
+            "motivo_consulta": n.motivo_consulta,
+            "exploracion_fisica": n.exploracion_fisica,
+            "plan_tratamiento": n.plan_tratamiento,
+            "diagnostico_cie10": n.diagnostico_cie10,
+            "diagnosticos_cie10": diagnosticos_por_nota.get(n.id, []),
             "firmada": n.firma_digital is not None,
             "es_editable": n.es_editable,
             "firmado_en": n.firmado_en.isoformat() if n.firmado_en else None,

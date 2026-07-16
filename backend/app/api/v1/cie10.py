@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,17 +16,7 @@ _CODE_QUERY_RE = re.compile(r"^[A-Za-z]\d")
 
 MIN_QUERY_LEN = 2
 
-# Beta safety net: if the catalog table has not been imported yet in an environment,
-# fall back to a tiny static list so the note editor is never empty. Once the ~14.5k-row
-# catalog is loaded (Fase 3 importer), real rows always win and this is never reached.
-_STATIC_FALLBACK = [
-    {"code": "J00", "description": "Rinofaringitis aguda (resfriado común)", "category": "Respiratorio"},
-    {"code": "J06.9", "description": "Infección aguda de las vías respiratorias superiores, no especificada", "category": "Respiratorio"},
-    {"code": "E11.9", "description": "Diabetes mellitus tipo 2 sin complicaciones", "category": "Endocrino"},
-    {"code": "I10", "description": "Hipertensión esencial (primaria)", "category": "Cardiovascular"},
-    {"code": "A09", "description": "Diarrea y gastroenteritis de presunto origen infeccioso", "category": "Gastrointestinal"},
-    {"code": "N39.0", "description": "Infección de vías urinarias, sitio no especificado", "category": "Genitourinario"},
-]
+_MIN_COMPLETE_CATALOG_ROWS = 10_000
 
 
 @router.get("")
@@ -55,16 +45,23 @@ async def search_cie10(
     if rows:
         return rows
 
-    # Unseeded environment (or a non-matching code): fall back to the static list, only
-    # ever on the first page so pagination never loops on it.
-    if offset == 0:
-        q_norm = normalize_clinical_text(q)
-        return [
-            item
-            for item in _STATIC_FALLBACK
-            if q.lower() in item["code"].lower()
-            or q_norm in normalize_clinical_text(item["description"])
-        ]
+    # Never mask a missing production import with a tiny hard-coded catalog. That made
+    # CIE-10 look partially functional while most diagnoses were unavailable. A valid
+    # no-match is only returned after confirming the complete catalog is present.
+    catalog_rows = (
+        await db.execute(text("SELECT count(*) FROM cie10 WHERE active"))
+    ).scalar_one()
+    if catalog_rows < _MIN_COMPLETE_CATALOG_ROWS:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "cie10_catalog_not_ready",
+                "message": (
+                    "El catálogo CIE-10 completo todavía no está disponible. "
+                    "Ejecuta la importación operativa y vuelve a intentarlo."
+                ),
+            },
+        )
     return []
 
 
