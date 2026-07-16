@@ -21,6 +21,8 @@ interface PrintDoc {
     es_principal?: boolean;
     certeza?: string;
   }[];
+  documento_final?: { download_url?: string; contenido_sha256?: string };
+  revocacion?: { revocado_en?: string; motivo?: string };
 }
 
 function contentText(doc: PrintDoc) {
@@ -60,17 +62,30 @@ export default function PrintDocument() {
 
   const hash = doc.firma?.hash || doc.hash_contenido;
   const verificationUrl = doc.firma?.verification_url;
+  const finalDocumentUrl = doc.documento_final?.download_url;
 
   return (
     <main style={{ background: '#f4f4f2', minHeight: '100vh', padding: '2rem' }}>
       <div className="no-print" style={{ maxWidth: '860px', margin: '0 auto 1rem', display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} /> Imprimir / Guardar PDF</button>
+        <button
+          className="btn btn-primary"
+          onClick={() => finalDocumentUrl ? window.open(finalDocumentUrl, '_blank', 'noopener,noreferrer') : window.print()}
+        >
+          <Printer size={16} /> {finalDocumentUrl ? 'Abrir PDF final almacenado' : 'Imprimir / Guardar PDF'}
+        </button>
       </div>
       <article style={{ maxWidth: '860px', minHeight: '1100px', margin: '0 auto', background: '#fff', color: '#111', padding: '3rem', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}>
         <header style={{ borderBottom: '2px solid #111', paddingBottom: '1rem', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0, fontSize: '1.7rem' }}>CloudMedRecord</h1>
           <p style={{ margin: '0.35rem 0 0' }}>Documento clínico firmado y verificable</p>
         </header>
+
+        {doc.revocacion && (
+          <section style={{ border: '2px solid #9f2d2d', color: '#7c1f1f', padding: '1rem', marginBottom: '1.5rem' }}>
+            <strong>DOCUMENTO REVOCADO</strong>
+            <p style={{ marginBottom: 0 }}>El original se conserva sin cambios. Revocación registrada: {doc.revocacion.revocado_en || 'fecha no disponible'}.</p>
+          </section>
+        )}
 
         <section style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: '2rem', marginBottom: '2rem' }}>
           <div>

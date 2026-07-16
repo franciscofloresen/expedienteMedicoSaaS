@@ -46,18 +46,21 @@ async def get_or_create_verification_token(
     # scalar_one_or_none() so pre-existing duplicate rows — left by the original
     # insert-on-every-call behaviour before this became get-or-create — resolve to
     # a single stable token instead of raising MultipleResultsFound.
-    existing = (
-        await db.execute(
-            select(VerificationToken)
-            .where(
-                VerificationToken.tenant_id == tenant_id,
-                VerificationToken.resource_type == resource_type,
-                VerificationToken.resource_id == resource_id,
+    # A signing caller may already have marked its clinical row immutable in memory.
+    # Do not let this lookup auto-flush that row before its token FK is attached.
+    with db.no_autoflush:
+        existing = (
+            await db.execute(
+                select(VerificationToken)
+                .where(
+                    VerificationToken.tenant_id == tenant_id,
+                    VerificationToken.resource_type == resource_type,
+                    VerificationToken.resource_id == resource_id,
+                )
+                .order_by(VerificationToken.created_at.asc())
+                .limit(1)
             )
-            .order_by(VerificationToken.created_at.asc())
-            .limit(1)
-        )
-    ).scalars().first()
+        ).scalars().first()
     if existing is not None:
         return existing, existing.token
 
@@ -71,5 +74,8 @@ async def get_or_create_verification_token(
         status="active",
     )
     db.add(row)
-    await db.flush()
+    # Flush only the token. In signing flows the clinical document is dirty too;
+    # flushing the whole session here would lock it before verification_token_id is
+    # attached and recreate the historical firmar/immutability failure.
+    await db.flush([row])
     return row, plain_token

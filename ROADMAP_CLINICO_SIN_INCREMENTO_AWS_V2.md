@@ -359,6 +359,22 @@ Como V1, con:
 **Aceptación:** V1 + verificación pública del documento final + prueba de que reimprimir
 no genera objetos nuevos.
 
+- **[RESUELTO FASE 5]** Los firmantes viven en evidencia lateral inmutable: paciente o
+  representante/tutor con relación y motivo, más el número exacto de testigos declarado
+  por la versión de plantilla. Las firmas se normalizan y comprimen antes de hashearse.
+- **[RESUELTO FASE 5]** El médico selecciona una credencial activa; el snapshot canónico
+  completo recibe una sola firma KMS. Borradores no llaman KMS ni escriben en S3.
+- **[RESUELTO FASE 5]** Cada consentimiento final tiene una sola fila y una key S3
+  determinista. Imprimir genera un URL temporal al mismo VersionId y la verificación
+  pública valida firma, hash y presencia del PDF sin exponer PHI.
+- **[RESUELTO FASE 5]** La revocación es un registro lateral y revoca el token público; el
+  original firmado permanece byte a byte intacto. RLS forzado, permisos mínimos y
+  triggers protegen firmantes, documento final, revocación y consentimiento firmado.
+- **[CORRECCIÓN OPERATIVA FASE 5]** El rollout es snapshot RDS → migración aditiva sin
+  backfill → `verify_rls.py` → `verify_consentimientos` → smoke test controlado. La
+  migración permite únicamente enlazar un token faltante en documentos legados, evitando
+  repetir el bug de inmutabilidad de notas.
+
 ### Fase 6 — Biblioteca normativa inicial (1–2 semanas, en paralelo)
 
 Igual que V1 (19 plantillas, revisión clínica y jurídica documentada). Solo contenido +

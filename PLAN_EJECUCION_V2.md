@@ -169,6 +169,13 @@ si se agrega trigger de inmutabilidad para consentimientos firmados (espejo del 
 bloqueo** — exactamente el bug que causó el 500 en `firmar` de notas. La revocación es
 registro relacionado nuevo; el original nunca recibe UPDATE.
 
+**[EJECUTADO FASE 5]** El flujo usa evidencia lateral inmutable, selección explícita de
+credencial, contenido canónico con una sola firma, una sola key/versión final S3 y
+reimpresión por URL temporal al mismo objeto. La excepción del trigger se restringe al
+enlace legado de un token ausente sin cambios adicionales; revocar sólo agrega el evento
+lateral y cambia el estado del token público. El rollout documentado no hace backfill:
+snapshot RDS → DDL aditivo → verificadores estructural/funcional → smoke test controlado.
+
 ### Bloque C — Confianza y confiabilidad (Fases 9–11): bloqueo de lanzamiento general
 
 Fase 9 (seguridad/evidencia legal) arranca en **paralelo** desde la semana 1 porque bloquea

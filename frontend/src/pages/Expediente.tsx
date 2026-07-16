@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
 import ClinicalFiles from '../components/ClinicalFiles';
+import { SignaturePad } from '../components/SignaturePad';
 
 type TabKey = 'resumen' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
 
@@ -69,7 +70,10 @@ export default function Expediente() {
   const [recetaText, setRecetaText] = useState('');
   const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
   const [selectedConsentTemplate, setSelectedConsentTemplate] = useState('estetico_no_quirurgico');
-  const [signatureText, setSignatureText] = useState('');
+  const [consentSignerType, setConsentSignerType] = useState<'paciente' | 'representante' | 'tutor'>('paciente');
+  const [consentSignature, setConsentSignature] = useState('');
+  const [witnessSignatures, setWitnessSignatures] = useState<string[]>([]);
+  const [credentialByConsent, setCredentialByConsent] = useState<Record<string, string>>({});
 
   // Autosave Draft
   const { draft, hasDraft, draftAge, saveDraft, clearDraft, lastSaveSecondsAgo } = useAutosave<any>(`nota-${id}`);
@@ -101,6 +105,11 @@ export default function Expediente() {
     queryFn: () => consentimientosApi.templates(),
   });
 
+  const { data: signingCredentials = [] } = useQuery({
+    queryKey: ['consentimiento-credenciales-firma'],
+    queryFn: () => consentimientosApi.credencialesFirma(),
+  });
+
   const { data: consentimientos = [] } = useQuery({
     queryKey: ['consentimientos', expediente?.id],
     queryFn: () => consentimientosApi.getByExpedienteId(expediente?.id as string),
@@ -112,6 +121,9 @@ export default function Expediente() {
     queryFn: () => messagesApi.getByPacienteId(id!),
     enabled: !!id,
   });
+
+  const activeConsentTemplate = consentTemplates.find((template: any) => template.key === selectedConsentTemplate);
+  const requiredWitnesses = Number(activeConsentTemplate?.firmas_requeridas?.testigos || 0);
 
   useEffect(() => {
     if (window.location.hash && notas.length > 0) {
@@ -439,17 +451,24 @@ export default function Expediente() {
       });
       await consentimientosApi.firmarPaciente(created.id, {
         nombre_completo: form.get('nombre_paciente') || paciente!.nombre_completo,
-        firma_paciente_base64: btoa(
-          Array.from(new TextEncoder().encode(signatureText), (byte) => String.fromCharCode(byte)).join('')
-        ),
+        firma_paciente_base64: consentSignature,
         aceptado: form.get('aceptado') === 'on',
+        tipo_firmante: consentSignerType,
+        relacion_paciente: form.get('relacion_paciente') || undefined,
+        motivo_representacion: form.get('motivo_representacion') || undefined,
+        testigos: Array.from({ length: requiredWitnesses }, (_, index) => ({
+          nombre_completo: String(form.get(`testigo_${index + 1}_nombre`) || ''),
+          firma_base64: witnessSignatures[index] || '',
+        })),
       });
       return created;
     },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
       setIsConsentModalOpen(false);
-      setSignatureText('');
+      setConsentSignature('');
+      setWitnessSignatures([]);
+      setConsentSignerType('paciente');
       showToast("Consentimiento creado y firmado por el paciente.", "success");
     },
     onError: (error: unknown) => {
@@ -915,24 +934,71 @@ export default function Expediente() {
               <div key={cons.id} className="glass-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                   <div>
-                    <span className={cons.status === 'signed' ? 'badge badge-gold' : 'badge badge-draft'}>{cons.status === 'signed' ? 'Firmado' : 'Pendiente'}</span>
+                    <span className={cons.revocacion ? 'badge badge-draft' : cons.status === 'signed' ? 'badge badge-gold' : 'badge badge-draft'}>
+                      {cons.revocacion ? 'Revocado' : cons.status === 'signed' ? 'Firmado' : 'Pendiente'}
+                    </span>
                     <h3 style={{ margin: '0.75rem 0 0.35rem' }}>{cons.procedimiento}</h3>
                     <p className="text-muted" style={{ margin: 0 }}>{cons.template_key} · v{cons.version}</p>
                     {cons.hash_contenido && <p className="mono" style={{ fontSize: '0.78rem' }}>Hash: {cons.hash_contenido.substring(0, 18)}…</p>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {cons.status === 'signed' ? (
-                      <button className="btn btn-outline" onClick={() => navigate(`/app/documentos/consentimiento/${cons.id}/print`)}>
-                        <Printer size={14} /> Imprimir
-                      </button>
+                      <>
+                        <button className="btn btn-outline" onClick={() => navigate(`/app/documentos/consentimiento/${cons.id}/print`)}>
+                          <Printer size={14} /> Abrir PDF final
+                        </button>
+                        {!cons.revocacion && (
+                          <button className="btn btn-outline" onClick={async () => {
+                            const motivo = window.prompt('Motivo de revocación (mínimo 10 caracteres). El original no se modificará:');
+                            if (!motivo) return;
+                            if (motivo.trim().length < 10) {
+                              showToast('Escribe un motivo de al menos 10 caracteres.', 'error');
+                              return;
+                            }
+                            try {
+                              await consentimientosApi.revocar(cons.id, motivo.trim());
+                              await client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
+                              showToast('Revocación registrada. El original permanece inmutable.', 'success');
+                            } catch (error) {
+                              showToast(friendlyActionError(error, 'No se pudo registrar la revocación.'), 'error');
+                            }
+                          }}>
+                            <AlertTriangle size={14} /> Revocar
+                          </button>
+                        )}
+                      </>
                     ) : (
-                      <button className="btn btn-gold" onClick={async () => {
-                        await consentimientosApi.firmarMedico(cons.id);
-                        client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
-                        showToast("Consentimiento firmado por el médico.", "success");
-                      }} disabled={!cons.firmado_paciente_en}>
-                        <Lock size={14} /> Firmar médico
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {signingCredentials.length > 0 && (
+                          <select
+                            className="form-input"
+                            aria-label="Credencial para firma"
+                            value={credentialByConsent[cons.id] || signingCredentials.find((item: any) => item.es_predeterminada)?.credencial_id || signingCredentials[0]?.credencial_id || ''}
+                            onChange={(event) => setCredentialByConsent((current) => ({ ...current, [cons.id]: event.target.value }))}
+                            style={{ width: 'auto', minWidth: '220px' }}
+                          >
+                            {signingCredentials.map((credential: any) => (
+                              <option key={credential.credencial_id} value={credential.credencial_id}>
+                                {credential.nombre} · {credential.especialidad} · {credential.cedula}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <button className="btn btn-gold" onClick={async () => {
+                          try {
+                            const credentialId = credentialByConsent[cons.id]
+                              || signingCredentials.find((item: any) => item.es_predeterminada)?.credencial_id
+                              || signingCredentials[0]?.credencial_id;
+                            await consentimientosApi.firmarMedico(cons.id, credentialId);
+                            await client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
+                            showToast('Consentimiento finalizado: firma KMS y PDF único guardados.', 'success');
+                          } catch (error) {
+                            showToast(friendlyActionError(error, 'No se pudo finalizar el consentimiento.'), 'error');
+                          }
+                        }} disabled={!cons.firmado_paciente_en || signingCredentials.length === 0}>
+                          <Lock size={14} /> Firmar y finalizar
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1177,7 +1243,10 @@ export default function Expediente() {
             <select
               className="form-input"
               value={selectedConsentTemplate}
-              onChange={(e) => setSelectedConsentTemplate(e.target.value)}
+              onChange={(e) => {
+                setSelectedConsentTemplate(e.target.value);
+                setWitnessSignatures([]);
+              }}
             >
               {consentTemplates.map((tpl: any) => (
                 <option key={tpl.key} value={tpl.key}>{tpl.nombre}</option>
@@ -1202,27 +1271,70 @@ export default function Expediente() {
             <textarea name="riesgos_principales" className="form-input" rows={3} placeholder="Opcional: si lo dejas vacío se usa el texto base de la plantilla." />
           </div>
           <div className="form-group">
-            <label className="form-label">Nombre completo del paciente <span className="required-mark">*</span></label>
+            <label className="form-label">Quién firma <span className="required-mark">*</span></label>
+            <select
+              className="form-input"
+              value={consentSignerType}
+              onChange={(event) => setConsentSignerType(event.target.value as 'paciente' | 'representante' | 'tutor')}
+            >
+              <option value="paciente">Paciente</option>
+              <option value="representante">Representante</option>
+              <option value="tutor">Tutor</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nombre completo del firmante <span className="required-mark">*</span></label>
             <input name="nombre_paciente" className="form-input" required defaultValue={paciente?.nombre_completo} />
           </div>
+          {consentSignerType !== 'paciente' && (
+            <div className="glass-card" style={{ padding: '0.9rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Relación con el paciente <span className="required-mark">*</span></label>
+                <input name="relacion_paciente" className="form-input" required placeholder="Ej. madre, padre, representante legal" />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Motivo de representación <span className="required-mark">*</span></label>
+                <textarea name="motivo_representacion" className="form-input" rows={2} required placeholder="Describe por qué firma en representación del paciente." />
+              </div>
+            </div>
+          )}
           <label className="radio-card" style={{ margin: '1rem 0' }}>
             <input name="aceptado" type="checkbox" required style={{ marginTop: '0.2rem' }} />
             <span>El paciente declara que leyó el consentimiento, resolvió sus dudas y acepta firmarlo en este dispositivo.</span>
           </label>
-          <div className="form-group">
-            <label className="form-label">Firma del paciente en pantalla <span className="required-mark">*</span></label>
-            <textarea
-              className="form-input"
-              rows={3}
-              value={signatureText}
-              onChange={(e) => setSignatureText(e.target.value)}
-              required
-              placeholder="El paciente escribe su nombre como firma simple para beta."
-            />
-          </div>
+          <SignaturePad
+            label={`Firma de ${consentSignerType === 'paciente' ? 'paciente' : consentSignerType}`}
+            required
+            onChange={setConsentSignature}
+          />
+          {Array.from({ length: requiredWitnesses }, (_, index) => (
+            <div key={`testigo-${index}`} className="glass-card" style={{ padding: '0.9rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Nombre del testigo {index + 1} <span className="required-mark">*</span></label>
+                <input name={`testigo_${index + 1}_nombre`} className="form-input" required />
+              </div>
+              <SignaturePad
+                label={`Firma del testigo ${index + 1}`}
+                required
+                onChange={(value) => setWitnessSignatures((current) => {
+                  const next = [...current];
+                  next[index] = value;
+                  return next;
+                })}
+              />
+            </div>
+          ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
             <button type="button" className="btn btn-outline" onClick={() => setIsConsentModalOpen(false)}>Cancelar</button>
-            <button type="submit" className="btn btn-primary" disabled={createConsentimientoMutation.isPending || !signatureText.trim()}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={
+                createConsentimientoMutation.isPending
+                || !consentSignature
+                || witnessSignatures.filter(Boolean).length !== requiredWitnesses
+              }
+            >
               {createConsentimientoMutation.isPending ? 'Guardando consentimiento…' : 'Crear y firmar paciente'}
             </button>
           </div>

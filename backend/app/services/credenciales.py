@@ -31,6 +31,8 @@ class CredencialFirma:
     nombre: str
     cedula: str
     especialidad: str
+    medico_id: uuid.UUID | None = None
+    credencial_id: uuid.UUID | None = None
 
 
 async def get_credencial_para_firma(db: AsyncSession, tenant: Tenant) -> CredencialFirma:
@@ -43,6 +45,8 @@ async def get_credencial_para_firma(db: AsyncSession, tenant: Tenant) -> Credenc
     row = (
         await db.execute(
             select(
+                Medico.id,
+                MedicoCredencial.id,
                 Medico.nombre_completo,
                 MedicoCredencial.numero,
                 MedicoCredencial.especialidad,
@@ -58,17 +62,86 @@ async def get_credencial_para_firma(db: AsyncSession, tenant: Tenant) -> Credenc
     ).first()
 
     if row is not None:
-        nombre, numero, especialidad = row
+        medico_id, credencial_id, nombre, numero, especialidad = row
         return CredencialFirma(
             nombre=nombre or tenant.nombre_medico,
             cedula=numero or tenant.cedula,
             especialidad=especialidad or tenant.especialidad or "General",
+            medico_id=medico_id,
+            credencial_id=credencial_id,
         )
 
     return CredencialFirma(
         nombre=tenant.nombre_medico,
         cedula=tenant.cedula,
         especialidad=tenant.especialidad or "General",
+    )
+
+
+async def list_credenciales_para_firma(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[dict[str, str | bool]]:
+    """List active credentials available for an explicit document signature."""
+    rows = (
+        await db.execute(
+            select(Medico, MedicoCredencial)
+            .join(MedicoCredencial, MedicoCredencial.medico_id == Medico.id)
+            .where(
+                Medico.tenant_id == tenant_id,
+                Medico.activo.is_(True),
+                MedicoCredencial.activa.is_(True),
+            )
+            .order_by(
+                MedicoCredencial.es_predeterminada.desc(),
+                MedicoCredencial.especialidad,
+                MedicoCredencial.numero,
+            )
+        )
+    ).all()
+    return [
+        {
+            "medico_id": str(medico.id),
+            "credencial_id": str(credencial.id),
+            "nombre": medico.nombre_completo,
+            "cedula": credencial.numero,
+            "especialidad": credencial.especialidad or "General",
+            "tipo": credencial.tipo,
+            "es_predeterminada": credencial.es_predeterminada,
+            "verificada": credencial.verificada,
+        }
+        for medico, credencial in rows
+    ]
+
+
+async def get_credencial_seleccionada_para_firma(
+    db: AsyncSession,
+    tenant: Tenant,
+    credencial_id: uuid.UUID | None,
+) -> CredencialFirma:
+    """Resolve an explicitly selected active credential, or the safe default adapter."""
+    if credencial_id is None:
+        return await get_credencial_para_firma(db, tenant)
+    row = (
+        await db.execute(
+            select(Medico, MedicoCredencial)
+            .join(MedicoCredencial, MedicoCredencial.medico_id == Medico.id)
+            .where(
+                Medico.tenant_id == tenant.id,
+                Medico.activo.is_(True),
+                MedicoCredencial.id == credencial_id,
+                MedicoCredencial.activa.is_(True),
+            )
+        )
+    ).first()
+    if row is None:
+        raise ValueError("La credencial seleccionada no está activa o no pertenece al tenant")
+    medico, credencial = row
+    return CredencialFirma(
+        nombre=medico.nombre_completo,
+        cedula=credencial.numero,
+        especialidad=credencial.especialidad or "General",
+        medico_id=medico.id,
+        credencial_id=credencial.id,
     )
 
 

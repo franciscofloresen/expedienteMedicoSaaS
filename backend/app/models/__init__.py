@@ -4,6 +4,11 @@ from .cie10 import CIE10
 from .cita import Cita
 from .clinical_file import ClinicalFile, TenantStorageUsage
 from .consentimiento import Consentimiento
+from .consentimiento_evidencia import (
+    ConsentimientoDocumentoFinal,
+    ConsentimientoFirmante,
+    ConsentimientoRevocacion,
+)
 from .consentimiento_plantilla import (
     ConsentimientoPlantilla,
     ConsentimientoPlantillaVersion,
@@ -30,6 +35,9 @@ __all__ = [
     "Nota",
     "NotaDiagnostico",
     "Consentimiento",
+    "ConsentimientoFirmante",
+    "ConsentimientoDocumentoFinal",
+    "ConsentimientoRevocacion",
     "ConsentimientoPlantilla",
     "ConsentimientoPlantillaVersion",
     "EncuentroClinico",

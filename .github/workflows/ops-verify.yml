@@ -15,6 +15,8 @@ name: Ops — Verify (Production)
 #   cie10    — Fase 3: nota_diagnosticos con RLS + FORCE + protección de borrado,
 #              catálogo CIE-10 importado (pg_trgm + índice GIN + descripción normalizada)
 #              y un solo diagnóstico principal por nota (§5.3).
+#   plantillas — Fase 4: catálogo publicado inmutable y app en modo sólo lectura.
+#   consentimientos — Fase 5: firmantes, PDF final único y revocación lateral.
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
 
@@ -31,6 +33,8 @@ on:
           - medicos
           - encuentros
           - cie10
+          - plantillas
+          - consentimientos
           - backups
 
 permissions:

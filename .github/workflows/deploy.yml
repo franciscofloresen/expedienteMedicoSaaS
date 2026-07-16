@@ -202,6 +202,14 @@ jobs:
           cp alembic.ini /tmp/lambda-package/
           cd /tmp/lambda-package && zip -r /tmp/backend.zip . -x "*.pyc" "__pycache__/*"
 
+      - name: Enforce Lambda package limits
+        run: |
+          ZIP_BYTES=$(stat -c%s /tmp/backend.zip)
+          UNZIPPED_BYTES=$(du -sb /tmp/lambda-package | cut -f1)
+          echo "Lambda package: ${ZIP_BYTES} bytes zipped; ${UNZIPPED_BYTES} bytes unzipped"
+          test "${ZIP_BYTES}" -le 52428800
+          test "${UNZIPPED_BYTES}" -le 262144000
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -228,6 +236,15 @@ jobs:
             /tmp/migration_result.json
           cat /tmp/migration_result.json
           grep -q "200" /tmp/migration_result.json || exit 1
+
+      - name: Verify consent finalization invariants
+        run: |
+          aws lambda invoke --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
+            --payload '{"verify":"consentimientos"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/consent_verify_result.json
+          cat /tmp/consent_verify_result.json
+          grep -q '"statusCode": 200' /tmp/consent_verify_result.json || exit 1
 
       - name: Install dependencies for Smoke Test
         working-directory: backend

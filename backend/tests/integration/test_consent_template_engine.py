@@ -38,7 +38,9 @@ async def test_import_is_idempotent_and_verify_plantillas_passes() -> None:
 
     verification = await verify_plantillas()
     assert verification["ok"] is True, verification
-    assert verification["counts"]["publicadas"] == 5
+    # The five reviewed v1.0 baselines must exist, but later phases may add more
+    # published templates (Fase 5's witness fixture and Fase 6's real catalog).
+    assert verification["counts"]["publicadas"] >= 5
 
 
 async def test_published_version_content_is_immutable(db_session: AsyncSession) -> None:
