@@ -72,6 +72,12 @@ cmds.txt
 PRODUCTION_DEBT.md
 future.md
 
+# ── Data / catalogs ──
+# Raw DGIS/SSA CIE-10 source (5.6 MB, 76 cols). The compact, committed artifact
+# backend/app/data/cie10_catalog.csv.gz is generated from it by
+# scripts/prepare_cie10_catalog.py — keep the raw file out of git.
+/catalogo_cie10.csv
+
 # ── Ops and Business ──
 staging_real.state
 scripts/audit.sh

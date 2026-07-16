@@ -13,6 +13,7 @@ import type {
   Encuentro,
   EncuentroCreate,
   TipoSugerido,
+  CIE10,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -105,10 +106,22 @@ async function fetchClient<T>(
 }
 
 export const api = {
-  get: <T>(url: string, params?: any) => fetchClient<T>(url, { method: 'GET', params }),
+  // `options.signal` lets callers abort a request (e.g. React Query cancels a stale
+  // query when the search text changes); it is forwarded to fetch via customConfig.
+  get: <T>(url: string, params?: any, options?: { signal?: AbortSignal }) =>
+    fetchClient<T>(url, { method: 'GET', params, signal: options?.signal }),
   post: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'POST', data }),
   put: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'PUT', data }),
   delete: <T>(url: string) => fetchClient<T>(url, { method: 'DELETE' }),
+};
+
+// Servicios de CIE-10 (catálogo de diagnósticos)
+export const cie10Api = {
+  // Accent-insensitive search backed by pg_trgm; `signal` cancels stale requests.
+  search: async (q: string, options?: { signal?: AbortSignal }): Promise<CIE10[]> => {
+    if (!q || q.length < 2) return [];
+    return api.get<CIE10[]>('/cie10', { q }, options);
+  },
 };
 
 export const authApi = {

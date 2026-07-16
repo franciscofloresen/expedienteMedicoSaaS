@@ -297,6 +297,16 @@ V1 §7.2) consume esa capa cuando se conecte.
 **Aceptación:** V1 + importador re-ejecutable sin duplicados + plan de ejecución de la
 búsqueda revisado con el catálogo completo + `verify_cie10` en prod.
 
+- **[DEUDA FASE 3]** UI del editor de notas para **múltiples diagnósticos** (seleccionar
+  varios códigos, marcar uno como principal). El backend ya acepta
+  `NotaCreate.diagnosticos_cie10` y la capa de servicio del frontend (`cie10Api.search`
+  con cancelación + caché) ya está lista; falta solo el componente visual que los liste y
+  ramifique. Mismo patrón que la Fase 2 (backend + servicio listos, componente diferido).
+- **[DEUDA FASE 3]** `cie10.catalog_version` es hoy una constante (`CIE-10-MX`) sellada por
+  el importador; una tabla de release del catálogo versionada se aborda con el retiro de
+  campos legados (Fase 8+). Los diagnósticos ya guardan `version_snapshot`, así que una
+  re-versión del catálogo nunca reescribe la historia.
+
 ### Fase 4 — Motor de plantillas de consentimiento (2–3 semanas)
 
 Como V1. Las plantillas actuales migran a v1.0 vía payload admin, no vía Alembic (§1.5).

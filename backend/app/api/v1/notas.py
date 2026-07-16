@@ -15,6 +15,11 @@ from app.models.expediente import Expediente
 from app.models.nota import Nota
 from app.models.paciente import Paciente
 from app.services.credenciales import get_credencial_para_firma
+from app.services.diagnosticos import (
+    DiagnosticoInput,
+    DiagnosticoInvalidoError,
+    crear_diagnosticos_para_nota,
+)
 from app.services.firma import sign_note, verify_signature
 from app.services.verification import (
     get_or_create_verification_token,
@@ -117,6 +122,15 @@ async def _build_legal_note_payload(
     }
 
 
+class DiagnosticoCie10Input(BaseModel):
+    """One structured CIE-10 diagnosis for a note (Fase 3). Written create-only (§1.1)."""
+
+    code: str
+    es_principal: bool = False
+    certeza: str = "presuntivo"
+    orden: int | None = None
+
+
 class NotaCreate(BaseModel):
     expediente_id: UUID
     # Fase 2: optional link to the clinical encounter. Written ONLY here, at creation
@@ -126,6 +140,10 @@ class NotaCreate(BaseModel):
     contenido: dict[str, Any]
     signos_vitales: dict[str, Any] = Field(default_factory=dict)
     diagnosticos: list[str] = Field(default_factory=list)
+    # Fase 3: structured, coded diagnoses. Optional & defaulted → backward compatible.
+    # Written create-only alongside the note; the free-text ``diagnostico_cie10`` below is
+    # kept as legacy evidence.
+    diagnosticos_cie10: list[DiagnosticoCie10Input] = Field(default_factory=list)
     tratamiento: str | None = None
     diagnostico_cie10: str | None = None
     motivo_consulta: str | None = None
@@ -245,6 +263,28 @@ async def create_nota(
     )
     db.add(nota)
     await db.flush()
+
+    # Fase 3: attach structured CIE-10 diagnoses at creation (create-only, §1.1). The note
+    # is never UPDATEd for this — the diagnoses point at it.
+    if data.diagnosticos_cie10:
+        try:
+            await crear_diagnosticos_para_nota(
+                db,
+                tenant_id=tenant_id,
+                nota_id=nota.id,
+                diagnosticos=[
+                    DiagnosticoInput(
+                        code=d.code,
+                        es_principal=d.es_principal,
+                        certeza=d.certeza,
+                        orden=d.orden,
+                    )
+                    for d in data.diagnosticos_cie10
+                ],
+                creado_por=tenant_id,
+            )
+        except DiagnosticoInvalidoError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return {"id": str(nota.id), "status": "creada, pendiente de firma"}
 

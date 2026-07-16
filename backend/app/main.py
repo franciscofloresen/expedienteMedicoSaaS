@@ -206,6 +206,36 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             logger.error(f"verify action={action} failed", exc_info=True)
             return {"statusCode": 500, "body": f"verify failed: {e}"}
 
+    if isinstance(event, dict) and event.get("import_cie10"):
+        from scripts.import_cie10 import run_import_sync
+
+        mode = str(event["import_cie10"])
+        logger.info(f"Importing CIE-10 catalog (mode={mode})...")
+        try:
+            import_result = run_import_sync(mode)
+            return {
+                "statusCode": 200 if import_result.get("ok") else 400,
+                "body": import_result,
+            }
+        except Exception as e:
+            logger.error(f"import_cie10 mode={mode} failed", exc_info=True)
+            return {"statusCode": 500, "body": f"import_cie10 failed: {e}"}
+
+    if isinstance(event, dict) and event.get("extract_legacy_diagnosticos"):
+        from scripts.extract_legacy_diagnosticos import run_extraction_sync
+
+        mode = str(event["extract_legacy_diagnosticos"])
+        logger.info(f"Extracting legacy diagnoses (mode={mode})...")
+        try:
+            extract_result = run_extraction_sync(mode)
+            return {
+                "statusCode": 200 if extract_result.get("ok") else 400,
+                "body": extract_result,
+            }
+        except Exception as e:
+            logger.error(f"extract_legacy_diagnosticos mode={mode} failed", exc_info=True)
+            return {"statusCode": 500, "body": f"extract_legacy_diagnosticos failed: {e}"}
+
     if isinstance(event, dict) and event.get("verify_file_storage"):
         from scripts.verify_file_storage import run_phase
 
