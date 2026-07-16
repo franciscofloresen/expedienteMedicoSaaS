@@ -203,6 +203,34 @@ async def main() -> int:
             )
             check("cross-tenant usage UPDATE affects 0 rows", result.rowcount == 0)
 
+        # Fase 4 catalogs are intentionally shared (no tenant_id/RLS, like cie10), but
+        # the runtime role must be strictly read-only; only the audited admin payload
+        # publishes versions.
+        print("consent template shared catalog:")
+        async with factory() as session, session.begin():
+            for table in (
+                "consentimiento_plantillas",
+                "consentimiento_plantilla_versiones",
+            ):
+                can_select = (
+                    await session.execute(
+                        text("SELECT has_table_privilege('medrecord_app', :t, 'SELECT')"),
+                        {"t": table},
+                    )
+                ).scalar_one()
+                can_write = (
+                    await session.execute(
+                        text(
+                            "SELECT has_table_privilege('medrecord_app', :t, 'INSERT') "
+                            "OR has_table_privilege('medrecord_app', :t, 'UPDATE') "
+                            "OR has_table_privilege('medrecord_app', :t, 'DELETE')"
+                        ),
+                        {"t": table},
+                    )
+                ).scalar_one()
+                check(f"{table} app role has SELECT", bool(can_select))
+                check(f"{table} app role cannot write", not bool(can_write))
+
     finally:
         # Best-effort cleanup of the storage rows only. The seed tenants,
         # pacientes and expedientes stay: the NOM-004 immutability trigger

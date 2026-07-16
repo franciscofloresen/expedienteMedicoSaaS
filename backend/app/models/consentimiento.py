@@ -28,6 +28,9 @@ class Consentimiento(Base):
     )
     template_key: Mapped[str] = mapped_column(String(80), nullable=False)
     version: Mapped[str] = mapped_column(String(20), nullable=False, server_default="1.0")
+    plantilla_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("consentimiento_plantilla_versiones.id"), index=True
+    )
     procedimiento: Mapped[str] = mapped_column(String(200), nullable=False)
     riesgos_principales: Mapped[str | None] = mapped_column(Text)
     contenido_renderizado: Mapped[str] = mapped_column(Text, nullable=False)

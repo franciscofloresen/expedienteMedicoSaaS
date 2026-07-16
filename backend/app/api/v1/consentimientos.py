@@ -5,15 +5,26 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.models.consentimiento import Consentimiento
+from app.models.consentimiento_plantilla import (
+    ConsentimientoPlantilla,
+    ConsentimientoPlantillaVersion,
+)
 from app.models.expediente import Expediente
 from app.models.paciente import Paciente
 from app.models.tenant import Tenant
-from app.services.credenciales import CredencialFirma, get_credencial_para_firma
+from app.services.consent_templates import (
+    LEGACY_TEMPLATES,
+    load_catalog,
+    render_consent_content,
+    runtime_template_from_row,
+    validate_template_fields,
+)
+from app.services.credenciales import get_credencial_para_firma
 from app.services.firma import sign_note
 from app.services.verification import (
     get_or_create_verification_token,
@@ -21,69 +32,6 @@ from app.services.verification import (
 )
 
 router = APIRouter()
-
-TEMPLATES: dict[str, dict[str, str]] = {
-    "general_atencion": {
-        "nombre": "Consentimiento general de atención médica",
-        "version": "1.0",
-        "descripcion": (
-            "Autorización para valoración clínica, exploración física e indicación de estudios "
-            "o tratamiento conforme al criterio del médico tratante."
-        ),
-        "beneficios": "Diagnóstico oportuno, plan de manejo personalizado y seguimiento del padecimiento.",
-        "alternativas": "No recibir atención, solicitar una segunda opinión o ser referido a otra unidad médica.",
-        "cuidados": "Seguir las indicaciones entregadas, acudir a las citas de control y reportar cualquier dato de alarma.",
-        "riesgos": "Molestias propias de la exploración, reacciones no previstas y necesidad de estudios o referencia.",
-    },
-    "estetico_no_quirurgico": {
-        "nombre": "Procedimiento estético no quirúrgico",
-        "version": "1.0",
-        "descripcion": (
-            "Procedimiento estético sin cirugía (peelings, aparatología o tratamientos faciales) "
-            "cuyo resultado depende de la respuesta individual de cada paciente."
-        ),
-        "beneficios": "Mejoría del aspecto de la piel o de la zona tratada, sin tiempos de recuperación quirúrgicos.",
-        "alternativas": "Otros tratamientos estéticos, manejo quirúrgico o no realizar el procedimiento.",
-        "cuidados": "Evitar sol directo, usar protector solar, seguir la rutina indicada y no manipular la zona tratada.",
-        "riesgos": "Inflamación, dolor, equimosis, asimetría, infección, reacción alérgica o resultado distinto al esperado.",
-    },
-    "toxina_botulinica": {
-        "nombre": "Aplicación de toxina botulínica",
-        "version": "1.0",
-        "descripcion": (
-            "Aplicación de toxina botulínica tipo A mediante microinyecciones para relajar músculos "
-            "y atenuar arrugas de expresión. El efecto es temporal (aprox. 3 a 6 meses)."
-        ),
-        "beneficios": "Suavizado de líneas de expresión y prevención de arrugas dinámicas.",
-        "alternativas": "Rellenos, tratamientos con aparatología o no aplicar la toxina.",
-        "cuidados": "No agacharse ni hacer ejercicio intenso las primeras horas, no masajear la zona y mantenerse erguido.",
-        "riesgos": "Dolor, equimosis, cefalea, asimetría, ptosis temporal, reacción local o necesidad de retoque.",
-    },
-    "relleno_acido_hialuronico": {
-        "nombre": "Relleno con ácido hialurónico",
-        "version": "1.0",
-        "descripcion": (
-            "Aplicación de ácido hialurónico para dar volumen, hidratar o corregir contornos "
-            "faciales. Es reabsorbible y su duración varía según la zona y el producto."
-        ),
-        "beneficios": "Restauración de volumen, hidratación y armonización de los rasgos faciales.",
-        "alternativas": "Toxina botulínica, bioestimuladores, procedimientos quirúrgicos o no realizar el relleno.",
-        "cuidados": "Aplicar frío si se indica, evitar calor extremo y ejercicio intenso, y no presionar la zona tratada.",
-        "riesgos": "Inflamación, equimosis, nódulos, asimetría, infección, compromiso vascular y necesidad de disolución.",
-    },
-    "dermatologico": {
-        "nombre": "Tratamiento dermatológico",
-        "version": "1.0",
-        "descripcion": (
-            "Indicación de tratamiento dermatológico (tópico, oral o en consultorio) para el manejo "
-            "de la condición de piel diagnosticada, con seguimiento por el médico tratante."
-        ),
-        "beneficios": "Control de la enfermedad cutánea, mejoría de los síntomas y del aspecto de la piel.",
-        "alternativas": "Otros esquemas terapéuticos, manejo expectante o una segunda opinión dermatológica.",
-        "cuidados": "Aplicar los productos según indicación, usar protector solar y reportar irritación o falta de mejoría.",
-        "riesgos": "Irritación, ardor, resequedad, manchas, reacción alérgica, falta de respuesta o recaída.",
-    },
-}
 
 
 class ConsentimientoCreate(BaseModel):
@@ -104,32 +52,93 @@ def _tenant_uuid(request: Request) -> uuid.UUID:
     return uuid.UUID(str(request.state.tenant_id))
 
 
-def _render_content(
-    *,
-    template: dict[str, str],
-    paciente: Paciente,
-    credencial: CredencialFirma,
-    procedimiento: str,
-    riesgos: str,
-) -> str:
-    return (
-        f"{template['nombre']}\n\n"
-        f"Paciente: {paciente.nombre_completo}\n"
-        f"Procedimiento: {procedimiento}\n"
-        f"Médico: {credencial.nombre}\n"
-        f"Cédula profesional: {credencial.cedula}\n"
-        f"Fecha: {datetime.now(timezone.utc).date().isoformat()}\n\n"
-        f"Descripción del procedimiento:\n{template['descripcion']}\n\n"
-        f"Beneficios esperados:\n{template['beneficios']}\n\n"
-        f"Alternativas:\n{template['alternativas']}\n\n"
-        f"Riesgos principales:\n{riesgos}\n\n"
-        f"Cuidados posteriores:\n{template['cuidados']}\n\n"
-        "El paciente declara haber recibido información suficiente sobre el procedimiento, "
-        "sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que "
-        "ningún resultado médico o estético puede garantizarse.\n\n"
-        "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no "
-        "sustituye asesoría legal ni el criterio clínico del médico tratante."
+def _template_payload(
+    template: ConsentimientoPlantilla,
+    version: ConsentimientoPlantillaVersion,
+) -> dict[str, Any]:
+    runtime = runtime_template_from_row(version)
+    return {
+        "key": template.template_key,
+        "nombre": runtime["nombre"],
+        "version": runtime["version"],
+        "descripcion": runtime["descripcion"],
+        "riesgos": runtime["riesgos"],
+        "categoria": template.categoria,
+        "especialidad": template.especialidad,
+        "procedimiento": template.procedimiento,
+        "campos": runtime["campos"],
+        "firmas_requeridas": runtime["firmas_requeridas"],
+    }
+
+
+def _fallback_payloads(
+    especialidad: str | None = None,
+    procedimiento: str | None = None,
+) -> list[dict[str, Any]]:
+    documents = load_catalog()
+    results: list[dict[str, Any]] = []
+    for document in documents:
+        if especialidad and especialidad.casefold() not in (document.especialidad or "").casefold():
+            continue
+        if procedimiento and procedimiento.casefold() not in (
+            document.procedimiento or document.nombre
+        ).casefold():
+            continue
+        runtime = LEGACY_TEMPLATES[document.template_key]
+        results.append(
+            {
+                "key": document.template_key,
+                "nombre": runtime["nombre"],
+                "version": runtime["version"],
+                "descripcion": runtime["descripcion"],
+                "riesgos": runtime["riesgos"],
+                "categoria": document.categoria,
+                "especialidad": document.especialidad,
+                "procedimiento": document.procedimiento,
+                "campos": runtime["campos"],
+                "firmas_requeridas": runtime["firmas_requeridas"],
+            }
+        )
+    return results
+
+
+async def _published_count(db: AsyncSession) -> int:
+    return int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(ConsentimientoPlantillaVersion)
+                .where(ConsentimientoPlantillaVersion.estado == "publicada")
+            )
+        ).scalar_one()
     )
+
+
+async def _resolve_template(
+    db: AsyncSession, template_key: str
+) -> tuple[dict[str, Any] | None, uuid.UUID | None]:
+    row = (
+        await db.execute(
+            select(ConsentimientoPlantilla, ConsentimientoPlantillaVersion)
+            .join(
+                ConsentimientoPlantillaVersion,
+                ConsentimientoPlantillaVersion.plantilla_id == ConsentimientoPlantilla.id,
+            )
+            .where(
+                ConsentimientoPlantilla.template_key == template_key,
+                ConsentimientoPlantilla.estado == "activa",
+                ConsentimientoPlantillaVersion.estado == "publicada",
+            )
+        )
+    ).first()
+    if row:
+        _template, version = row
+        return runtime_template_from_row(version), version.id
+    # Temporary rollout fallback: only while the new catalog is completely empty. Once
+    # any version is published, a missing/retired key must not be resurrected from code.
+    if await _published_count(db) == 0:
+        return LEGACY_TEMPLATES.get(template_key), None
+    return None, None
 
 
 def _serialize(row: Consentimiento) -> dict[str, Any]:
@@ -139,6 +148,7 @@ def _serialize(row: Consentimiento) -> dict[str, Any]:
         "expediente_id": str(row.expediente_id),
         "template_key": row.template_key,
         "version": row.version,
+        "plantilla_version_id": str(row.plantilla_version_id) if row.plantilla_version_id else None,
         "procedimiento": row.procedimiento,
         "contenido_renderizado": row.contenido_renderizado,
         "firmado_paciente_nombre": row.firmado_paciente_nombre,
@@ -154,17 +164,33 @@ def _serialize(row: Consentimiento) -> dict[str, Any]:
 
 
 @router.get("/templates")
-async def templates() -> Any:
-    return [
-        {
-            "key": key,
-            "nombre": value["nombre"],
-            "version": value["version"],
-            "descripcion": value["descripcion"],
-            "riesgos": value["riesgos"],
-        }
-        for key, value in TEMPLATES.items()
-    ]
+async def templates(
+    especialidad: str | None = None,
+    procedimiento: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    stmt = (
+        select(ConsentimientoPlantilla, ConsentimientoPlantillaVersion)
+        .join(
+            ConsentimientoPlantillaVersion,
+            ConsentimientoPlantillaVersion.plantilla_id == ConsentimientoPlantilla.id,
+        )
+        .where(
+            ConsentimientoPlantilla.estado == "activa",
+            ConsentimientoPlantillaVersion.estado == "publicada",
+        )
+        .order_by(ConsentimientoPlantilla.categoria, ConsentimientoPlantilla.template_key)
+    )
+    if especialidad:
+        stmt = stmt.where(ConsentimientoPlantilla.especialidad.ilike(f"%{especialidad}%"))
+    if procedimiento:
+        stmt = stmt.where(ConsentimientoPlantilla.procedimiento.ilike(f"%{procedimiento}%"))
+    rows = (await db.execute(stmt)).all()
+    if rows:
+        return [_template_payload(template, version) for template, version in rows]
+    if await _published_count(db) == 0:
+        return _fallback_payloads(especialidad, procedimiento)
+    return []
 
 
 @router.post("", status_code=201)
@@ -174,9 +200,18 @@ async def create_consentimiento(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     tenant_id = _tenant_uuid(request)
-    template = TEMPLATES.get(data.template_key)
+    template, plantilla_version_id = await _resolve_template(db, data.template_key)
     if not template:
         raise HTTPException(status_code=400, detail="Plantilla de consentimiento inválida")
+    field_errors = validate_template_fields(
+        template,
+        {
+            "procedimiento": data.procedimiento,
+            "riesgos_principales": data.riesgos_principales,
+        },
+    )
+    if field_errors:
+        raise HTTPException(status_code=400, detail={"template_fields": field_errors})
 
     paciente_id = uuid.UUID(data.paciente_id)
     expediente_id = uuid.UUID(data.expediente_id)
@@ -206,12 +241,14 @@ async def create_consentimiento(
         expediente_id=expediente_id,
         template_key=data.template_key,
         version=template["version"],
+        plantilla_version_id=plantilla_version_id,
         procedimiento=data.procedimiento,
         riesgos_principales=riesgos,
-        contenido_renderizado=_render_content(
+        contenido_renderizado=render_consent_content(
             template=template,
-            paciente=paciente,
-            credencial=credencial,
+            paciente_nombre=paciente.nombre_completo,
+            medico_nombre=credencial.nombre,
+            medico_cedula=credencial.cedula,
             procedimiento=data.procedimiento,
             riesgos=riesgos,
         ),

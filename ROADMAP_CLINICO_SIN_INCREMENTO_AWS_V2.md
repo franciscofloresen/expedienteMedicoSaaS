@@ -324,6 +324,25 @@ modelo con fallback temporal al diccionario hasta validar producción.
 **Aceptación:** V1 + los 5 consentimientos actuales emiten idéntico contenido bajo el
 nuevo motor (comparación byte a byte del render) + `verify_plantillas` en prod.
 
+- **[RESUELTO FASE 4]** Se creó el catálogo compartido
+  `consentimiento_plantillas`/`consentimiento_plantilla_versiones`, con estructura JSONB
+  para contenido, campos, reglas de firma y referencias normativas. Al ser referencia
+  global no lleva `tenant_id` ni RLS; `medrecord_app` tiene únicamente `SELECT` y la
+  publicación se reserva al payload administrativo.
+- **[RESUELTO FASE 4]** Cada versión publicada se sella con SHA-256 canónico y un trigger
+  impide cambiar o borrar su contenido. Una corrección requiere una versión nueva; el
+  único cambio permitido sobre una publicada es retirarla. Los consentimientos nuevos
+  guardan `plantilla_version_id`, además de los snapshots existentes de key, versión y
+  contenido renderizado; los históricos no reciben UPDATE.
+- **[RESUELTO FASE 4]** Los endpoints listan/filtran el catálogo y crean consentimientos
+  desde la versión publicada. El fallback a las cinco plantillas en código sólo opera
+  mientras el catálogo completo esté vacío, para no resucitar una plantilla retirada.
+  Las cinco v1.0 pasan una comparación UTF-8 byte a byte contra el render legado.
+- **[CORRECCIÓN OPERATIVA FASE 4]** `ops-consent-templates.yml` ejecuta snapshot RDS →
+  dry-run → publicación idempotente → `verify_plantillas`. El artefacto JSON cuenta con
+  herramienta local de validación, vista previa y comparación. La revisión clínica y
+  jurídica de la biblioteca ampliada sigue perteneciendo a la Fase 6.
+
 ### Fase 5 — Firmantes, testigos, revocación, documento final (1–2 semanas)
 
 Como V1, con:

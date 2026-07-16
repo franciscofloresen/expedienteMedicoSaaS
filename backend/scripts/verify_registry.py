@@ -589,6 +589,158 @@ async def verify_cie10() -> dict[str, Any]:
     return _envelope("cie10", checks, warnings=warnings, counts=counts)
 
 
+async def verify_plantillas() -> dict[str, Any]:
+    """Fase 4: verify the shared, immutable consent-template publication catalog."""
+    from app.db.session import _get_session_factory
+    from app.services.consent_templates import load_catalog, version_hash
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    expected = {
+        (document.template_key, document.version): version_hash(document)
+        for document in load_catalog()
+    }
+
+    async with factory() as session, session.begin():
+        table_names = ("consentimiento_plantillas", "consentimiento_plantilla_versiones")
+        for table in table_names:
+            exists = (
+                await session.execute(text("SELECT to_regclass(:table) IS NOT NULL"), {"table": table})
+            ).scalar_one()
+            checks.append(_check(f"{table} exists", bool(exists)))
+            can_select = (
+                await session.execute(
+                    text("SELECT has_table_privilege('medrecord_app', :table, 'SELECT')"),
+                    {"table": table},
+                )
+            ).scalar_one()
+            can_write = (
+                await session.execute(
+                    text(
+                        "SELECT has_table_privilege('medrecord_app', :table, 'INSERT') "
+                        "OR has_table_privilege('medrecord_app', :table, 'UPDATE') "
+                        "OR has_table_privilege('medrecord_app', :table, 'DELETE')"
+                    ),
+                    {"table": table},
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    f"{table}: app role is read-only",
+                    bool(can_select) and not bool(can_write),
+                    f"select={can_select}, write={can_write}",
+                )
+            )
+
+        trigger_count = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_trigger "
+                    "WHERE tgname = 'consentimiento_plantilla_version_immutable' "
+                    "AND NOT tgisinternal"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "published-template immutability trigger present",
+                trigger_count == 1,
+                f"found={trigger_count}",
+            )
+        )
+
+        baseline_rows = (
+            await session.execute(
+                text(
+                    """
+                    SELECT p.template_key, v.version, v.contenido_hash
+                    FROM consentimiento_plantillas p
+                    JOIN consentimiento_plantilla_versiones v ON v.plantilla_id = p.id
+                    WHERE (p.template_key, v.version) IN (
+                        ('general_atencion', '1.0'),
+                        ('estetico_no_quirurgico', '1.0'),
+                        ('toxina_botulinica', '1.0'),
+                        ('relleno_acido_hialuronico', '1.0'),
+                        ('dermatologico', '1.0')
+                    )
+                    """
+                )
+            )
+        ).all()
+        actual = {(row[0], row[1]): row[2] for row in baseline_rows}
+        mismatches = sorted(
+            key for key, expected_hash in expected.items() if actual.get(key) != expected_hash
+        )
+        checks.append(
+            _check(
+                "five legacy v1.0 templates match the reviewed artifact hash",
+                not mismatches and len(actual) == 5,
+                f"missing_or_mismatched={[key[0] for key in mismatches]}",
+            )
+        )
+
+        multiple_current = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*) FROM (
+                        SELECT plantilla_id
+                        FROM consentimiento_plantilla_versiones
+                        WHERE estado = 'publicada'
+                        GROUP BY plantilla_id
+                        HAVING count(*) > 1
+                    ) duplicates
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "at most one published version per template",
+                multiple_current == 0,
+                f"templates_with_multiple_published={multiple_current}",
+            )
+        )
+
+        snapshot_column = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name='consentimientos' "
+                    "AND column_name='plantilla_version_id'"
+                )
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "consentimientos snapshots plantilla_version_id for new emissions",
+                snapshot_column == 1,
+                f"found={snapshot_column}",
+            )
+        )
+
+        counts = {
+            "plantillas": (
+                await session.execute(text("SELECT count(*) FROM consentimiento_plantillas"))
+            ).scalar_one(),
+            "versiones": (
+                await session.execute(
+                    text("SELECT count(*) FROM consentimiento_plantilla_versiones")
+                )
+            ).scalar_one(),
+            "publicadas": (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM consentimiento_plantilla_versiones "
+                        "WHERE estado='publicada'"
+                    )
+                )
+            ).scalar_one(),
+        }
+
+    return _envelope("plantillas", checks, counts=counts)
+
+
 async def verify_backups() -> dict[str, Any]:
     """Assert the NOM-004 §5.14 5-year archive is actually producing backups.
 
@@ -666,6 +818,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "medicos": verify_medicos,
     "encuentros": verify_encuentros,
     "cie10": verify_cie10,
+    "plantillas": verify_plantillas,
     "backups": verify_backups,
 }
 

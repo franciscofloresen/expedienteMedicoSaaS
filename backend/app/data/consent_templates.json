@@ -1,0 +1,127 @@
+[
+  {
+    "template_key": "general_atencion",
+    "categoria": "atencion_medica",
+    "especialidad": null,
+    "procedimiento": "Atención médica general",
+    "version": "1.0",
+    "nombre": "Consentimiento general de atención médica",
+    "contenido": {
+      "descripcion": "Autorización para valoración clínica, exploración física e indicación de estudios o tratamiento conforme al criterio del médico tratante.",
+      "beneficios": "Diagnóstico oportuno, plan de manejo personalizado y seguimiento del padecimiento.",
+      "alternativas": "No recibir atención, solicitar una segunda opinión o ser referido a otra unidad médica.",
+      "cuidados": "Seguir las indicaciones entregadas, acudir a las citas de control y reportar cualquier dato de alarma.",
+      "riesgos": "Molestias propias de la exploración, reacciones no previstas y necesidad de estudios o referencia.",
+      "declaracion": "El paciente declara haber recibido información suficiente sobre el procedimiento, sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que ningún resultado médico o estético puede garantizarse.",
+      "aviso_producto": "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no sustituye asesoría legal ni el criterio clínico del médico tratante."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos principales", "type": "textarea", "required": false, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1"],
+    "responsable_revision": "Migración Fase 4 (contenido legado)",
+    "revisada_en": "2026-07-15T00:00:00Z"
+  },
+  {
+    "template_key": "estetico_no_quirurgico",
+    "categoria": "estetica",
+    "especialidad": "Dermatología/Medicina estética",
+    "procedimiento": "Procedimiento estético no quirúrgico",
+    "version": "1.0",
+    "nombre": "Procedimiento estético no quirúrgico",
+    "contenido": {
+      "descripcion": "Procedimiento estético sin cirugía (peelings, aparatología o tratamientos faciales) cuyo resultado depende de la respuesta individual de cada paciente.",
+      "beneficios": "Mejoría del aspecto de la piel o de la zona tratada, sin tiempos de recuperación quirúrgicos.",
+      "alternativas": "Otros tratamientos estéticos, manejo quirúrgico o no realizar el procedimiento.",
+      "cuidados": "Evitar sol directo, usar protector solar, seguir la rutina indicada y no manipular la zona tratada.",
+      "riesgos": "Inflamación, dolor, equimosis, asimetría, infección, reacción alérgica o resultado distinto al esperado.",
+      "declaracion": "El paciente declara haber recibido información suficiente sobre el procedimiento, sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que ningún resultado médico o estético puede garantizarse.",
+      "aviso_producto": "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no sustituye asesoría legal ni el criterio clínico del médico tratante."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos principales", "type": "textarea", "required": false, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1"],
+    "responsable_revision": "Migración Fase 4 (contenido legado)",
+    "revisada_en": "2026-07-15T00:00:00Z"
+  },
+  {
+    "template_key": "toxina_botulinica",
+    "categoria": "estetica",
+    "especialidad": "Dermatología/Medicina estética",
+    "procedimiento": "Aplicación de toxina botulínica",
+    "version": "1.0",
+    "nombre": "Aplicación de toxina botulínica",
+    "contenido": {
+      "descripcion": "Aplicación de toxina botulínica tipo A mediante microinyecciones para relajar músculos y atenuar arrugas de expresión. El efecto es temporal (aprox. 3 a 6 meses).",
+      "beneficios": "Suavizado de líneas de expresión y prevención de arrugas dinámicas.",
+      "alternativas": "Rellenos, tratamientos con aparatología o no aplicar la toxina.",
+      "cuidados": "No agacharse ni hacer ejercicio intenso las primeras horas, no masajear la zona y mantenerse erguido.",
+      "riesgos": "Dolor, equimosis, cefalea, asimetría, ptosis temporal, reacción local o necesidad de retoque.",
+      "declaracion": "El paciente declara haber recibido información suficiente sobre el procedimiento, sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que ningún resultado médico o estético puede garantizarse.",
+      "aviso_producto": "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no sustituye asesoría legal ni el criterio clínico del médico tratante."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos principales", "type": "textarea", "required": false, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1"],
+    "responsable_revision": "Migración Fase 4 (contenido legado)",
+    "revisada_en": "2026-07-15T00:00:00Z"
+  },
+  {
+    "template_key": "relleno_acido_hialuronico",
+    "categoria": "estetica",
+    "especialidad": "Dermatología/Medicina estética",
+    "procedimiento": "Relleno con ácido hialurónico",
+    "version": "1.0",
+    "nombre": "Relleno con ácido hialurónico",
+    "contenido": {
+      "descripcion": "Aplicación de ácido hialurónico para dar volumen, hidratar o corregir contornos faciales. Es reabsorbible y su duración varía según la zona y el producto.",
+      "beneficios": "Restauración de volumen, hidratación y armonización de los rasgos faciales.",
+      "alternativas": "Toxina botulínica, bioestimuladores, procedimientos quirúrgicos o no realizar el relleno.",
+      "cuidados": "Aplicar frío si se indica, evitar calor extremo y ejercicio intenso, y no presionar la zona tratada.",
+      "riesgos": "Inflamación, equimosis, nódulos, asimetría, infección, compromiso vascular y necesidad de disolución.",
+      "declaracion": "El paciente declara haber recibido información suficiente sobre el procedimiento, sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que ningún resultado médico o estético puede garantizarse.",
+      "aviso_producto": "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no sustituye asesoría legal ni el criterio clínico del médico tratante."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos principales", "type": "textarea", "required": false, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1"],
+    "responsable_revision": "Migración Fase 4 (contenido legado)",
+    "revisada_en": "2026-07-15T00:00:00Z"
+  },
+  {
+    "template_key": "dermatologico",
+    "categoria": "dermatologia",
+    "especialidad": "Dermatología",
+    "procedimiento": "Tratamiento dermatológico",
+    "version": "1.0",
+    "nombre": "Tratamiento dermatológico",
+    "contenido": {
+      "descripcion": "Indicación de tratamiento dermatológico (tópico, oral o en consultorio) para el manejo de la condición de piel diagnosticada, con seguimiento por el médico tratante.",
+      "beneficios": "Control de la enfermedad cutánea, mejoría de los síntomas y del aspecto de la piel.",
+      "alternativas": "Otros esquemas terapéuticos, manejo expectante o una segunda opinión dermatológica.",
+      "cuidados": "Aplicar los productos según indicación, usar protector solar y reportar irritación o falta de mejoría.",
+      "riesgos": "Irritación, ardor, resequedad, manchas, reacción alérgica, falta de respuesta o recaída.",
+      "declaracion": "El paciente declara haber recibido información suficiente sobre el procedimiento, sus beneficios, alternativas y cuidados posteriores, que resolvió sus dudas y que ningún resultado médico o estético puede garantizarse.",
+      "aviso_producto": "CloudMedRecord ayuda a documentar y generar evidencia verificable; este formato no sustituye asesoría legal ni el criterio clínico del médico tratante."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos principales", "type": "textarea", "required": false, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1"],
+    "responsable_revision": "Migración Fase 4 (contenido legado)",
+    "revisada_en": "2026-07-15T00:00:00Z"
+  }
+]
