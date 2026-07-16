@@ -5,7 +5,7 @@ CloudMedRecord es un SaaS de expediente clínico electrónico para médicos inde
 > [!IMPORTANT]
 > Este repositorio es una referencia técnica e informativa. No es un *starter kit*, una distribución para autoalojamiento ni una guía de instalación. La publicación del código tampoco equivale a una certificación normativa ni concede por sí misma una licencia de uso, copia o redistribución.
 
-**Corte de esta descripción:** 16 de julio de 2026. Las Fases 0–5 del roadmap están integradas y desplegadas; las Fases 3–5 cuentan además con evidencia operativa específica de rollout o verificación en producción.
+**Corte de esta descripción:** 16 de julio de 2026. Las Fases 0–5 están integradas y desplegadas; las Fases 3–5 cuentan además con verificación operativa en producción.
 
 ## Qué hace hoy
 
@@ -22,22 +22,16 @@ El producto cubre el flujo clínico principal desde la identidad profesional has
 
 CloudMedRecord está **diseñado para apoyar** controles asociados con NOM-004-SSA3-2012, NOM-024-SSA3-2012 y privacidad de datos personales. No se presenta como producto certificado ni como sustituto de una evaluación clínica, jurídica, de seguridad o regulatoria independiente.
 
-## Estado real del roadmap
+## Estado funcional
 
-| Fase | Entrega | Estado al corte | Evidencia principal |
-|---|---|---|---|
-| 0 | CI sobre migraciones reales, verificadores post-deploy y saneamiento de RLS | Activa en CI y operación | [Walkthrough Fase 0](WALKTHROUGH_FASE0.md) |
-| 1 | Médicos, credenciales, adaptador único de firma y doble escritura transitoria | Desplegada | [Walkthrough Fase 1](WALKTHROUGH_FASE1.md) |
-| 2 | Encuentros, primera vez/subsecuente y conflicto 409 conciliable | Backend y cliente desplegados; integración visual completa aún pendiente | [Walkthrough Fase 2](WALKTHROUGH_FASE2.md) |
-| 3 | CIE-10 completo y diagnósticos estructurados create-only | Desplegada y verificada en producción el 15-jul-2026 | [Walkthrough Fase 3](WALKTHROUGH_FASE3.md) |
-| 4 | Motor versionado de plantillas de consentimiento | Desplegada; cinco plantillas v1.0 publicadas y verificadas el 16-jul-2026 | [Walkthrough Fase 4](WALKTHROUGH_FASE4.md) · [rollout](https://github.com/franciscofloresen/expedienteMedicoSaaS/actions/runs/29465543238) |
-| 5 | Firmantes, testigos, PDF final, verificación y revocación | Desplegada el 16-jul-2026; migración, verificador y smoke test verdes | [Walkthrough Fase 5](WALKTHROUGH_FASE5.md) · [deploy](https://github.com/franciscofloresen/expedienteMedicoSaaS/actions/runs/29468100667) |
-| 6–8 | Biblioteca normativa ampliada, especialidades y estabilización | Planeadas; existen avances transversales, pero no están cerradas como fases | [Roadmap V2](ROADMAP_CLINICO_SIN_INCREMENTO_AWS_V2.md) |
-| 9–16 | Confianza, continuidad, seguridad clínica, equipos, portabilidad y experiencia del paciente | Roadmap; no deben interpretarse como funciones disponibles | [Roadmap V2](ROADMAP_CLINICO_SIN_INCREMENTO_AWS_V2.md) |
-
-Los walkthroughs narran el estado al terminar cada rama y por eso algunos todavía dicen “pendiente de despliegue”. La tabla anterior incorpora el estado posterior observado en `main` y en GitHub Actions.
-
-Cuando una nota histórica o un comentario de código contradice al sistema actual, este README prioriza —en ese orden— los recursos Terraform/Alembic vigentes, la implementación ejecutable, las pruebas y la evidencia de workflows completados.
+| Fase | Entrega | Estado al corte |
+|---|---|---|
+| 0 | CI sobre migraciones reales, verificadores post-deploy y saneamiento de RLS | Activa en CI y operación |
+| 1 | Médicos, credenciales, adaptador único de firma y doble escritura transitoria | Desplegada |
+| 2 | Encuentros, primera vez/subsecuente y conflicto 409 conciliable | Backend y cliente desplegados; integración visual completa aún pendiente |
+| 3 | CIE-10 completo y diagnósticos estructurados create-only | Desplegada y verificada en producción |
+| 4 | Motor versionado de plantillas de consentimiento | Desplegada; cinco plantillas base publicadas y verificadas |
+| 5 | Firmantes, testigos, PDF final, verificación y revocación | Desplegada; migración, verificador y smoke test verdes |
 
 ## Arquitectura desplegada
 
@@ -208,9 +202,7 @@ La seguridad está distribuida en capas, no concentrada en una sola herramienta:
 | Recuperación | PITR de RDS por 35 días y snapshots mensuales retenidos 1,825 días en AWS Backup Vault Lock |
 | Detección | alarmas de Lambda, API, RDS, DLQ, auditoría y fallos de backup/restore vía CloudWatch/SNS |
 
-Existe evidencia documentada de un primer restore real de RDS con RTO aproximado de 17 minutos y RPO cercano a cero. Esto prueba un procedimiento concreto, no garantiza por sí solo todos los SLO futuros; los simulacros periódicos y validaciones de contenido siguen en el roadmap.
-
-La [matriz viva de cumplimiento](docs/compliance_matrix.md) distingue `no evaluado`, `parcial`, `implementado` y `verificado independiente`. Ningún control se declara verificado independientemente todavía.
+Se ha ejecutado un restore controlado de RDS. La evidencia operativa detallada se conserva fuera del repositorio público; este hecho no garantiza por sí solo todos los SLO futuros. Ningún control se declara verificado independientemente todavía.
 
 ## Operación y entrega
 
@@ -242,7 +234,7 @@ El estado honesto del producto incluye estas brechas:
 - addenda formal, alergias, problemas, medicamentos longitudinales, signos vitales tipados e idempotencia transversal son Fase 12;
 - no hay todavía exportación portable completa, flujo ARCO técnico integral ni interoperabilidad FHIR de salida;
 - no existe una suite Playwright E2E completa ni evidencia WCAG 2.2 AA; ambas pertenecen a la fase de calidad;
-- no se mantiene un staging 24/7; el roadmap propone entornos efímeros para migraciones de riesgo y simulacros;
+- no se mantiene un staging 24/7; se prevén entornos efímeros para migraciones de riesgo y simulacros;
 - el catálogo CIE-10 guarda `CIE-10-MX` como versión constante; una entidad formal de releases sigue pendiente;
 - el objetivo de costo de USD 150/mes es una restricción de diseño y planeación, no una cotización ni una afirmación del gasto observado.
 
@@ -257,14 +249,6 @@ El estado honesto del producto incluye estas brechas:
 | [`backend/tests/`](backend/tests/) | pruebas unitarias, integración, seguridad y esquema migrado |
 | [`terraform/`](terraform/) | infraestructura AWS modular y estado objetivo de producción |
 | [`.github/workflows/`](.github/workflows/) | CI/CD y workflows operativos aprobados |
-| [`docs/`](docs/) | matriz normativa, runbooks, material legal y decisiones históricas |
-
-## Ruta de lectura recomendada
-
-1. [Roadmap clínico y de producto V2](ROADMAP_CLINICO_SIN_INCREMENTO_AWS_V2.md) — restricciones, fases, costo y arquitectura objetivo.
-2. [Walkthroughs de Fase 0](WALKTHROUGH_FASE0.md), [1](WALKTHROUGH_FASE1.md), [2](WALKTHROUGH_FASE2.md), [3](WALKTHROUGH_FASE3.md), [4](WALKTHROUGH_FASE4.md) y [5](WALKTHROUGH_FASE5.md) — decisiones y evidencia de cada incremento.
-3. [Matriz viva de cumplimiento](docs/compliance_matrix.md) — controles, evidencia y riesgo residual sin estados binarios autoproclamados.
-4. [Runbook de respaldo y retención](docs/runbooks/backup_retention_5years.md) y [rollout CIE-10](docs/runbooks/cie10_production_rollout.md) — ejemplos de operación verificable.
 
 ## Sobre el carácter público del repositorio
 
