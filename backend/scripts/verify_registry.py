@@ -58,6 +58,10 @@ _FORCE_EXPECTED = {
     "encuentros_clinicos",
     # Fase 3: a structured diagnosis is clinical evidence attached to a note.
     "nota_diagnosticos",
+    # Fase 5: lateral evidence around the immutable signed consent.
+    "consentimiento_firmantes",
+    "consentimiento_documentos_finales",
+    "consentimiento_revocaciones",
 }
 
 # Records the app role must never hard-delete: the clinical record and its
@@ -79,6 +83,9 @@ _DELETE_PROTECTED = {
     "encuentros_clinicos",
     # Fase 3: a diagnosis is corrected with a new version/state, never deleted (§5.3).
     "nota_diagnosticos",
+    "consentimiento_firmantes",
+    "consentimiento_documentos_finales",
+    "consentimiento_revocaciones",
 }
 
 # The full CIE-10 catalog is ~14.5k rows; require a comfortable floor so a truncated or
@@ -741,6 +748,141 @@ async def verify_plantillas() -> dict[str, Any]:
     return _envelope("plantillas", checks, counts=counts)
 
 
+async def verify_consentimientos() -> dict[str, Any]:
+    """Fase 5: immutable signers, one final PDF and lateral revocation evidence."""
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    tables = (
+        "consentimiento_firmantes",
+        "consentimiento_documentos_finales",
+        "consentimiento_revocaciones",
+    )
+    async with factory() as session, session.begin():
+        for table in tables:
+            table_checks, table_warnings = await _table_rls_checks(session, table)
+            checks.extend(table_checks)
+            warnings.extend(table_warnings)
+            can_select_insert = (
+                await session.execute(
+                    text(
+                        "SELECT has_table_privilege('medrecord_app', :t, 'SELECT') "
+                        "AND has_table_privilege('medrecord_app', :t, 'INSERT')"
+                    ),
+                    {"t": table},
+                )
+            ).scalar_one()
+            can_update = (
+                await session.execute(
+                    text("SELECT has_table_privilege('medrecord_app', :t, 'UPDATE')"),
+                    {"t": table},
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    f"{table}: app is create/read-only",
+                    bool(can_select_insert) and not bool(can_update),
+                    f"select+insert={can_select_insert}, update={can_update}",
+                )
+            )
+
+        signed_trigger = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_trigger "
+                    "WHERE tgname='consentimientos_signed_immutable' AND NOT tgisinternal"
+                )
+            )
+        ).scalar_one()
+        evidence_triggers = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM pg_trigger WHERE tgname IN "
+                    "('consentimiento_firmantes_immutable', "
+                    " 'consentimiento_documentos_finales_immutable', "
+                    " 'consentimiento_revocaciones_immutable') AND NOT tgisinternal"
+                )
+            )
+        ).scalar_one()
+        checks.extend(
+            [
+                _check(
+                    "signed consent immutability trigger present",
+                    signed_trigger == 1,
+                    f"found={signed_trigger}",
+                ),
+                _check(
+                    "all lateral evidence has UPDATE immutability triggers",
+                    evidence_triggers == 3,
+                    f"found={evidence_triggers}",
+                ),
+            ]
+        )
+
+        incomplete_finalizations = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM consentimientos c
+                    WHERE c.firma_kms_key_id IS NOT NULL
+                      AND (
+                        c.verification_token_id IS NULL
+                        OR NOT EXISTS (
+                            SELECT 1 FROM consentimiento_documentos_finales d
+                            WHERE d.consentimiento_id = c.id
+                        )
+                      )
+                    """
+                )
+            )
+        ).scalar_one()
+        revocation_token_mismatches = (
+            await session.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM consentimiento_revocaciones r
+                    JOIN consentimientos c ON c.id = r.consentimiento_id
+                    LEFT JOIN verification_tokens v ON v.id = c.verification_token_id
+                    WHERE v.id IS NULL OR v.status <> 'revoked' OR v.revoked_at IS NULL
+                    """
+                )
+            )
+        ).scalar_one()
+        checks.extend(
+            [
+                _check(
+                    "every Fase-5 signature has one token and one final document",
+                    incomplete_finalizations == 0,
+                    f"incomplete={incomplete_finalizations}",
+                ),
+                _check(
+                    "every revocation invalidates its public token",
+                    revocation_token_mismatches == 0,
+                    f"mismatches={revocation_token_mismatches}",
+                ),
+            ]
+        )
+        counts = {
+            "firmantes": (
+                await session.execute(text("SELECT count(*) FROM consentimiento_firmantes"))
+            ).scalar_one(),
+            "documentos_finales": (
+                await session.execute(
+                    text("SELECT count(*) FROM consentimiento_documentos_finales")
+                )
+            ).scalar_one(),
+            "revocaciones": (
+                await session.execute(text("SELECT count(*) FROM consentimiento_revocaciones"))
+            ).scalar_one(),
+        }
+
+    return _envelope("consentimientos", checks, warnings=warnings, counts=counts)
+
+
 async def verify_backups() -> dict[str, Any]:
     """Assert the NOM-004 §5.14 5-year archive is actually producing backups.
 
@@ -819,6 +961,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "encuentros": verify_encuentros,
     "cie10": verify_cie10,
     "plantillas": verify_plantillas,
+    "consentimientos": verify_consentimientos,
     "backups": verify_backups,
 }
 

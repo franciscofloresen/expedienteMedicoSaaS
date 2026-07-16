@@ -231,6 +231,60 @@ async def main() -> int:
                 check(f"{table} app role has SELECT", bool(can_select))
                 check(f"{table} app role cannot write", not bool(can_write))
 
+        # Fase 5 evidence is tenant-scoped and append-only. The migration_schema
+        # integration suite exercises row isolation; this cumulative verifier also
+        # freezes FORCE RLS and least-privilege grants so a later GRANT ALL cannot
+        # silently undo retention/integrity.
+        print("consent finalization evidence:")
+        async with factory() as session, session.begin():
+            for table in (
+                "consentimiento_firmantes",
+                "consentimiento_documentos_finales",
+                "consentimiento_revocaciones",
+            ):
+                rls = (
+                    await session.execute(
+                        text(
+                            "SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                            "WHERE oid = to_regclass(:t)"
+                        ),
+                        {"t": table},
+                    )
+                ).first()
+                policy_count = (
+                    await session.execute(
+                        text(
+                            "SELECT count(*) FROM pg_policies "
+                            "WHERE schemaname='public' AND tablename=:t"
+                        ),
+                        {"t": table},
+                    )
+                ).scalar_one()
+                can_select_insert = (
+                    await session.execute(
+                        text(
+                            "SELECT has_table_privilege('medrecord_app', :t, 'SELECT') "
+                            "AND has_table_privilege('medrecord_app', :t, 'INSERT')"
+                        ),
+                        {"t": table},
+                    )
+                ).scalar_one()
+                can_modify = (
+                    await session.execute(
+                        text(
+                            "SELECT has_table_privilege('medrecord_app', :t, 'UPDATE') "
+                            "OR has_table_privilege('medrecord_app', :t, 'DELETE')"
+                        ),
+                        {"t": table},
+                    )
+                ).scalar_one()
+                check(
+                    f"{table} has FORCE RLS + policy",
+                    bool(rls and rls[0] and rls[1] and policy_count >= 1),
+                )
+                check(f"{table} app role can SELECT+INSERT", bool(can_select_insert))
+                check(f"{table} app role cannot UPDATE/DELETE", not bool(can_modify))
+
     finally:
         # Best-effort cleanup of the storage rows only. The seed tenants,
         # pacientes and expedientes stay: the NOM-004 immutability trigger

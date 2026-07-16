@@ -19,6 +19,7 @@ dependencies = [
     "PyJWT>=2.8",               # JWT issuance + validation
     "httpx>=0.27",              # Async HTTP client
     "python-json-logger>=3.0",  # Structured JSON logging for CloudWatch
+    "reportlab>=4.2",           # Deterministic final consent PDF (stored once in existing S3)
 ]
 
 [project.optional-dependencies]
@@ -71,5 +72,5 @@ strict = true
 
 
 [[tool.mypy.overrides]]
-module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*"]
+module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*", "reportlab.*"]
 ignore_missing_imports = true

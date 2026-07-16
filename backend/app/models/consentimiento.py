@@ -40,6 +40,14 @@ class Consentimiento(Base):
     firmado_medico_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     hash_contenido: Mapped[str | None] = mapped_column(String(64))
     firma_digital: Mapped[bytes | None] = mapped_column(BYTEA)
+    firma_kms_key_id: Mapped[str | None] = mapped_column(String(200))
+    firma_algoritmo: Mapped[str | None] = mapped_column(String(30))
+    medico_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("medicos.id")
+    )
+    credencial_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("medico_credenciales.id")
+    )
     verification_token_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("verification_tokens.id")
     )

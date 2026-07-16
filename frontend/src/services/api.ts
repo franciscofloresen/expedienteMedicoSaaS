@@ -356,6 +356,7 @@ export const recetasApi = {
 
 export const consentimientosApi = {
   templates: async (): Promise<any[]> => api.get('/consentimientos/templates'),
+  credencialesFirma: async (): Promise<any[]> => api.get('/consentimientos/credenciales-firma'),
   getByExpedienteId: async (expedienteId: string): Promise<any[]> => {
     return api.get(`/consentimientos/expediente/${expedienteId}`);
   },
@@ -363,7 +364,14 @@ export const consentimientosApi = {
   firmarPaciente: async (id: string, data: any): Promise<any> => {
     return api.post(`/consentimientos/${id}/firmar-paciente`, data);
   },
-  firmarMedico: async (id: string): Promise<any> => api.post(`/consentimientos/${id}/firmar-medico`),
+  firmarMedico: async (id: string, credencialId?: string): Promise<any> => api.post(
+    `/consentimientos/${id}/firmar-medico`,
+    credencialId ? { credencial_id: credencialId } : undefined,
+  ),
+  revocar: async (id: string, motivo: string): Promise<any> => api.post(
+    `/consentimientos/${id}/revocar`,
+    { motivo },
+  ),
   print: async (id: string): Promise<any> => api.get(`/consentimientos/${id}/print`),
 };
 
