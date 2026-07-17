@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Any, cast
 
-import boto3
 from reportlab.graphics.barcode import qr
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
@@ -29,6 +28,7 @@ from app.models.consentimiento import Consentimiento
 from app.models.consentimiento_evidencia import ConsentimientoFirmante
 from app.models.expediente import Expediente
 from app.models.paciente import Paciente
+from app.services.clinical_storage import get_s3_client
 
 
 @dataclass(frozen=True)
@@ -196,7 +196,7 @@ def store_final_consent_pdf(
             sha256=digest,
             size_bytes=len(pdf_bytes),
         )
-    response = boto3.client("s3").put_object(
+    response = get_s3_client().put_object(
         Bucket=settings.s3_consent_bucket,
         Key=key,
         Body=pdf_bytes,
@@ -226,7 +226,7 @@ def final_consent_download_url(*, key: str, version_id: str | None) -> str:
         params["VersionId"] = version_id
     return cast(
         str,
-        boto3.client("s3").generate_presigned_url(
+        get_s3_client().generate_presigned_url(
             "get_object", Params=params, ExpiresIn=settings.file_signed_url_ttl_seconds
         ),
     )
