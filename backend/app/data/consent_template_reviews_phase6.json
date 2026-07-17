@@ -1,0 +1,21 @@
+[
+  {"template_key":"general_atencion","version":"2.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente","observaciones":"Asignar profesional clínico competente y adjuntar evidencia de aprobación."},"revision_juridica":{"status":"pendiente","observaciones":"Asignar revisión jurídica sanitaria y adjuntar evidencia de aprobación."}},
+  {"template_key":"ingreso_hospitalario","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"cirugia_mayor","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"anestesia_general_regional","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"diagnostico_alto_riesgo","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"terapeutico_alto_riesgo","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"transfusion_hemoderivados","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"salpingoclasia","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"vasectomia","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"donacion_trasplante","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"investigacion_clinica","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"necropsia","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"procedimiento_posible_mutilacion","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"representacion_tutor","version":"1.0","tipo_documento":"documento_relacionado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"negativa_tratamiento","version":"1.0","tipo_documento":"documento_relacionado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"revocacion_consentimiento","version":"1.0","tipo_documento":"documento_relacionado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"egreso_voluntario","version":"1.0","tipo_documento":"documento_relacionado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"fotografias_clinicas","version":"1.0","tipo_documento":"autorizacion","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}},
+  {"template_key":"teleconsulta","version":"1.0","tipo_documento":"consentimiento_informado","revision_clinica":{"status":"pendiente"},"revision_juridica":{"status":"pendiente"}}
+]

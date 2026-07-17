@@ -5,6 +5,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+from app.services.consent_template_reviews import phase6_readiness
 from app.services.consent_templates import (
     DEFAULT_CATALOG_PATH,
     load_catalog,
@@ -63,6 +64,12 @@ def _compare(old_path: Path, new_path: Path) -> int:
     return 0
 
 
+def _review_status() -> int:
+    report = phase6_readiness()
+    print(json.dumps(report, ensure_ascii=False, indent=2, default=str))
+    return 0 if report["ok"] else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -78,11 +85,15 @@ def main() -> int:
     compare.add_argument("old_path", type=Path)
     compare.add_argument("new_path", type=Path)
 
+    subparsers.add_parser("review-status")
+
     args = parser.parse_args()
     if args.command == "validate":
         return _validate(args.path)
     if args.command == "preview":
         return _preview(args.path, args.template_key)
+    if args.command == "review-status":
+        return _review_status()
     return _compare(args.old_path, args.new_path)
 
 

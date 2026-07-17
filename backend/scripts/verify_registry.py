@@ -748,6 +748,76 @@ async def verify_plantillas() -> dict[str, Any]:
     return _envelope("plantillas", checks, counts=counts)
 
 
+async def verify_biblioteca_normativa() -> dict[str, Any]:
+    """Fase 6: exactly 19 professionally approved, immutable normative documents."""
+    from app.db.session import _get_session_factory
+    from app.services.consent_template_reviews import (
+        load_phase6_catalog,
+        load_phase6_reviews,
+        publication_readiness,
+    )
+    from app.services.consent_templates import version_hash
+
+    documents = load_phase6_catalog()
+    reviews = load_phase6_reviews()
+    readiness = publication_readiness(documents, reviews)
+    expected_hashes = {
+        (document.template_key, document.version): version_hash(document)
+        for document in documents
+    }
+    expected_types = {review.template_key: review.tipo_documento for review in reviews}
+    checks = [
+        _check(
+            "all 19 templates have named clinical and legal approval evidence",
+            bool(readiness["ok"]),
+            f"errors={readiness['errors']}",
+        )
+    ]
+
+    factory = _get_session_factory()
+    async with factory() as session, session.begin():
+        rows = (
+            await session.execute(
+                text(
+                    """
+                    SELECT p.template_key, p.categoria, v.version, v.contenido_hash
+                    FROM consentimiento_plantillas p
+                    JOIN consentimiento_plantilla_versiones v ON v.plantilla_id = p.id
+                    WHERE v.estado = 'publicada'
+                    """
+                )
+            )
+        ).all()
+
+    actual_hashes = {(row[0], row[2]): row[3] for row in rows}
+    actual_types = {row[0]: row[1] for row in rows}
+    mismatched = sorted(
+        identity
+        for identity, expected_hash in expected_hashes.items()
+        if actual_hashes.get(identity) != expected_hash
+    )
+    type_mismatches = sorted(
+        key for key, expected_type in expected_types.items() if actual_types.get(key) != expected_type
+    )
+    checks.extend(
+        [
+            _check(
+                "the complete Fase-6 package is published with approved immutable hashes",
+                not mismatched and len(expected_hashes) == 19,
+                f"missing_or_mismatched={mismatched}",
+            ),
+            _check(
+                "published metadata distinguishes consent, authorization and related documents",
+                not type_mismatches,
+                f"type_mismatches={type_mismatches}",
+            ),
+        ]
+    )
+    counts = dict(readiness["counts"])
+    counts["versiones_fase6_publicadas"] = len(expected_hashes) - len(mismatched)
+    return _envelope("biblioteca_normativa", checks, counts=counts)
+
+
 async def verify_consentimientos() -> dict[str, Any]:
     """Fase 5: immutable signers, one final PDF and lateral revocation evidence."""
     from app.db.session import _get_session_factory
@@ -961,6 +1031,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "encuentros": verify_encuentros,
     "cie10": verify_cie10,
     "plantillas": verify_plantillas,
+    "biblioteca_normativa": verify_biblioteca_normativa,
     "consentimientos": verify_consentimientos,
     "backups": verify_backups,
 }

@@ -16,6 +16,12 @@ from app.models.consentimiento_plantilla import (
     ConsentimientoPlantilla,
     ConsentimientoPlantillaVersion,
 )
+from app.services.consent_template_reviews import (
+    ReadinessReport,
+    load_phase6_catalog,
+    load_phase6_reviews,
+    publication_readiness,
+)
 from app.services.consent_templates import (
     ConsentTemplateDocument,
     load_catalog,
@@ -101,13 +107,37 @@ async def _inspect(session: Any, documents: list[ConsentTemplateDocument]) -> di
     return counts
 
 
-async def run_import(mode: str) -> dict[str, Any]:
-    action = f"import_consent_templates:{mode}"
+def _load_publication_documents(
+    catalog: str,
+) -> tuple[list[ConsentTemplateDocument], ReadinessReport]:
+    if catalog == "baseline":
+        documents = load_catalog()
+        return documents, {
+            "ok": True,
+            "counts": {"templates_total": len(documents)},
+            "errors": [],
+        }
+    if catalog == "fase6":
+        documents = load_phase6_catalog()
+        readiness = publication_readiness(documents, load_phase6_reviews())
+        return documents, readiness
+    raise ValueError("catalog must be baseline or fase6")
+
+
+async def run_import(mode: str, catalog: str = "baseline") -> dict[str, Any]:
+    action = f"import_consent_templates:{catalog}:{mode}"
     if mode not in ("dry-run", "apply"):
         return _envelope(action, False, {}, ["mode must be dry-run or apply"])
 
     try:
-        documents = load_catalog()
+        documents, readiness = _load_publication_documents(catalog)
+        if not readiness["ok"]:
+            return _envelope(
+                action,
+                False,
+                dict(readiness["counts"]),
+                list(readiness["errors"]),
+            )
         factory = _get_session_factory()
         async with factory() as session, session.begin():
             counts = await _inspect(session, documents)
@@ -204,13 +234,13 @@ async def run_import(mode: str) -> dict[str, Any]:
         return _envelope(action, False, {}, [str(exc)])
 
 
-def run_import_sync(mode: str) -> dict[str, Any]:
+def run_import_sync(mode: str, catalog: str = "baseline") -> dict[str, Any]:
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-    return loop.run_until_complete(run_import(mode))
+    return loop.run_until_complete(run_import(mode, catalog))
 
 
 if __name__ == "__main__":
