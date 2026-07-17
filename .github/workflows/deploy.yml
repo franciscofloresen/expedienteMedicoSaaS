@@ -48,7 +48,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
@@ -116,7 +116,7 @@ jobs:
           echo "⚠️ Antes de aplicar, recuerda revisar docs/runbooks/aurora_migration.md para migraciones destructivas de BD."
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
@@ -163,7 +163,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
@@ -211,7 +211,7 @@ jobs:
           --manifest-path /tmp/lambda-package-manifest.json
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
@@ -278,7 +278,7 @@ jobs:
 
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
@@ -362,7 +362,7 @@ jobs:
           ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
