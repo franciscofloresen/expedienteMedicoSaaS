@@ -222,18 +222,21 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             return {"statusCode": 500, "body": f"import_cie10 failed: {e}"}
 
     if isinstance(event, dict) and event.get("import_consent_templates"):
-        from scripts.import_consent_templates import run_import_sync
+        from scripts.import_consent_templates import run_import_sync as run_consent_import_sync
 
         mode = str(event["import_consent_templates"])
-        logger.info(f"Publishing consent templates (mode={mode})...")
+        catalog = str(event.get("consent_template_catalog", "baseline"))
+        logger.info(f"Publishing consent templates (catalog={catalog}, mode={mode})...")
         try:
-            import_result = run_import_sync(mode)
+            import_result = run_consent_import_sync(mode, catalog)
             return {
                 "statusCode": 200 if import_result.get("ok") else 400,
                 "body": import_result,
             }
         except Exception as e:
-            logger.error(f"import_consent_templates mode={mode} failed", exc_info=True)
+            logger.error(
+                f"import_consent_templates catalog={catalog} mode={mode} failed", exc_info=True
+            )
             return {"statusCode": 500, "body": f"import_consent_templates failed: {e}"}
 
     if isinstance(event, dict) and event.get("extract_legacy_diagnosticos"):

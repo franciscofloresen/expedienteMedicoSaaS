@@ -11,6 +11,14 @@ on:
         options:
           - dry_run
           - production_rollout
+      catalog:
+        description: "Catálogo a validar/publicar"
+        required: true
+        default: "baseline"
+        type: choice
+        options:
+          - baseline
+          - fase6
       confirm_production:
         description: "Para rollout escribe PUBLICAR_PLANTILLAS_PROD"
         required: false
@@ -68,35 +76,53 @@ jobs:
           echo "snapshot_id=${SNAPSHOT_ID}" >> "${GITHUB_OUTPUT}"
 
       - name: Dry-run publication
+        env:
+          CATALOG: ${{ inputs.catalog }}
         run: |
+          if [ "${CATALOG}" = "fase6" ]; then EXPECTED=19; else EXPECTED=5; fi
+          PAYLOAD="$(jq -nc --arg catalog "${CATALOG}" \
+            '{import_consent_templates:"dry-run",consent_template_catalog:$catalog}')"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
-            --payload '{"import_consent_templates":"dry-run"}' \
+            --payload "${PAYLOAD}" \
             --cli-binary-format raw-in-base64-out \
             /tmp/templates_dry_run.json
           jq '.' /tmp/templates_dry_run.json
-          jq -e '
+          jq -e --argjson expected "${EXPECTED}" '
             .statusCode == 200 and .body.ok == true and
-            .body.counts.templates_total == 5
+            .body.counts.templates_total == $expected
           ' /tmp/templates_dry_run.json >/dev/null
 
-      - name: Publish immutable v1.0 templates
+      - name: Publish reviewed immutable templates
         if: ${{ inputs.action == 'production_rollout' }}
+        env:
+          CATALOG: ${{ inputs.catalog }}
         run: |
+          if [ "${CATALOG}" = "fase6" ]; then EXPECTED=19; else EXPECTED=5; fi
+          PAYLOAD="$(jq -nc --arg catalog "${CATALOG}" \
+            '{import_consent_templates:"apply",consent_template_catalog:$catalog}')"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
-            --payload '{"import_consent_templates":"apply"}' \
+            --payload "${PAYLOAD}" \
             --cli-binary-format raw-in-base64-out \
             /tmp/templates_apply.json
           jq '.' /tmp/templates_apply.json
-          jq -e '
+          jq -e --argjson expected "${EXPECTED}" '
             .statusCode == 200 and .body.ok == true and
-            (.body.counts.versions_inserted + .body.counts.versions_unchanged == 5)
+            (.body.counts.versions_inserted + .body.counts.versions_unchanged == $expected)
           ' /tmp/templates_apply.json >/dev/null
 
-      - name: Verify Fase 4 in production
+      - name: Verify catalog in production
         if: ${{ inputs.action == 'production_rollout' }}
+        env:
+          CATALOG: ${{ inputs.catalog }}
         run: |
+          if [ "${CATALOG}" = "fase6" ]; then
+            VERIFY_ACTION="biblioteca_normativa"
+          else
+            VERIFY_ACTION="plantillas"
+          fi
+          PAYLOAD="$(jq -nc --arg action "${VERIFY_ACTION}" '{verify:$action}')"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
-            --payload '{"verify":"plantillas"}' \
+            --payload "${PAYLOAD}" \
             --cli-binary-format raw-in-base64-out \
             /tmp/templates_verify.json
           jq '.' /tmp/templates_verify.json
@@ -107,11 +133,12 @@ jobs:
         if: ${{ inputs.action == 'production_rollout' }}
         env:
           SNAPSHOT_ID: ${{ steps.snapshot.outputs.snapshot_id }}
+          CATALOG: ${{ inputs.catalog }}
         run: |
           {
-            echo "## Fase 4 — plantillas publicadas"
+            echo "## Catálogo de consentimientos — ${CATALOG}"
             echo "- Snapshot: \`${SNAPSHOT_ID}\`"
             echo "- Dry-run: \`$(jq -c '.body.counts' /tmp/templates_dry_run.json)\`"
             echo "- Apply: \`$(jq -c '.body.counts' /tmp/templates_apply.json)\`"
-            echo "- verify_plantillas: OK"
+            echo "- Verificación: OK"
           } >> "${GITHUB_STEP_SUMMARY}"

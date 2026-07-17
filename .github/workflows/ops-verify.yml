@@ -16,6 +16,7 @@ name: Ops — Verify (Production)
 #              catálogo CIE-10 importado (pg_trgm + índice GIN + descripción normalizada)
 #              y un solo diagnóstico principal por nota (§5.3).
 #   plantillas — Fase 4: catálogo publicado inmutable y app en modo sólo lectura.
+#   biblioteca_normativa — Fase 6: 19 documentos con aprobación clínica/jurídica.
 #   consentimientos — Fase 5: firmantes, PDF final único y revocación lateral.
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
@@ -34,6 +35,7 @@ on:
           - encuentros
           - cie10
           - plantillas
+          - biblioteca_normativa
           - consentimientos
           - backups
 

@@ -1,0 +1,477 @@
+[
+  {
+    "template_key": "general_atencion",
+    "categoria": "consentimiento_informado",
+    "especialidad": null,
+    "procedimiento": "Atención médica general",
+    "version": "2.0",
+    "nombre": "Consentimiento general de atención médica",
+    "contenido": {
+      "descripcion": "Autorización para valoración clínica, exploración física y las medidas diagnósticas o terapéuticas de bajo riesgo que el médico explique y documente para el caso concreto.",
+      "beneficios": "Valoración del estado de salud, orientación diagnóstica, plan de manejo y seguimiento clínico.",
+      "alternativas": "No recibir la atención propuesta, solicitar una segunda opinión o acudir a otro establecimiento o profesional.",
+      "cuidados": "Cumplir las indicaciones individualizadas, acudir al seguimiento y solicitar atención ante los datos de alarma explicados.",
+      "riesgos": "Molestias propias de la exploración, reacciones no previstas y necesidad de estudios, tratamiento o referencia adicionales; el médico debe individualizar los riesgos relevantes.",
+      "declaracion": "La persona firmante declara que recibió información clara y suficiente, pudo formular preguntas y conserva el derecho de retirar su consentimiento antes del acto, sin efectos retroactivos.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación. CloudMedRecord no sustituye el proceso de información ni el criterio profesional."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Acto médico autorizado", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 10.1 y 10.1.1", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "ingreso_hospitalario",
+    "categoria": "consentimiento_informado",
+    "especialidad": null,
+    "procedimiento": "Ingreso hospitalario",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para ingreso hospitalario",
+    "contenido": {
+      "descripcion": "Autorización de ingreso al establecimiento para evaluación, vigilancia y atención del padecimiento descrito, sin sustituir los consentimientos específicos de cada procedimiento de alto riesgo.",
+      "beneficios": "Vigilancia clínica continua y acceso oportuno a los recursos diagnósticos y terapéuticos indicados.",
+      "alternativas": "Manejo ambulatorio cuando sea clínicamente viable, referencia a otro establecimiento o negativa de ingreso con documentación de sus consecuencias.",
+      "cuidados": "Informar antecedentes y medicamentos, respetar medidas de seguridad y participar en el plan de egreso y seguimiento.",
+      "riesgos": "Riesgos inherentes a la hospitalización, incluida exposición a infecciones, inmovilidad, eventos adversos y necesidad de procedimientos adicionales, que deben individualizarse.",
+      "declaracion": "La persona firmante autoriza el ingreso después de recibir explicación del motivo, alcance y reglas aplicables, y reconoce que se recabarán consentimientos específicos cuando correspondan.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Motivo y alcance del ingreso", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.1", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 75 a 82"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "cirugia_mayor",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Cirugía",
+    "procedimiento": "Cirugía mayor",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para cirugía mayor",
+    "contenido": {
+      "descripcion": "Autorización para el procedimiento quirúrgico individualizado, incluidos el sitio, la finalidad y las contingencias previsibles explicadas por el equipo tratante.",
+      "beneficios": "Beneficios esperados del procedimiento para tratar, corregir o aliviar el padecimiento descrito; no se garantiza un resultado específico.",
+      "alternativas": "Tratamiento conservador, otro abordaje quirúrgico, referencia, segunda opinión o no realizar el procedimiento, según el caso.",
+      "cuidados": "Cumplir preparación preoperatoria, ayuno e indicaciones; después, seguir cuidados de herida, medicación, restricciones y datos de alarma individualizados.",
+      "riesgos": "Dolor, sangrado, infección, lesión de estructuras, trombosis, reintervención, secuelas, complicaciones anestésicas y muerte; deben añadirse los riesgos propios del caso.",
+      "declaracion": "La persona firmante declara que el cirujano explicó diagnóstico, técnica propuesta, beneficios, alternativas, riesgos relevantes y posibilidad de modificar el plan ante hallazgos o urgencias.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Cirugía y sitio anatómico", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 10.1.1 y 10.1.2.2", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "anestesia_general_regional",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Anestesiología",
+    "procedimiento": "Anestesia general o regional",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para anestesia general o regional",
+    "contenido": {
+      "descripcion": "Autorización del plan anestésico individualizado y de las medidas de monitorización, soporte y contingencia que explique el profesional de anestesiología.",
+      "beneficios": "Control del dolor, inmovilidad o sedación necesarios para realizar el procedimiento con vigilancia especializada.",
+      "alternativas": "Otra técnica anestésica o analgésica cuando resulte viable, aplazamiento o no realización del procedimiento principal.",
+      "cuidados": "Cumplir ayuno e indicaciones de medicamentos, informar alergias y antecedentes, y observar las restricciones posteriores de conducción, alimentación y vigilancia.",
+      "riesgos": "Náusea, dolor, lesión dental o nerviosa, reacción alérgica, aspiración, alteraciones cardiovasculares o respiratorias, conversión de técnica, secuelas y muerte; individualizar por paciente.",
+      "declaracion": "La persona firmante declara que recibió explicación del plan, posibles cambios justificados y riesgos relacionados con su condición y el procedimiento.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Técnica anestésica propuesta", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.3", "NOM-006-SSA3-2011, para la práctica de la anestesiología"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "diagnostico_alto_riesgo",
+    "categoria": "consentimiento_informado",
+    "especialidad": null,
+    "procedimiento": "Procedimiento diagnóstico de alto riesgo",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para procedimiento diagnóstico de alto riesgo",
+    "contenido": {
+      "descripcion": "Autorización para el procedimiento diagnóstico específico, su preparación, medios de contraste o sedación cuando correspondan y las contingencias explicadas.",
+      "beneficios": "Obtener información relevante para confirmar, descartar o caracterizar un diagnóstico y orientar decisiones posteriores.",
+      "alternativas": "Métodos diagnósticos alternativos, vigilancia, referencia o no realizar el estudio, con sus limitaciones y consecuencias.",
+      "cuidados": "Cumplir preparación, ayuno y ajustes de medicamentos; informar alergias, embarazo y comorbilidades; seguir vigilancia y datos de alarma posteriores.",
+      "riesgos": "Dolor, sangrado, infección, reacción a contraste o medicamentos, lesión de órganos, necesidad de intervención urgente y otros riesgos propios del estudio.",
+      "declaracion": "La persona firmante declara que recibió información suficiente sobre la finalidad diagnóstica, límites del estudio, alternativas y riesgos individualizados.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento diagnóstico", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 10.1.1 y 10.1.2.8", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículo 80"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "terapeutico_alto_riesgo",
+    "categoria": "consentimiento_informado",
+    "especialidad": null,
+    "procedimiento": "Procedimiento terapéutico de alto riesgo",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para procedimiento terapéutico de alto riesgo",
+    "contenido": {
+      "descripcion": "Autorización para el tratamiento o intervención específica considerada de alto riesgo por el médico, con su alcance y contingencias individualizadas.",
+      "beneficios": "Control, mejoría o estabilización del padecimiento, de acuerdo con la respuesta individual y la evidencia disponible.",
+      "alternativas": "Otros tratamientos, manejo paliativo o expectante, referencia, segunda opinión o no recibir la intervención.",
+      "cuidados": "Cumplir preparación y seguimiento, informar cambios clínicos y acudir de inmediato ante los datos de alarma explicados.",
+      "riesgos": "Eventos adversos del tratamiento, lesión de órganos, infección, sangrado, secuelas, fracaso terapéutico, necesidad de rescate o muerte; individualizar obligatoriamente.",
+      "declaracion": "La persona firmante declara que comprendió el objetivo, la incertidumbre del resultado, las alternativas y los riesgos relevantes del tratamiento propuesto.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento terapéutico", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 10.1.1 y 10.1.2.8", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículo 80"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "transfusion_hemoderivados",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Medicina transfusional",
+    "procedimiento": "Transfusión y hemoderivados",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para transfusión y hemoderivados",
+    "contenido": {
+      "descripcion": "Autorización para administrar los componentes sanguíneos o hemoderivados indicados y realizar la vigilancia y atención de reacciones asociadas.",
+      "beneficios": "Corregir o prevenir consecuencias de anemia, hemorragia, alteraciones de coagulación u otra indicación clínica documentada.",
+      "alternativas": "Medidas farmacológicas, conservación de sangre, procedimientos hemostáticos o no transfundir cuando sean clínicamente viables.",
+      "cuidados": "Informar antecedentes transfusionales y alergias; reportar fiebre, escalofríos, dificultad respiratoria, dolor, erupción u otros síntomas durante o después.",
+      "riesgos": "Reacciones febriles, alérgicas, hemolíticas o circulatorias, infección transmisible residual, lesión pulmonar, aloinmunización y otros eventos raros graves.",
+      "declaracion": "La persona firmante declara que recibió explicación de la indicación, componentes previstos, beneficios, alternativas, riesgos y posibilidad de atención urgente.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Componentes e indicación", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1", "NOM-253-SSA1-2012, para la disposición de sangre humana y sus componentes con fines terapéuticos"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "salpingoclasia",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Ginecología",
+    "procedimiento": "Salpingoclasia u oclusión tubaria bilateral",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para salpingoclasia",
+    "contenido": {
+      "descripcion": "Autorización libre e informada para un método anticonceptivo quirúrgico de intención permanente, después de consejería suficiente y sin coerción.",
+      "beneficios": "Anticoncepción de alta eficacia y duración permanente, sin garantía absoluta de imposibilidad de embarazo.",
+      "alternativas": "Métodos anticonceptivos reversibles de corta o larga duración, métodos de barrera, vasectomía de la pareja o no adoptar un método.",
+      "cuidados": "Cumplir preparación y seguimiento quirúrgico, cuidados de herida, restricciones indicadas y atención de datos de alarma.",
+      "riesgos": "Arrepentimiento, falla y embarazo incluido ectópico, dolor, sangrado, infección, lesión de órganos, anestesia y eventual necesidad de otra intervención.",
+      "declaracion": "La persona firmante declara que decidió libremente, comprendió el carácter permanente, recibió consejería sobre alternativas y pudo revocar su decisión antes del procedimiento.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Técnica propuesta", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.4", "Ley General de Salud, disposiciones vigentes en materia de planificación familiar"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "vasectomia",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Urología",
+    "procedimiento": "Vasectomía",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para vasectomía",
+    "contenido": {
+      "descripcion": "Autorización libre e informada para un método anticonceptivo quirúrgico de intención permanente, después de consejería suficiente y sin coerción.",
+      "beneficios": "Anticoncepción de alta eficacia una vez confirmada su efectividad mediante el seguimiento indicado.",
+      "alternativas": "Métodos anticonceptivos reversibles, métodos de barrera, anticoncepción quirúrgica de la pareja o no adoptar un método.",
+      "cuidados": "Usar anticoncepción adicional hasta la confirmación clínica indicada, cumplir estudios de seguimiento y observar cuidados de herida y datos de alarma.",
+      "riesgos": "Dolor, hematoma, infección, granuloma, dolor crónico, recanalización y embarazo; la esterilidad no es inmediata ni absolutamente garantizada.",
+      "declaracion": "La persona firmante declara que decidió libremente, comprendió el carácter permanente, recibió consejería sobre alternativas y pudo revocar su decisión antes del procedimiento.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Técnica propuesta", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.4", "Ley General de Salud, disposiciones vigentes en materia de planificación familiar"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "donacion_trasplante",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Trasplantes",
+    "procedimiento": "Donación o trasplante",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para donación o trasplante",
+    "contenido": {
+      "descripcion": "Documento de apoyo para el proceso institucional de donación o trasplante especificado; no sustituye autorizaciones, comités, evaluaciones ni formatos exigidos por la autoridad competente.",
+      "beneficios": "Beneficio terapéutico esperado para la persona receptora o finalidad autorizada de la donación, según corresponda al caso documentado.",
+      "alternativas": "Tratamientos sustitutivos, permanencia en lista, donación de otra fuente, manejo conservador o no participar, según el rol y el caso.",
+      "cuidados": "Cumplir evaluación multidisciplinaria, estudios, seguimiento de largo plazo, tratamiento indicado y reglas del programa autorizado.",
+      "riesgos": "Riesgos quirúrgicos, rechazo, infección, toxicidad por inmunosupresión, falla del injerto o afectación del donante; deben separarse e individualizarse por rol.",
+      "declaracion": "La persona firmante reconoce que recibió información específica para su calidad de donante, receptor o representante y que esta plantilla no reemplaza el proceso regulado aplicable.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere revisión especializada en trasplantes y aprobación jurídica antes de cualquier publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Tipo de donación o trasplante y rol", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados por rol", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.5", "Ley General de Salud, artículos 321 a 333", "Reglamento de la Ley General de Salud en materia de trasplantes"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "investigacion_clinica",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Investigación en salud",
+    "procedimiento": "Investigación clínica en seres humanos",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para investigación clínica",
+    "contenido": {
+      "descripcion": "Documento base para un protocolo autorizado; debe completarse con objetivo, procedimientos, duración, carácter experimental, confidencialidad, compensación, contactos y aprobación ética específicos.",
+      "beneficios": "Los beneficios directos pueden no existir; deben describirse sin promesas y diferenciarse de la contribución esperada al conocimiento.",
+      "alternativas": "No participar o retirarse sin afectar la atención debida, además de las alternativas terapéuticas disponibles fuera del protocolo.",
+      "cuidados": "Cumplir visitas y medidas del protocolo, reportar eventos adversos y usar los contactos de atención, investigación y comité proporcionados.",
+      "riesgos": "Riesgos conocidos, previsibles y desconocidos del protocolo, molestias, pérdida de confidencialidad y alternativas de atención; deben individualizarse por estudio.",
+      "declaracion": "La persona firmante declara participación voluntaria y reconoce su derecho a preguntar, recibir copia, negar o retirar el consentimiento sin penalización indebida.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: no es publicable sin protocolo autorizado y aprobación de los comités y autoridades que correspondan."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Título y clave del protocolo", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos específicos del protocolo", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.6", "NOM-012-SSA3-2012, numerales 4.3 y 11", "Ley General de Salud, artículos 100 a 103", "Reglamento de la Ley General de Salud en materia de investigación para la salud, artículos 20 a 22"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "necropsia",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Patología",
+    "procedimiento": "Necropsia hospitalaria",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para necropsia hospitalaria",
+    "contenido": {
+      "descripcion": "Autorización de la persona legalmente facultada para practicar necropsia hospitalaria con el alcance, manejo de muestras y destino explicados por el establecimiento.",
+      "beneficios": "Aclarar causa y mecanismos de muerte, correlacionar hallazgos clínicos y aportar información útil para la familia o la mejora asistencial.",
+      "alternativas": "No autorizar la necropsia hospitalaria o limitarla cuando la regulación y la viabilidad técnica lo permitan; no aplica a intervenciones ordenadas por autoridad.",
+      "cuidados": "El establecimiento debe explicar identificación, custodia, tiempos, entrega y límites de información, así como el manejo digno del cuerpo y las muestras.",
+      "riesgos": "Alteración física inherente al procedimiento, demora potencial y obtención o conservación de muestras dentro del alcance autorizado y legal.",
+      "declaracion": "La persona firmante declara su vínculo y facultad para autorizar, que comprendió el alcance y que recibió oportunidad de establecer dudas o límites permitidos.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere validación institucional, de patología y jurídica; no sustituye requisitos ministeriales o forenses."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Alcance de la necropsia", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Condiciones y límites informados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.2.7", "Ley General de Salud y reglamentación vigente sobre disposición de órganos, tejidos y cadáveres"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "procedimiento_posible_mutilacion",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Cirugía",
+    "procedimiento": "Procedimiento con posible mutilación",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para procedimiento con posible mutilación",
+    "contenido": {
+      "descripcion": "Autorización específica para un procedimiento que puede implicar pérdida o alteración permanente de un órgano, miembro, tejido, función o apariencia corporal.",
+      "beneficios": "Control de enfermedad, preservación de vida o función remanente, alivio de síntomas o prevención de complicaciones, según el caso.",
+      "alternativas": "Opciones conservadoras o reconstructivas, tratamiento paliativo, referencia, segunda opinión o no realizar el procedimiento, con sus consecuencias.",
+      "cuidados": "Preparación, rehabilitación, cuidados de herida o dispositivo, apoyo psicosocial y seguimiento multidisciplinario individualizado.",
+      "riesgos": "Pérdida anatómica o funcional permanente, alteración de imagen corporal, dolor, sangrado, infección, secuelas, reintervención y riesgos particulares del caso.",
+      "declaracion": "La persona firmante declara que comprendió claramente la posible pérdida o alteración permanente, su extensión prevista, alternativas y opciones de rehabilitación o reconstrucción.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica y jurídica documentada antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Procedimiento y posible pérdida funcional", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos y secuelas individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 10.1.1 y 10.1.2.9", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "representacion_tutor",
+    "categoria": "documento_relacionado",
+    "especialidad": null,
+    "procedimiento": "Representación o tutela de persona menor o incapaz",
+    "version": "1.0",
+    "nombre": "Constancia de representación o tutela para decisiones clínicas",
+    "contenido": {
+      "descripcion": "Constancia complementaria de identidad, vínculo y fundamento con el que una persona interviene como familiar, tutor o representante legal en una decisión clínica.",
+      "beneficios": "Documentar quién recibió la información y la base de su intervención, favoreciendo continuidad, trazabilidad y protección de la persona representada.",
+      "alternativas": "Acreditar a otra persona facultada, solicitar intervención institucional o de autoridad competente, o recabar asentimiento y consentimiento directo cuando proceda.",
+      "cuidados": "Adjuntar o identificar la evidencia disponible, registrar límites de la representación y procurar la participación de la persona representada conforme a su capacidad.",
+      "riesgos": "Decisión por persona sin facultad, conflicto de interés, información incompleta o exclusión indebida de la voluntad de la persona representada.",
+      "declaracion": "La persona firmante declara verdaderos su identidad, vínculo y facultades, y reconoce que esta constancia complementa pero no reemplaza el consentimiento del acto médico específico.",
+      "aviso_producto": "DOCUMENTO RELACIONADO, no carta autónoma de consentimiento informado. BORRADOR FASE 6 sujeto a aprobación jurídica y clínica."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Decisión y calidad de representación", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Documento o fundamento de representación", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1.1.8", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 81 y 82"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "negativa_tratamiento",
+    "categoria": "documento_relacionado",
+    "especialidad": null,
+    "procedimiento": "Negativa de tratamiento o procedimiento",
+    "version": "1.0",
+    "nombre": "Constancia de negativa informada de tratamiento",
+    "contenido": {
+      "descripcion": "Constancia de que la persona rechaza el tratamiento, estudio, traslado o procedimiento especificado después de recibir información comprensible y sin que ello implique abandono de atención.",
+      "beneficios": "Documentar el ejercicio autónomo de la decisión y permitir ofrecer alternativas, medidas de reducción de daño y seguimiento.",
+      "alternativas": "Aceptar la propuesta, solicitar segunda opinión, elegir una alternativa clínicamente viable o posponer la decisión cuando sea seguro.",
+      "cuidados": "Registrar instrucciones, datos de alarma, alternativas aceptadas, seguimiento y canales para reconsiderar o solicitar atención.",
+      "riesgos": "Progresión del padecimiento, pérdida de oportunidad terapéutica, complicaciones, discapacidad o muerte, individualizadas para la intervención rechazada.",
+      "declaracion": "La persona firmante declara que comprendió la recomendación, alternativas y consecuencias previsibles de su negativa, y que pudo formular preguntas sin coerción.",
+      "aviso_producto": "DOCUMENTO RELACIONADO, no autorización de un acto médico. BORRADOR FASE 6 sujeto a aprobación jurídica y clínica."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Intervención rechazada", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Consecuencias individualizadas de la negativa", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numerales 4.2 y 10.1", "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 82"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "revocacion_consentimiento",
+    "categoria": "documento_relacionado",
+    "especialidad": null,
+    "procedimiento": "Revocación de consentimiento",
+    "version": "1.0",
+    "nombre": "Constancia de revocación de consentimiento",
+    "contenido": {
+      "descripcion": "Constancia lateral de que la persona retira, total o parcialmente, un consentimiento previamente otorgado antes o durante el acto cuando todavía sea material y clínicamente posible detenerlo.",
+      "beneficios": "Documentar la voluntad actual sin alterar ni borrar el consentimiento original ni la evidencia de los actos ya realizados.",
+      "alternativas": "Mantener el consentimiento, limitar su alcance, posponer la decisión o elegir una alternativa clínicamente viable.",
+      "cuidados": "Registrar alcance y momento de la revocación, actos ya realizados, consecuencias explicadas, medidas seguras de suspensión y seguimiento.",
+      "riesgos": "Consecuencias de interrumpir o no iniciar el acto propuesto y riesgos de una suspensión inmediata cuando ya comenzó, individualizados por el equipo tratante.",
+      "declaracion": "La persona firmante declara que revoca libremente el consentimiento indicado y comprende que la revocación no tiene efectos retroactivos sobre actos ya realizados.",
+      "aviso_producto": "DOCUMENTO RELACIONADO y lateral al consentimiento original. BORRADOR FASE 6 sujeto a aprobación jurídica y clínica."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Consentimiento y alcance revocado", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Consecuencias individualizadas", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1", "Ley Federal de Protección de Datos Personales en Posesión de los Particulares vigente, artículo 7, únicamente para revocación de tratamientos de datos cuando resulte aplicable"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "egreso_voluntario",
+    "categoria": "documento_relacionado",
+    "especialidad": null,
+    "procedimiento": "Egreso voluntario",
+    "version": "1.0",
+    "nombre": "Constancia de egreso voluntario",
+    "contenido": {
+      "descripcion": "Constancia de solicitud de egreso por la persona usuaria o su representante, incluso contra recomendación médica, con las razones y condiciones clínicas documentadas.",
+      "beneficios": "Documentar la decisión, entregar información de continuidad y reducir riesgos mediante instrucciones, referencia y canales de reingreso.",
+      "alternativas": "Continuar la atención, solicitar segunda opinión, traslado o referencia formal, o acordar un plan de egreso clínicamente indicado.",
+      "cuidados": "Entregar resumen e instrucciones, tratamiento disponible, signos de alarma, citas, destino y medios para solicitar atención urgente.",
+      "riesgos": "Empeoramiento, recaída, pérdida de oportunidad diagnóstica o terapéutica, complicaciones, discapacidad o muerte; individualizar según el estado al egreso.",
+      "declaracion": "La persona firmante solicita el egreso, expone sus razones y declara haber recibido explicación de riesgos, alternativas e instrucciones de continuidad.",
+      "aviso_producto": "DOCUMENTO RELACIONADO, no carta de consentimiento para tratamiento. BORRADOR FASE 6 sujeto a aprobación institucional y jurídica."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Motivo y destino del egreso", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Riesgos individualizados del egreso", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 2},
+    "referencias_normativas": ["Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículo 79", "NOM-004-SSA3-2012, disposiciones sobre hoja de egreso voluntario"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "fotografias_clinicas",
+    "categoria": "autorizacion",
+    "especialidad": null,
+    "procedimiento": "Captura y uso de fotografías clínicas",
+    "version": "1.0",
+    "nombre": "Autorización para fotografías clínicas",
+    "contenido": {
+      "descripcion": "Autorización separada y granular para capturar y usar imágenes clínicas únicamente para las finalidades expresamente descritas, distinguiendo expediente, docencia, investigación y difusión.",
+      "beneficios": "Documentar evolución, apoyar continuidad clínica o cumplir la finalidad adicional que se autorice de manera específica.",
+      "alternativas": "No autorizar finalidades opcionales, limitar zonas o identificadores, usar medios clínicos alternativos o revocar usos futuros conforme al aviso de privacidad.",
+      "cuidados": "Definir finalidad, acceso, conservación, transferencias y medidas de desidentificación; evitar prometer anonimato cuando la imagen pueda identificar a la persona.",
+      "riesgos": "Acceso, divulgación o reidentificación no deseados, afectación a privacidad y uso fuera de la expectativa si la finalidad no se delimita correctamente.",
+      "declaracion": "La persona firmante autoriza sólo las finalidades especificadas y reconoce que negarse a usos opcionales no debe condicionar la atención médica debida.",
+      "aviso_producto": "AUTORIZACIÓN DE TRATAMIENTO DE DATOS, distinta del consentimiento informado del acto médico. BORRADOR FASE 6 sujeto a revisión de privacidad y jurídica."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Finalidad y alcance autorizados", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Identificadores, acceso y conservación", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["Ley Federal de Protección de Datos Personales en Posesión de los Particulares vigente, artículos 7 y 8", "NOM-004-SSA3-2012, numeral 5.5 sobre confidencialidad"],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "teleconsulta",
+    "categoria": "consentimiento_informado",
+    "especialidad": null,
+    "procedimiento": "Teleconsulta",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para teleconsulta",
+    "contenido": {
+      "descripcion": "Autorización para atención médica a distancia mediante el canal indicado, con identificación de participantes, límites clínicos, manejo de datos y plan ante falla o urgencia.",
+      "beneficios": "Acceso remoto, continuidad y orientación clínica sin desplazamiento cuando la modalidad sea apropiada para el problema de salud.",
+      "alternativas": "Consulta presencial, referencia a otro servicio, reprogramación o atención de urgencia según la condición y disponibilidad.",
+      "cuidados": "Usar un lugar privado y conexión adecuada, confirmar identidad y ubicación, evitar grabaciones no autorizadas y acudir presencialmente cuando se indique.",
+      "riesgos": "Limitaciones de exploración física, fallas técnicas, pérdida de privacidad, información incompleta, retraso diagnóstico y necesidad de valoración presencial o urgente.",
+      "declaracion": "La persona firmante comprende la modalidad, sus límites, medidas de privacidad, participantes y posibilidad de convertir o suspender la consulta remota por seguridad.",
+      "aviso_producto": "BORRADOR NORMATIVO FASE 6: requiere aprobación clínica, de privacidad y jurídica antes de publicación."
+    },
+    "campos": [
+      {"key": "procedimiento", "label": "Modalidad, plataforma y participantes", "type": "text", "required": true, "max_length": 200},
+      {"key": "riesgos_principales", "label": "Límites y riesgos individualizados", "type": "textarea", "required": true, "max_length": 10000}
+    ],
+    "firmas_requeridas": {"paciente": true, "medico": true, "testigos": 0},
+    "referencias_normativas": ["NOM-004-SSA3-2012, numeral 10.1", "NOM-024-SSA3-2012, Sistemas de Información de Registro Electrónico para la Salud", "Ley Federal de Protección de Datos Personales en Posesión de los Particulares vigente, artículos 7 y 8"],
+    "responsable_revision": null,
+    "revisada_en": null
+  }
+]
