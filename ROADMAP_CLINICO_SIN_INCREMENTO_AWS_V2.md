@@ -385,6 +385,24 @@ importación por payload admin.
 Igual que V1. Orden: dermatología/estética primero (coincide con el ICP actual del
 producto).
 
+- **[RESUELTO PAQUETE TÉCNICO INICIAL FASE 7]** Se incorporó un catálogo candidato de 10
+  consentimientos para dermatología/medicina estética: toxina botulínica, relleno con
+  ácido hialurónico, peeling químico, láser/luz intensa pulsada, microneedling, plasma
+  rico en plaquetas, biopsia de piel, escisión de lesión, crioterapia y procedimiento no
+  quirúrgico general. Reutiliza sin cambios de esquema el motor inmutable de Fases 4–5.
+- **[COMPUERTA PROFESIONAL FASE 7]** Las 10 versiones permanecen marcadas como borrador y
+  su manifiesto exige aprobación clínica nominativa de especialista competente y
+  aprobación jurídica sanitaria, ambas con fecha, rol/credencial y evidencia. El
+  importador se detiene antes de abrir una sesión de base de datos mientras falte una.
+- **[CORRECCIÓN OPERATIVA FASE 7]** `ops-consent-templates.yml` acepta
+  `fase7_dermatologia` y conserva snapshot RDS → dry-run → apply idempotente →
+  `verify_paquete_dermatologia`. Publicar contenido no agrega migraciones ni recursos AWS.
+
+**Aceptación del primer paquete:** artefacto, validación, compuerta, importación,
+verificador y pruebas implementados; publicación bloqueada hasta completar las 10
+revisiones clínicas y 10 jurídicas reales. Los siguientes paquetes se agregan sólo por
+demanda observada, como exige §19–§20.
+
 ### Fase 8 — Rendimiento, seguridad y despliegue gradual (1 semana)
 
 Como V1, con precisiones:

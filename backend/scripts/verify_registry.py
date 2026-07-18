@@ -818,6 +818,83 @@ async def verify_biblioteca_normativa() -> dict[str, Any]:
     return _envelope("biblioteca_normativa", checks, counts=counts)
 
 
+async def verify_paquete_dermatologia() -> dict[str, Any]:
+    """Fase 7: reviewed dermatology/aesthetic package with immutable hashes."""
+    from app.db.session import _get_session_factory
+    from app.services.consent_template_reviews import (
+        PHASE7_DERMATOLOGY_EXPECTED_KEYS,
+        load_phase7_dermatology_catalog,
+        load_phase7_dermatology_reviews,
+        publication_readiness,
+    )
+    from app.services.consent_templates import version_hash
+
+    documents = load_phase7_dermatology_catalog()
+    reviews = load_phase7_dermatology_reviews()
+    readiness = publication_readiness(
+        documents,
+        reviews,
+        expected_keys=PHASE7_DERMATOLOGY_EXPECTED_KEYS,
+        package_label="Fase 7 dermatología/estética",
+    )
+    expected_hashes = {
+        (document.template_key, document.version): version_hash(document) for document in documents
+    }
+    expected_specialties = {document.template_key: document.especialidad for document in documents}
+    checks = [
+        _check(
+            "all 10 dermatology templates have named clinical and legal approval evidence",
+            bool(readiness["ok"]),
+            f"errors={readiness['errors']}",
+        )
+    ]
+
+    factory = _get_session_factory()
+    async with factory() as session, session.begin():
+        rows = (
+            await session.execute(
+                text(
+                    """
+                    SELECT p.template_key, p.especialidad, v.version, v.contenido_hash
+                    FROM consentimiento_plantillas p
+                    JOIN consentimiento_plantilla_versiones v ON v.plantilla_id = p.id
+                    WHERE v.estado = 'publicada'
+                    """
+                )
+            )
+        ).all()
+
+    actual_hashes = {(row[0], row[2]): row[3] for row in rows}
+    actual_specialties = {row[0]: row[1] for row in rows}
+    mismatched = sorted(
+        identity
+        for identity, expected_hash in expected_hashes.items()
+        if actual_hashes.get(identity) != expected_hash
+    )
+    specialty_mismatches = sorted(
+        key
+        for key, expected_specialty in expected_specialties.items()
+        if actual_specialties.get(key) != expected_specialty
+    )
+    checks.extend(
+        [
+            _check(
+                "the complete Fase-7 dermatology package is published with immutable hashes",
+                not mismatched and len(expected_hashes) == 10,
+                f"missing_or_mismatched={mismatched}",
+            ),
+            _check(
+                "published metadata keeps every package document in dermatology/aesthetics",
+                not specialty_mismatches,
+                f"specialty_mismatches={specialty_mismatches}",
+            ),
+        ]
+    )
+    counts = dict(readiness["counts"])
+    counts["versiones_fase7_dermatologia_publicadas"] = len(expected_hashes) - len(mismatched)
+    return _envelope("paquete_dermatologia", checks, counts=counts)
+
+
 async def verify_consentimientos() -> dict[str, Any]:
     """Fase 5: immutable signers, one final PDF and lateral revocation evidence."""
     from app.db.session import _get_session_factory
@@ -1032,6 +1109,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "cie10": verify_cie10,
     "plantillas": verify_plantillas,
     "biblioteca_normativa": verify_biblioteca_normativa,
+    "paquete_dermatologia": verify_paquete_dermatologia,
     "consentimientos": verify_consentimientos,
     "backups": verify_backups,
 }

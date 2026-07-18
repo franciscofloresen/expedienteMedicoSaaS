@@ -1,0 +1,456 @@
+[
+  {
+    "template_key": "dermatologia_toxina_botulinica",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Aplicación de toxina botulínica",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para aplicación de toxina botulínica",
+    "contenido": {
+      "descripcion": "Aplicación mediante inyecciones de un producto de toxina botulínica autorizado para la indicación, zonas y dosis que el profesional documente. El efecto esperado es temporal y puede requerir seguimiento o nuevas aplicaciones.",
+      "beneficios": "Disminución temporal de la actividad muscular o mejoría del problema tratado, dentro de los alcances explicados para la indicación individual.",
+      "alternativas": "No realizar el procedimiento, observación, tratamiento médico o tópico, otras modalidades autorizadas o referencia a otro profesional, según la indicación.",
+      "cuidados": "Seguir las indicaciones sobre actividad y manipulación de la zona, acudir a la revisión y solicitar atención inmediata ante dificultad para respirar o tragar, debilidad generalizada, alteración visual u otro dato de alarma explicado.",
+      "riesgos": "Dolor, ardor, sangrado, moretón, inflamación, cefalea, asimetría, resultado insuficiente o no deseado, debilidad de músculos cercanos, caída temporal de párpado o ceja y alteraciones visuales. Raramente puede presentarse propagación del efecto con debilidad generalizada, dificultad para hablar, deglutir o respirar y necesidad de atención urgente.",
+      "declaracion": "La persona firmante declara que conoce el producto, lote, dosis, zonas e indicación documentados para su caso; comprende que el resultado es variable y temporal y que no se garantiza un resultado estético específico.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere revisión por dermatología/medicina estética y revisión jurídica sanitaria antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Producto, lote, dosis, zonas e indicación",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Riesgos, antecedentes y contraindicaciones individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 0
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "Información para prescribir del producto con registro sanitario vigente en México",
+      "FDA, FDA Warns Companies Over Illegal Marketing of Botox and Related Products (2025), referencia clínica de seguridad"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_relleno_acido_hialuronico",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Aplicación de relleno con ácido hialurónico",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para relleno con ácido hialurónico",
+    "contenido": {
+      "descripcion": "Inyección de un relleno de ácido hialurónico con registro sanitario vigente en las zonas, planos y cantidades que el profesional documente. La duración y el resultado varían entre personas.",
+      "beneficios": "Corrección o mejoría temporal de volumen, contorno, pliegues o cicatrices dentro de la indicación y expectativas acordadas.",
+      "alternativas": "No tratar, observación, maquillaje o cuidado cutáneo, otras modalidades autorizadas, corrección quirúrgica o referencia, según el objetivo clínico.",
+      "cuidados": "Cumplir las indicaciones de higiene y actividad, acudir al seguimiento y solicitar atención inmediata ante dolor intenso o creciente, palidez o cambio reticulado de la piel, alteración visual, debilidad, dificultad para hablar u otro dato de alarma vascular.",
+      "riesgos": "Dolor, sangrado, moretón, inflamación, enrojecimiento, sensibilidad, asimetría, sobrecorrección o infracorrección, migración, nódulos, granulomas, infección, reacción alérgica y necesidad de disolución u otro procedimiento. La inyección accidental en un vaso puede causar isquemia, necrosis, alteración visual o ceguera, evento cerebrovascular, daño permanente o muerte.",
+      "declaracion": "La persona firmante declara que se identificaron producto, lote, caducidad, zona, plano y volumen propuestos; comprende la posibilidad de complicaciones tardías y que retirar o corregir el material puede requerir otros tratamientos.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: no autoriza sustancias modelantes no absorbibles ni productos sin registro. Requiere revisión clínica y jurídica antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Producto, lote, volumen, zonas, planos e indicación",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Riesgos vasculares y factores individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 2
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "COFEPRIS, Sustancias modelantes utilizadas en procedimientos estéticos son de alto riesgo a la salud (2023)",
+      "FDA, Dermal Fillers (Soft Tissue Fillers), referencia clínica de seguridad"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_peeling_quimico",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Peeling químico",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para peeling químico",
+    "contenido": {
+      "descripcion": "Aplicación controlada de uno o más agentes químicos para producir una lesión cutánea de profundidad prevista. Deben documentarse sustancia, concentración, capas, tiempo, zona y profundidad objetivo.",
+      "beneficios": "Mejoría variable de textura, pigmentación, lesiones superficiales, fotoenvejecimiento o cicatrices dentro de la indicación individual.",
+      "alternativas": "No tratar, fotoprotección y tratamiento tópico, otros procedimientos dermatológicos, dispositivos de energía o referencia.",
+      "cuidados": "Seguir las instrucciones de limpieza, humectación y fotoprotección; no retirar costras ni aplicar productos no indicados; comunicar dolor creciente, secreción, fiebre, lesiones herpéticas o cambios intensos de coloración.",
+      "riesgos": "Ardor, dolor, enrojecimiento, inflamación, descamación, costras, sensibilidad y recuperación prolongada; hiperpigmentación o hipopigmentación, líneas de demarcación, infección o reactivación de herpes, cicatriz, quemadura más profunda de la prevista, lesión ocular y resultado insuficiente o no deseado.",
+      "declaracion": "La persona firmante comprende la profundidad prevista, el tiempo aproximado de recuperación, la necesidad de fotoprotección y que el resultado depende del agente, la piel, la adherencia y la respuesta individual.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere validar agente, concentración, profundidad y cuidados con revisores clínico y jurídico antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Agente, concentración, capas, tiempo, zona y profundidad",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Fototipo, antecedentes y riesgos individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 0
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "Instructivo de uso e información de seguridad del agente empleado"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_laser",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Procedimiento dermatológico con láser o luz intensa pulsada",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para procedimiento con láser o luz intensa pulsada",
+    "contenido": {
+      "descripcion": "Aplicación de energía luminosa mediante el equipo, longitud de onda, parámetros, zona y objetivo que el profesional documente. Distintos equipos e indicaciones tienen riesgos y cuidados diferentes.",
+      "beneficios": "Mejoría variable de la lesión, textura, pigmentación, vasos, cicatriz, vello u objetivo dermatológico indicado.",
+      "alternativas": "No tratar, observación, fotoprotección, medicamentos, procedimientos manuales o quirúrgicos, otros dispositivos o referencia.",
+      "cuidados": "Cumplir la preparación y fotoprotección, usar la protección ocular indicada, evitar productos o exposiciones contraindicados y reportar dolor intenso, ampollas extensas, secreción, fiebre, alteración visual o cicatrización anormal.",
+      "riesgos": "Dolor, calor, enrojecimiento, inflamación, púrpura, costras, ampollas, quemadura, infección, reactivación de herpes, hiperpigmentación o hipopigmentación, cicatriz, pérdida o crecimiento paradójico de pelo, cambio no deseado, necesidad de varias sesiones y lesión ocular si falla la protección.",
+      "declaracion": "La persona firmante declara que conoce el equipo, objetivo, zona, protección ocular y parámetros generales documentados, así como la posibilidad de respuesta incompleta, mantenimiento o empeoramiento.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: debe individualizarse al equipo y su instructivo autorizado; requiere revisión clínica y jurídica antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Equipo, longitud de onda, parámetros, zona y objetivo",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Fototipo, exposiciones, medicamentos y riesgos individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 2
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "Registro sanitario e instructivo de uso del equipo y accesorios empleados"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_microneedling",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Microneedling dermatológico",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para microneedling dermatológico",
+    "contenido": {
+      "descripcion": "Creación controlada de microcanales cutáneos con un dispositivo de agujas, profundidad, velocidad, pasadas, zona y objetivo documentados. Si se usa radiofrecuencia o se combina con otra sustancia, debe indicarse expresamente porque cambia el perfil de riesgo.",
+      "beneficios": "Mejoría variable de cicatrices, textura o apariencia cutánea dentro de la indicación autorizada del dispositivo y del plan individual.",
+      "alternativas": "No tratar, cuidado cutáneo y fotoprotección, medicamentos, peeling, láser u otros procedimientos autorizados, según el diagnóstico.",
+      "cuidados": "Mantener higiene y fotoprotección, usar sólo productos indicados, no compartir ni reutilizar cartuchos y comunicar dolor creciente, secreción, fiebre, ampollas, herpes o cambios persistentes de pigmentación.",
+      "riesgos": "Dolor, ardor, sangrado, moretón, enrojecimiento, inflamación, tirantez, picor, descamación, infección, reactivación de herpes, hiperpigmentación o hipopigmentación, cicatriz y resultado insuficiente. La modalidad con radiofrecuencia puede agregar quemaduras, cicatriz, pérdida de grasa, desfiguración o lesión nerviosa.",
+      "declaracion": "La persona firmante comprende el tipo de dispositivo y cartucho, profundidad y modalidad propuestos, que puede requerir varias sesiones y que la combinación con medicamentos, cosméticos o productos sanguíneos necesita evaluación separada.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: no cubre automáticamente radiofrecuencia ni combinaciones con otros productos; requiere revisión clínica y jurídica antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Dispositivo, cartucho, profundidad, pasadas, modalidad y zona",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Antecedentes, combinaciones y riesgos individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 0
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "FDA, Microneedling Devices: Getting to the Point on Benefits, Risks and Safety (actualizada en 2025), referencia clínica de seguridad",
+      "Registro sanitario e instructivo de uso del dispositivo empleado"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_plasma_rico_plaquetas",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Obtención y aplicación de plasma rico en plaquetas",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para plasma rico en plaquetas",
+    "contenido": {
+      "descripcion": "Obtención de sangre autóloga, preparación mediante el sistema documentado y aplicación del concentrado en la zona e indicación descritas. Debe precisarse si se inyecta, aplica sobre piel o combina con otro procedimiento.",
+      "beneficios": "Posible mejoría del problema dermatológico o estético tratado; la magnitud, duración y evidencia varían según indicación, preparación y persona.",
+      "alternativas": "No realizarlo, observación, medicamentos, procedimientos con mejor evidencia para la indicación, otros dispositivos o referencia.",
+      "cuidados": "Cumplir indicaciones del sitio de venopunción y aplicación, higiene y fotoprotección; acudir al seguimiento y comunicar sangrado persistente, dolor creciente, inflamación importante, fiebre, secreción o reacción inusual.",
+      "riesgos": "Dolor, hematoma, sangrado, infección, lesión vascular o nerviosa, inflamación, reacción vasovagal, contaminación o error de identificación de la muestra, cicatriz y resultado insuficiente. La combinación con microneedling, medicamentos u otros productos cambia riesgos y debe explicarse por separado.",
+      "declaracion": "La persona firmante comprende el carácter autólogo, el sistema de preparación, la vía y zona de aplicación, las alternativas y que no se garantiza regeneración, crecimiento capilar ni resultado estético específico.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere validar indicación, sistema de preparación y combinaciones con revisores clínico y jurídico antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Sistema, preparación, vía, zona, indicación y combinaciones",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Antecedentes hematológicos y riesgos individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 2
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "Instructivo de uso y registro sanitario vigente del sistema de preparación empleado",
+      "FDA, Microneedling Devices, referencia de seguridad cuando exista combinación con microneedling"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_biopsia_piel",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Biopsia de piel",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para biopsia de piel",
+    "contenido": {
+      "descripcion": "Obtención de una muestra de piel o tejido mediante la técnica, sitio, anestesia y cierre documentados, para estudio diagnóstico. La muestra se enviará e identificará conforme al proceso de patología indicado.",
+      "beneficios": "Obtener información histopatológica que ayude a confirmar, descartar o clasificar un diagnóstico y orientar el tratamiento.",
+      "alternativas": "Observación y seguimiento, estudios no invasivos cuando sean apropiados, otra técnica o sitio de biopsia, referencia o no realizarla con el riesgo de retraso diagnóstico.",
+      "cuidados": "Mantener la herida según indicaciones, evitar manipulación, acudir para retiro de suturas si corresponde, verificar el resultado y comunicar sangrado persistente, dolor creciente, enrojecimiento progresivo, secreción, fiebre o apertura de la herida.",
+      "riesgos": "Dolor, sangrado, hematoma, infección, reacción a antiséptico, adhesivo o anestésico, apertura de herida, cicatriz visible o anormal, alteración de pigmento, entumecimiento o lesión de estructuras cercanas, muestra insuficiente y necesidad de nueva biopsia o tratamiento adicional.",
+      "declaracion": "La persona firmante comprende la técnica, sitio, finalidad, manejo de la muestra, cicatriz esperada y forma en que recibirá y dará seguimiento al resultado.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere revisión dermatológica, de patología cuando corresponda y jurídica sanitaria antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Lesión, sitio, técnica, anestesia, cierre y destino de muestra",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Riesgos de cicatrización y factores individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 2
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83",
+      "Procedimiento institucional vigente para identificación, envío y seguimiento de muestras de patología"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_escision_lesion",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Escisión de lesión cutánea",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para escisión de lesión cutánea",
+    "contenido": {
+      "descripcion": "Resección parcial o completa de una lesión cutánea con los márgenes, anestesia, técnica de cierre y destino de la pieza que el profesional documente.",
+      "beneficios": "Retirar la lesión con finalidad diagnóstica, terapéutica, preventiva o sintomática y obtener tejido para estudio cuando esté indicado.",
+      "alternativas": "Observación, biopsia parcial, otros tratamientos destructivos o quirúrgicos, referencia, o no tratar con las consecuencias explicadas para la lesión concreta.",
+      "cuidados": "Seguir las indicaciones de herida, actividad y medicamentos; acudir a curación, retiro de suturas y revisión de patología; comunicar sangrado persistente, dolor creciente, fiebre, secreción, apertura o cambio de coloración.",
+      "riesgos": "Dolor, sangrado, hematoma, infección, reacción a anestesia o materiales, apertura o necrosis de herida, cicatriz visible, hipertrófica o queloide, alteración de pigmento, lesión nerviosa o vascular, defecto funcional o estético, márgenes insuficientes, recurrencia y necesidad de ampliación u otra cirugía.",
+      "declaracion": "La persona firmante comprende la finalidad, márgenes previstos, cicatriz esperada, posibilidad de reconstrucción y necesidad de decisiones adicionales según el resultado histopatológico.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere revisión dermatológica/quirúrgica y jurídica sanitaria antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Lesión, sitio, márgenes, anestesia, cierre y destino de pieza",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Riesgos funcionales, estéticos y de cicatriz individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 2
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1, 10.1.1 y 10.1.2",
+      "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83",
+      "Procedimiento institucional vigente para cirugía menor y manejo de piezas de patología"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_crioterapia",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Crioterapia dermatológica",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para crioterapia dermatológica",
+    "contenido": {
+      "descripcion": "Destrucción controlada de una o más lesiones mediante frío, por lo general con nitrógeno líquido, usando la técnica, ciclos, tiempos y zonas documentados.",
+      "beneficios": "Eliminación o reducción de lesiones susceptibles de crioterapia con un procedimiento habitualmente ambulatorio.",
+      "alternativas": "Observación, tratamiento tópico, curetaje, electrocirugía, láser, biopsia o escisión, según el diagnóstico y la necesidad de estudio histológico.",
+      "cuidados": "Mantener la zona limpia, no manipular ampollas o costras salvo indicación, proteger del sol y comunicar dolor creciente, enrojecimiento progresivo, secreción, fiebre, ulceración o cicatrización tardía.",
+      "riesgos": "Dolor, ardor, inflamación, ampolla con líquido o sangre, costra, sangrado, infección, ulceración, cicatriz, hiperpigmentación o hipopigmentación persistente, pérdida de pelo, lesión nerviosa superficial, tratamiento incompleto, recurrencia y necesidad de nuevas sesiones o diagnóstico histológico.",
+      "declaracion": "La persona firmante comprende la reacción local esperada, la posibilidad de cambio permanente de color o cicatriz y que destruir una lesión no obtiene muestra para patología.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: requiere revisión dermatológica y jurídica sanitaria antes de publicarse."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Diagnóstico, lesiones, zonas, técnica, ciclos y tiempos",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Pigmentación, cicatrización y riesgos individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 0
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "Reglamento de la Ley General de Salud en materia de prestación de servicios de atención médica, artículos 80 a 83",
+      "Procedimiento institucional vigente para crioterapia y seguimiento de lesiones"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  },
+  {
+    "template_key": "dermatologia_estetico_no_quirurgico",
+    "categoria": "consentimiento_informado",
+    "especialidad": "Dermatología y medicina estética",
+    "procedimiento": "Procedimiento dermatológico o estético no quirúrgico",
+    "version": "1.0",
+    "nombre": "Consentimiento informado para procedimiento dermatológico o estético no quirúrgico",
+    "contenido": {
+      "descripcion": "Formato de respaldo para un procedimiento no quirúrgico que no cuente con una plantilla más específica. Deben documentarse diagnóstico u objetivo, producto o equipo, registro, parámetros, zonas, sesiones y límites; no sustituye una carta específica cuando ésta exista.",
+      "beneficios": "Mejoría posible del problema dermatológico o estético individualizado, sin garantía de resultado ni duración.",
+      "alternativas": "No tratar, observación, cuidado cutáneo, medicamentos, otro procedimiento con mejor evidencia o perfil de riesgo, segunda opinión o referencia.",
+      "cuidados": "Seguir la preparación y cuidados individualizados, conocer los datos de alarma y canales de atención, acudir al seguimiento y evitar exposiciones o productos contraindicados.",
+      "riesgos": "Dolor, sangrado, moretón, inflamación, irritación, alergia, infección, quemadura o lesión de tejido, alteración de pigmento, cicatriz, asimetría, resultado insuficiente o no deseado y necesidad de tratamientos adicionales; deben agregarse los riesgos propios del producto, dispositivo, zona y persona.",
+      "declaracion": "La persona firmante declara que el procedimiento fue descrito de forma concreta, que conoce el producto o equipo y sus autorizaciones, alternativas, cuidados y riesgos individualizados, y que no se le prometió un resultado específico.",
+      "aviso_producto": "BORRADOR DE ESPECIALIDAD FASE 7: usar sólo cuando no exista una plantilla específica y después de revisión clínica y jurídica documentada."
+    },
+    "campos": [
+      {
+        "key": "procedimiento",
+        "label": "Diagnóstico, producto/equipo, registro, parámetros, zonas y sesiones",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      },
+      {
+        "key": "riesgos_principales",
+        "label": "Riesgos específicos e individualizados",
+        "type": "textarea",
+        "required": true,
+        "max_length": 10000
+      }
+    ],
+    "firmas_requeridas": {
+      "paciente": true,
+      "medico": true,
+      "testigos": 0
+    },
+    "referencias_normativas": [
+      "NOM-004-SSA3-2012, numerales 10.1 y 10.1.1",
+      "COFEPRIS, Guía de autoverificación para establecimientos de atención médica con fines estéticos no quirúrgicos (2025)",
+      "Registro sanitario e instructivo de uso vigentes del producto o dispositivo empleado"
+    ],
+    "responsable_revision": null,
+    "revisada_en": null
+  }
+]

@@ -17,9 +17,12 @@ from app.models.consentimiento_plantilla import (
     ConsentimientoPlantillaVersion,
 )
 from app.services.consent_template_reviews import (
+    PHASE7_DERMATOLOGY_EXPECTED_KEYS,
     ReadinessReport,
     load_phase6_catalog,
     load_phase6_reviews,
+    load_phase7_dermatology_catalog,
+    load_phase7_dermatology_reviews,
     publication_readiness,
 )
 from app.services.consent_templates import (
@@ -121,7 +124,16 @@ def _load_publication_documents(
         documents = load_phase6_catalog()
         readiness = publication_readiness(documents, load_phase6_reviews())
         return documents, readiness
-    raise ValueError("catalog must be baseline or fase6")
+    if catalog == "fase7_dermatologia":
+        documents = load_phase7_dermatology_catalog()
+        readiness = publication_readiness(
+            documents,
+            load_phase7_dermatology_reviews(),
+            expected_keys=PHASE7_DERMATOLOGY_EXPECTED_KEYS,
+            package_label="Fase 7 dermatología/estética",
+        )
+        return documents, readiness
+    raise ValueError("catalog must be baseline, fase6 or fase7_dermatologia")
 
 
 async def run_import(mode: str, catalog: str = "baseline") -> dict[str, Any]:
