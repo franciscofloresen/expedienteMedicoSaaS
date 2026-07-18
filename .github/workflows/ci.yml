@@ -53,6 +53,15 @@ jobs:
     - name: Type checking (MyPy)
       run: |
         mypy app/
+
+    # There is no staging environment: build and import the exact production
+    # artifact in CI before any commit can reach the deployment workflow.
+    - name: Verify production Lambda artifact
+      run: >-
+        python scripts/build_lambda_package.py
+        --package-dir /tmp/lambda-package
+        --zip-path /tmp/backend.zip
+        --manifest-path /tmp/lambda-package-manifest.json
         
     - name: Create DB role for RLS
       env:
