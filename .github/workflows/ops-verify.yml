@@ -17,6 +17,7 @@ name: Ops — Verify (Production)
 #              y un solo diagnóstico principal por nota (§5.3).
 #   plantillas — Fase 4: catálogo publicado inmutable y app en modo sólo lectura.
 #   biblioteca_normativa — Fase 6: 19 documentos con aprobación clínica/jurídica.
+#   paquete_dermatologia — Fase 7: 10 consentimientos revisados de dermatología/estética.
 #   consentimientos — Fase 5: firmantes, PDF final único y revocación lateral.
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
@@ -36,6 +37,7 @@ on:
           - cie10
           - plantillas
           - biblioteca_normativa
+          - paquete_dermatologia
           - consentimientos
           - backups
 

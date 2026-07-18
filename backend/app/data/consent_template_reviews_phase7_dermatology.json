@@ -1,0 +1,124 @@
+[
+  {
+    "template_key": "dermatologia_toxina_botulinica",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Asignar especialista competente en dermatología o medicina estética y adjuntar evidencia de aprobación."
+    },
+    "revision_juridica": {
+      "status": "pendiente",
+      "observaciones": "Asignar revisión jurídica sanitaria y adjuntar evidencia de aprobación."
+    }
+  },
+  {
+    "template_key": "dermatologia_relleno_acido_hialuronico",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "La revisión debe incluir prevención, reconocimiento y respuesta ante oclusión vascular."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_peeling_quimico",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar que el texto cubra los agentes y profundidades que realmente ofrecerá el consultorio."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_laser",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar contra cada familia de equipo, indicación y protección ocular utilizada."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_microneedling",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Separar una nueva versión si se decide ofrecer radiofrecuencia o combinaciones con otros productos."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_plasma_rico_plaquetas",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar indicaciones, evidencia, sistema de preparación y combinaciones ofrecidas."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_biopsia_piel",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar técnicas de biopsia, anestesia, cierre y circuito local de patología."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_escision_lesion",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar alcance de cirugía menor, reconstrucción y manejo de márgenes/patología."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_crioterapia",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Validar indicaciones tratables sin histopatología y riesgos por zona/fototipo."
+    },
+    "revision_juridica": {
+      "status": "pendiente"
+    }
+  },
+  {
+    "template_key": "dermatologia_estetico_no_quirurgico",
+    "version": "1.0",
+    "tipo_documento": "consentimiento_informado",
+    "revision_clinica": {
+      "status": "pendiente",
+      "observaciones": "Definir y aprobar explícitamente qué procedimientos podrán usar el formato de respaldo."
+    },
+    "revision_juridica": {
+      "status": "pendiente",
+      "observaciones": "Confirmar que el formato genérico no sustituya cartas específicas exigibles."
+    }
+  }
+]

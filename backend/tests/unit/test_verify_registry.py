@@ -15,6 +15,10 @@ def test_biblioteca_normativa_is_registered() -> None:
     assert "biblioteca_normativa" in available_actions()
 
 
+def test_paquete_dermatologia_is_registered() -> None:
+    assert "paquete_dermatologia" in available_actions()
+
+
 def test_unknown_action_returns_failing_envelope() -> None:
     """An unknown action must not raise — it returns an ok=False envelope so the
     Lambda handler can map it to a 500 rather than crashing."""

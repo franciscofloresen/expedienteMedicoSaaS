@@ -19,6 +19,7 @@ on:
         options:
           - baseline
           - fase6
+          - fase7_dermatologia
       confirm_production:
         description: "Para rollout escribe PUBLICAR_PLANTILLAS_PROD"
         required: false
@@ -79,7 +80,12 @@ jobs:
         env:
           CATALOG: ${{ inputs.catalog }}
         run: |
-          if [ "${CATALOG}" = "fase6" ]; then EXPECTED=19; else EXPECTED=5; fi
+          case "${CATALOG}" in
+            baseline) EXPECTED=5 ;;
+            fase6) EXPECTED=19 ;;
+            fase7_dermatologia) EXPECTED=10 ;;
+            *) echo "Catálogo no soportado: ${CATALOG}"; exit 1 ;;
+          esac
           PAYLOAD="$(jq -nc --arg catalog "${CATALOG}" \
             '{import_consent_templates:"dry-run",consent_template_catalog:$catalog}')"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
@@ -97,7 +103,12 @@ jobs:
         env:
           CATALOG: ${{ inputs.catalog }}
         run: |
-          if [ "${CATALOG}" = "fase6" ]; then EXPECTED=19; else EXPECTED=5; fi
+          case "${CATALOG}" in
+            baseline) EXPECTED=5 ;;
+            fase6) EXPECTED=19 ;;
+            fase7_dermatologia) EXPECTED=10 ;;
+            *) echo "Catálogo no soportado: ${CATALOG}"; exit 1 ;;
+          esac
           PAYLOAD="$(jq -nc --arg catalog "${CATALOG}" \
             '{import_consent_templates:"apply",consent_template_catalog:$catalog}')"
           aws lambda invoke --function-name "${LAMBDA_FUNCTION_PROD}" \
@@ -117,6 +128,8 @@ jobs:
         run: |
           if [ "${CATALOG}" = "fase6" ]; then
             VERIFY_ACTION="biblioteca_normativa"
+          elif [ "${CATALOG}" = "fase7_dermatologia" ]; then
+            VERIFY_ACTION="paquete_dermatologia"
           else
             VERIFY_ACTION="plantillas"
           fi

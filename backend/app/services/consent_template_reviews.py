@@ -1,4 +1,4 @@
-"""Clinical/legal publication gate for the Fase-6 normative consent library."""
+"""Clinical/legal publication gates for immutable consent-template packages."""
 
 import json
 from datetime import datetime
@@ -12,6 +12,12 @@ from app.services.consent_templates import ConsentTemplateDocument
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 PHASE6_CATALOG_PATH = _BACKEND_DIR / "app" / "data" / "consent_templates_phase6.json"
 PHASE6_REVIEW_PATH = _BACKEND_DIR / "app" / "data" / "consent_template_reviews_phase6.json"
+PHASE7_DERMATOLOGY_CATALOG_PATH = (
+    _BACKEND_DIR / "app" / "data" / "consent_templates_phase7_dermatology.json"
+)
+PHASE7_DERMATOLOGY_REVIEW_PATH = (
+    _BACKEND_DIR / "app" / "data" / "consent_template_reviews_phase7_dermatology.json"
+)
 
 PHASE6_EXPECTED_KEYS = frozenset(
     {
@@ -34,6 +40,21 @@ PHASE6_EXPECTED_KEYS = frozenset(
         "egreso_voluntario",
         "fotografias_clinicas",
         "teleconsulta",
+    }
+)
+
+PHASE7_DERMATOLOGY_EXPECTED_KEYS = frozenset(
+    {
+        "dermatologia_biopsia_piel",
+        "dermatologia_crioterapia",
+        "dermatologia_escision_lesion",
+        "dermatologia_estetico_no_quirurgico",
+        "dermatologia_laser",
+        "dermatologia_microneedling",
+        "dermatologia_peeling_quimico",
+        "dermatologia_plasma_rico_plaquetas",
+        "dermatologia_relleno_acido_hialuronico",
+        "dermatologia_toxina_botulinica",
     }
 )
 
@@ -79,7 +100,7 @@ def load_phase6_catalog(path: Path = PHASE6_CATALOG_PATH) -> list[ConsentTemplat
     return load_catalog(path)
 
 
-def load_phase6_reviews(path: Path = PHASE6_REVIEW_PATH) -> list[TemplateReview]:
+def _load_reviews(path: Path) -> list[TemplateReview]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, list):
         raise ValueError("El manifiesto de revisión debe ser un arreglo JSON")
@@ -90,8 +111,30 @@ def load_phase6_reviews(path: Path = PHASE6_REVIEW_PATH) -> list[TemplateReview]
     return reviews
 
 
+def load_phase6_reviews(path: Path = PHASE6_REVIEW_PATH) -> list[TemplateReview]:
+    return _load_reviews(path)
+
+
+def load_phase7_dermatology_catalog(
+    path: Path = PHASE7_DERMATOLOGY_CATALOG_PATH,
+) -> list[ConsentTemplateDocument]:
+    from app.services.consent_templates import load_catalog
+
+    return load_catalog(path)
+
+
+def load_phase7_dermatology_reviews(
+    path: Path = PHASE7_DERMATOLOGY_REVIEW_PATH,
+) -> list[TemplateReview]:
+    return _load_reviews(path)
+
+
 def publication_readiness(
-    documents: list[ConsentTemplateDocument], reviews: list[TemplateReview]
+    documents: list[ConsentTemplateDocument],
+    reviews: list[TemplateReview],
+    *,
+    expected_keys: frozenset[str] = PHASE6_EXPECTED_KEYS,
+    package_label: str = "Fase 6",
 ) -> ReadinessReport:
     """Return a deterministic gate report; no unreviewed document may be published."""
     errors: list[str] = []
@@ -100,17 +143,17 @@ def publication_readiness(
     document_keys = {document.template_key for document in documents}
     review_keys = {review.template_key for review in reviews}
 
-    if document_keys != PHASE6_EXPECTED_KEYS:
+    if document_keys != expected_keys:
         errors.append(
-            "El catálogo Fase 6 debe contener exactamente las 19 keys normativas; "
-            f"faltan={sorted(PHASE6_EXPECTED_KEYS - document_keys)}, "
-            f"sobran={sorted(document_keys - PHASE6_EXPECTED_KEYS)}"
+            f"El catálogo {package_label} debe contener exactamente {len(expected_keys)} keys; "
+            f"faltan={sorted(expected_keys - document_keys)}, "
+            f"sobran={sorted(document_keys - expected_keys)}"
         )
-    if review_keys != PHASE6_EXPECTED_KEYS:
+    if review_keys != expected_keys:
         errors.append(
-            "El manifiesto debe cubrir exactamente las 19 keys normativas; "
-            f"faltan={sorted(PHASE6_EXPECTED_KEYS - review_keys)}, "
-            f"sobran={sorted(review_keys - PHASE6_EXPECTED_KEYS)}"
+            f"El manifiesto {package_label} debe cubrir exactamente {len(expected_keys)} keys; "
+            f"faltan={sorted(expected_keys - review_keys)}, "
+            f"sobran={sorted(review_keys - expected_keys)}"
         )
     if set(document_map) != set(review_map):
         errors.append("Las identidades template_key/version del catálogo y manifiesto no coinciden")
@@ -198,3 +241,12 @@ def publication_readiness(
 
 def phase6_readiness() -> ReadinessReport:
     return publication_readiness(load_phase6_catalog(), load_phase6_reviews())
+
+
+def phase7_dermatology_readiness() -> ReadinessReport:
+    return publication_readiness(
+        load_phase7_dermatology_catalog(),
+        load_phase7_dermatology_reviews(),
+        expected_keys=PHASE7_DERMATOLOGY_EXPECTED_KEYS,
+        package_label="Fase 7 dermatología/estética",
+    )
