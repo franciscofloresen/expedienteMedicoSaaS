@@ -21,6 +21,7 @@ name: Ops — Verify (Production)
 #   consentimientos — Fase 5: firmantes, PDF final único y revocación lateral.
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
+#   fase8    — stage de rollout, prerrequisitos, pool directo RDS e índices críticos.
 
 on:
   workflow_dispatch:
@@ -39,6 +40,7 @@ on:
           - biblioteca_normativa
           - paquete_dermatologia
           - consentimientos
+          - fase8
           - backups
 
 permissions:

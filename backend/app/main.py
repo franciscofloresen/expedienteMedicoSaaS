@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -92,6 +93,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class ClinicalRolloutMiddleware(BaseHTTPMiddleware):
+    """Fail closed for independently routable clinical phases during rollout."""
+
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
+        from app.core.clinical_rollout import feature_enabled
+
+        path = request.url.path
+        feature = None
+        if path.startswith("/api/v1/encuentros"):
+            if not feature_enabled("clinical_encounters"):
+                feature = "clinical_encounters"
+            elif request.method != "GET" or path.rstrip("/").endswith("/sugerencia"):
+                # Stage 3 exposes the deployed encounter read model; classification
+                # and all state transitions activate together at stage 4.
+                feature = "first_visit_evolution"
+        elif path.startswith("/api/v1/cie10"):
+            feature = "cie10_catalog"
+        if feature and not feature_enabled(feature):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": {
+                        "code": "clinical_feature_not_active",
+                        "feature": feature,
+                    }
+                },
+            )
+        return await call_next(request)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
     """Application startup and shutdown events."""
@@ -124,6 +155,9 @@ app.add_middleware(AuditMiddleware)
 
 # 4. Tenant isolation — runs closest to the app (extracts tenant_id, auth)
 app.add_middleware(TenantMiddleware)
+
+# 3. Fase 8 rollout — blocks independently routable features before handlers.
+app.add_middleware(ClinicalRolloutMiddleware)
 
 # 2. Security headers — runs early
 app.add_middleware(SecurityHeadersMiddleware)

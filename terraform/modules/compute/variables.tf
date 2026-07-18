@@ -17,3 +17,8 @@ variable "ses_sender_email" {
   description = "Verified SES identity used as the From address for appointment notifications. Empty disables sending."
   default     = ""
 }
+
+variable "clinical_rollout_stage" {
+  description = "Ordered clinical activation stage for Fase 8"
+  type        = number
+}

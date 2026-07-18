@@ -86,6 +86,7 @@ module "compute" {
   clerk_issuer_url         = var.clerk_issuer_url
   clerk_jwks_url           = var.clerk_jwks_url
   ses_sender_email         = var.ses_sender_email
+  clinical_rollout_stage   = var.clinical_rollout_stage
 }
 
 # ── Observability (Alarms, SNS) ──
