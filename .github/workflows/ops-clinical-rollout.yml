@@ -1,0 +1,86 @@
+name: Ops — Clinical Rollout (Production)
+
+# Changes one ordered environment flag only. The previous complete Lambda
+# environment is restored automatically if the read-only Fase-8 verifier fails.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Etapa a activar (1 esquema ... 9 biblioteca normativa)"
+        required: true
+        type: choice
+        options: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+      confirmation:
+        description: "Escribe ACTIVATE-<stage> (ej. ACTIVATE-5)"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_PROD: medrecord-api-prod
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate explicit confirmation
+        env:
+          STAGE: ${{ inputs.stage }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$CONFIRMATION" = "ACTIVATE-$STAGE" || {
+            echo "Confirmación inválida; se esperaba ACTIVATE-$STAGE"
+            exit 1
+          }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Activate stage and verify; rollback configuration on failure
+        env:
+          STAGE: ${{ inputs.stage }}
+        run: |
+          set -euo pipefail
+          aws lambda get-function-configuration \
+            --function-name "$LAMBDA_FUNCTION_PROD" > /tmp/lambda-before.json
+          jq '{Variables: .Environment.Variables}' /tmp/lambda-before.json > /tmp/env-before.json
+          jq --arg stage "$STAGE" \
+            '{Variables: (.Environment.Variables + {CLINICAL_ROLLOUT_STAGE: $stage})}' \
+            /tmp/lambda-before.json > /tmp/env-next.json
+
+          rollback() {
+            echo "La verificación falló; restaurando configuración anterior."
+            aws lambda update-function-configuration \
+              --function-name "$LAMBDA_FUNCTION_PROD" \
+              --environment file:///tmp/env-before.json >/dev/null
+            aws lambda wait function-updated-v2 --function-name "$LAMBDA_FUNCTION_PROD"
+          }
+
+          aws lambda update-function-configuration \
+            --function-name "$LAMBDA_FUNCTION_PROD" \
+            --environment file:///tmp/env-next.json >/dev/null
+          aws lambda wait function-updated-v2 --function-name "$LAMBDA_FUNCTION_PROD"
+
+          PAYLOAD=$(jq -nc '{verify:"fase8"}')
+          if ! aws lambda invoke --function-name "$LAMBDA_FUNCTION_PROD" \
+              --payload "$PAYLOAD" --cli-binary-format raw-in-base64-out \
+              /tmp/fase8-result.json >/dev/null; then
+            rollback
+            exit 1
+          fi
+          if ! jq -e '.statusCode == 200 and .body.ok == true' /tmp/fase8-result.json >/dev/null; then
+            jq '{statusCode, body: {ok: .body.ok, checks: .body.checks, warnings: .body.warnings}}' \
+              /tmp/fase8-result.json
+            rollback
+            exit 1
+          fi
+          jq '{statusCode, body: {ok: .body.ok, counts: .body.counts, warnings: .body.warnings}}' \
+            /tmp/fase8-result.json

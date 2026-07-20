@@ -974,7 +974,7 @@ async def verify_consentimientos() -> dict[str, Any]:
                     """
                     SELECT count(*)
                     FROM consentimientos c
-                    WHERE c.firma_kms_key_id IS NOT NULL
+                    WHERE c.credencial_id IS NOT NULL
                       AND (
                         c.verification_token_id IS NULL
                         OR NOT EXISTS (
@@ -1101,6 +1101,192 @@ async def verify_backups() -> dict[str, Any]:
     return _envelope("backups", checks, warnings=warnings, counts=counts)
 
 
+async def verify_fase8() -> dict[str, Any]:
+    """Fase 8: rollout prerequisites, bounded connections and read-path indexes.
+
+    This verifier is structural/aggregate-only. Load thresholds are intentionally
+    proven by the local harness, never by generating traffic against production.
+    """
+    from app.core.clinical_rollout import rollout_stage
+    from app.core.config import settings
+    from app.db.session import _get_session_factory
+
+    stage = rollout_stage()
+    checks: list[dict[str, Any]] = [
+        _check("rollout stage is supported", 1 <= stage <= 9, f"stage={stage}"),
+        _check(
+            "direct RDS pool is bounded per Lambda environment",
+            settings.db_pool_size + settings.db_max_overflow <= 2,
+            f"pool={settings.db_pool_size}, overflow={settings.db_max_overflow}",
+        ),
+    ]
+    warnings: list[str] = []
+    counts: dict[str, int] = {"rollout_stage": stage}
+    expected_indexes = {
+        "ix_notas_expediente_creado_id",
+        "ix_consentimientos_expediente_creado_id",
+        "ix_pacientes_nombre_trgm",
+        "ix_pacientes_curp_trgm",
+        "ix_pacientes_telefono_trgm",
+    }
+
+    factory = _get_session_factory()
+    async with factory() as session, session.begin():
+        index_rows = (
+            await session.execute(
+                text(
+                    "SELECT indexname FROM pg_indexes "
+                    "WHERE schemaname='public' AND indexname = ANY(CAST(:names AS text[]))"
+                ),
+                {"names": sorted(expected_indexes)},
+            )
+        ).scalars().all()
+        found_indexes = set(index_rows)
+        checks.append(
+            _check(
+                "all Fase-8 read-path indexes are present",
+                found_indexes == expected_indexes,
+                f"missing={sorted(expected_indexes - found_indexes)}",
+            )
+        )
+        counts["performance_indexes"] = len(found_indexes)
+
+        legacy_columns = (
+            await session.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name='tenants' "
+                    "AND column_name = ANY(CAST(:names AS text[]))"
+                ),
+                {"names": ["nombre_medico", "cedula", "especialidad"]},
+            )
+        ).scalars().all()
+        checks.append(
+            _check(
+                "legacy signing columns remain available for rollback",
+                set(legacy_columns) == {"nombre_medico", "cedula", "especialidad"},
+                f"present={sorted(legacy_columns)}",
+            )
+        )
+
+        if stage >= 2:
+            missing_credentials = (
+                await session.execute(
+                    text(
+                        """
+                        SELECT count(*) FROM tenants t
+                        WHERE t.activo AND NOT EXISTS (
+                          SELECT 1 FROM medicos m
+                          JOIN medico_credenciales c ON c.medico_id=m.id
+                          WHERE m.tenant_id=t.id AND c.activa AND c.es_predeterminada
+                        )
+                        """
+                    )
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    "stage 2 has a default active credential per active tenant",
+                    missing_credentials == 0,
+                    f"missing={missing_credentials}",
+                )
+            )
+            counts["tenants_missing_default_credential"] = missing_credentials
+
+        if stage >= 5:
+            active_cie10 = (
+                await session.execute(text("SELECT count(*) FROM cie10 WHERE active"))
+            ).scalar_one()
+            checks.append(
+                _check(
+                    "stage 5 has the complete CIE-10 catalog",
+                    active_cie10 >= _CIE10_MIN_ROWS,
+                    f"active={active_cie10}",
+                )
+            )
+            counts["cie10_active"] = active_cie10
+
+        if stage >= 7:
+            published_templates = (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM consentimiento_plantilla_versiones "
+                        "WHERE estado='publicada'"
+                    )
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    "stage 7 has published consent templates",
+                    published_templates >= 5,
+                    f"published={published_templates}",
+                )
+            )
+            counts["published_templates"] = published_templates
+
+        if stage >= 8:
+            incomplete_finalizations = (
+                await session.execute(
+                    text(
+                        """
+                        SELECT count(*) FROM consentimientos c
+                        WHERE c.credencial_id IS NOT NULL
+                          AND NOT EXISTS (
+                            SELECT 1 FROM consentimiento_documentos_finales d
+                            WHERE d.consentimiento_id=c.id
+                          )
+                        """
+                    )
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    "stage 8 has no incomplete final consent documents",
+                    incomplete_finalizations == 0,
+                    f"incomplete={incomplete_finalizations}",
+                )
+            )
+            counts["incomplete_finalizations"] = incomplete_finalizations
+
+        if stage >= 9:
+            from app.services.consent_template_reviews import (
+                load_phase6_catalog,
+                load_phase6_reviews,
+                publication_readiness,
+            )
+
+            phase6_documents = load_phase6_catalog()
+            readiness = publication_readiness(phase6_documents, load_phase6_reviews())
+            expected_keys = [document.template_key for document in phase6_documents]
+            normative_templates = (
+                await session.execute(
+                    text(
+                        """
+                        SELECT count(DISTINCT p.template_key)
+                        FROM consentimiento_plantilla_versiones v
+                        JOIN consentimiento_plantillas p ON p.id=v.plantilla_id
+                        WHERE v.estado='publicada'
+                          AND p.template_key = ANY(CAST(:keys AS text[]))
+                        """
+                    ),
+                    {"keys": expected_keys},
+                )
+            ).scalar_one()
+            checks.append(
+                _check(
+                    "stage 9 has the reviewed normative library",
+                    bool(readiness["ok"]) and normative_templates == 19,
+                    f"approved={readiness['ok']}, published_normative={normative_templates}",
+                )
+            )
+            counts["published_normative_templates"] = normative_templates
+
+    warnings.append(
+        "Load SLO evidence is produced locally by scripts/run_phase8_load.py; production verification is read-only."
+    )
+    return _envelope("fase8", checks, warnings=warnings, counts=counts)
+
+
 # action name → verifier coroutine. Each phase appends one entry.
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
@@ -1111,6 +1297,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "biblioteca_normativa": verify_biblioteca_normativa,
     "paquete_dermatologia": verify_paquete_dermatologia,
     "consentimientos": verify_consentimientos,
+    "fase8": verify_fase8,
     "backups": verify_backups,
 }
 

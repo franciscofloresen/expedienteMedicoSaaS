@@ -28,6 +28,17 @@ class Settings(BaseSettings):
     # Database (resolved from Secrets Manager in prod)
     db_secret_arn: str = ""
     database_url: str = "postgresql+asyncpg://localhost:5432/medrecord"
+    # Direct Lambda -> RDS connections. There is deliberately no RDS Proxy in
+    # Terraform, so keep every warm execution environment's pool bounded.
+    db_pool_size: int = Field(default=1, ge=1, le=5)
+    db_max_overflow: int = Field(default=1, ge=0, le=5)
+    db_pool_timeout_seconds: int = Field(default=5, ge=1, le=30)
+    db_pool_recycle_seconds: int = Field(default=300, ge=60, le=1800)
+
+    # Fase 8 gradual rollout. Values follow the fixed V1 activation order
+    # (1=schema compatibility ... 9=normative library). Stage 10/legacy column
+    # removal is intentionally not available until the production-cycle gate passes.
+    clinical_rollout_stage: int = Field(default=9, ge=1, le=9)
 
     # KMS
     kms_encryption_key_id: str = ""

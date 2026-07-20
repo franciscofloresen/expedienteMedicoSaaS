@@ -203,20 +203,25 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      ENVIRONMENT           = var.environment
-      DB_SECRET_ARN         = var.db_secret_arn
-      DB_HOST               = var.db_cluster_endpoint
-      KMS_ENCRYPTION_KEY_ID = var.encryption_key_arn
-      KMS_SIGNING_KEY_ID    = var.signing_key_arn
-      S3_EXPEDIENTES_BUCKET = var.s3_expedientes_bucket
-      S3_AUDIT_BUCKET       = var.s3_audit_bucket
-      S3_CONSENT_BUCKET     = var.s3_consent_bucket
-      MALWARE_SCAN_REQUIRED = "true"
-      CORS_ORIGINS          = var.environment == "prod" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
-      CLERK_SECRET_KEY      = var.clerk_secret_key
-      CLERK_ISSUER_URL      = var.clerk_issuer_url
-      CLERK_JWKS_URL        = var.clerk_jwks_url
-      SES_SENDER_EMAIL      = var.ses_sender_email
+      ENVIRONMENT             = var.environment
+      DB_SECRET_ARN           = var.db_secret_arn
+      DB_HOST                 = var.db_cluster_endpoint
+      DB_POOL_SIZE            = "1"
+      DB_MAX_OVERFLOW         = "1"
+      DB_POOL_TIMEOUT_SECONDS = "5"
+      DB_POOL_RECYCLE_SECONDS = "300"
+      CLINICAL_ROLLOUT_STAGE  = tostring(var.clinical_rollout_stage)
+      KMS_ENCRYPTION_KEY_ID   = var.encryption_key_arn
+      KMS_SIGNING_KEY_ID      = var.signing_key_arn
+      S3_EXPEDIENTES_BUCKET   = var.s3_expedientes_bucket
+      S3_AUDIT_BUCKET         = var.s3_audit_bucket
+      S3_CONSENT_BUCKET       = var.s3_consent_bucket
+      MALWARE_SCAN_REQUIRED   = "true"
+      CORS_ORIGINS            = var.environment == "prod" ? "[\"https://${var.frontend_url}\"]" : "[\"https://${var.frontend_url}\", \"http://localhost:5173\"]"
+      CLERK_SECRET_KEY        = var.clerk_secret_key
+      CLERK_ISSUER_URL        = var.clerk_issuer_url
+      CLERK_JWKS_URL          = var.clerk_jwks_url
+      SES_SENDER_EMAIL        = var.ses_sender_email
     }
   }
 

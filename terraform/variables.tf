@@ -8,6 +8,17 @@ variable "environment" {
   default = "dev"
 }
 
+variable "clinical_rollout_stage" {
+  description = "Fase 8 activation stage (1..9). Stage 10/legacy removal is deliberately unsupported."
+  type        = number
+  default     = 9
+
+  validation {
+    condition     = var.clinical_rollout_stage >= 1 && var.clinical_rollout_stage <= 9
+    error_message = "clinical_rollout_stage must be between 1 and 9."
+  }
+}
+
 variable "alarm_email" {
   type        = string
   description = "Email for alarm notifications"

@@ -6,7 +6,7 @@ Superusers bypass RLS policies. The app MUST connect as a non-superuser role
 for Row-Level Security to be enforced.
 
 On every request:
-1. Acquire connection from RDS Proxy pool
+1. Acquire a bounded direct connection to RDS
 2. SET LOCAL "app.current_tenant" = tenant_id (scoped to transaction)
 3. All queries within the transaction are filtered by RLS
 4. Connection returned to pool on commit/rollback
@@ -29,15 +29,15 @@ _async_session_factory = None
 def _get_engine() -> Any:
     global _engine
     if _engine is None:
-        from app.core.config import get_database_url
+        from app.core.config import get_database_url, settings
 
         _engine = create_async_engine(
             get_database_url(),
             echo=False,
-            pool_size=5,  # Lambda: keep small (RDS Proxy handles pooling)
-            max_overflow=5,
-            pool_timeout=30,
-            pool_recycle=300,  # 5 min — match RDS Proxy idle timeout
+            pool_size=settings.db_pool_size,
+            max_overflow=settings.db_max_overflow,
+            pool_timeout=settings.db_pool_timeout_seconds,
+            pool_recycle=settings.db_pool_recycle_seconds,
             pool_pre_ping=True,  # Verify connection before use
         )
     return _engine

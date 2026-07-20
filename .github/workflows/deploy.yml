@@ -86,6 +86,14 @@ jobs:
           export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
           export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
           export TF_VAR_acm_certificate_arn="${{ secrets.TF_VAR_ACM_CERTIFICATE_ARN }}"
+          # Preserve the stage selected by Ops — Clinical Rollout. Without this,
+          # every Terraform apply would silently reactivate the prod.tfvars default.
+          CURRENT_STAGE=$(aws lambda get-function-configuration \
+            --function-name "$LAMBDA_FUNCTION_PROD" \
+            --query 'Environment.Variables.CLINICAL_ROLLOUT_STAGE' \
+            --output text 2>/dev/null || true)
+          if ! [[ "$CURRENT_STAGE" =~ ^[1-9]$ ]]; then CURRENT_STAGE=9; fi
+          export TF_VAR_clinical_rollout_stage="$CURRENT_STAGE"
           terraform plan -var-file=prod.tfvars -out=tfplan
 
       - name: Upload Terraform Plan

@@ -300,6 +300,16 @@ async def create_nota(
     # Fase 3: attach structured CIE-10 diagnoses at creation (create-only, §1.1). The note
     # is never UPDATEd for this — the diagnoses point at it.
     if data.diagnosticos_cie10:
+        from app.core.clinical_rollout import feature_enabled
+
+        if not feature_enabled("structured_diagnoses"):
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "clinical_feature_not_active",
+                    "feature": "structured_diagnoses",
+                },
+            )
         try:
             diagnosticos_creados = await crear_diagnosticos_para_nota(
                 db,
@@ -391,14 +401,18 @@ async def update_nota(
 async def list_notas_by_expediente(
     expediente_id: UUID,
     request: Request,
+    limit: int | None = Query(default=None, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """Lista todas las notas de un expediente, ordenadas por fecha."""
     stmt = (
         select(Nota)
         .where(Nota.expediente_id == expediente_id)
-        .order_by(Nota.creado_en.desc())
+        .order_by(Nota.creado_en.desc(), Nota.id.desc())
     )
+    if limit is not None:
+        stmt = stmt.offset(offset).limit(limit)
     result = await db.execute(stmt)
     notas = result.scalars().all()
     diagnosticos_por_nota = await _diagnosticos_por_nota(db, [n.id for n in notas])

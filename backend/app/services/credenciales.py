@@ -42,6 +42,17 @@ async def get_credencial_para_firma(db: AsyncSession, tenant: Tenant) -> Credenc
     no default credential. Runs under the caller's RLS context (the credential is
     tenant-scoped), so it only ever sees the current tenant's médico.
     """
+    from app.core.clinical_rollout import feature_enabled
+
+    # Stage 1 keeps the legacy snapshot authoritative while the new tables are
+    # deployed and verified. Moving back to it is a read-path rollback only.
+    if not feature_enabled("medico_credentials"):
+        return CredencialFirma(
+            nombre=tenant.nombre_medico,
+            cedula=tenant.cedula,
+            especialidad=tenant.especialidad or "General",
+        )
+
     row = (
         await db.execute(
             select(
