@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Any, cast
 
-import boto3
 from reportlab.graphics.barcode import qr
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
@@ -29,6 +28,7 @@ from app.models.consentimiento import Consentimiento
 from app.models.consentimiento_evidencia import ConsentimientoFirmante
 from app.models.expediente import Expediente
 from app.models.paciente import Paciente
+from app.services.clinical_storage import get_s3_client
 
 
 @dataclass(frozen=True)
@@ -95,8 +95,16 @@ def build_final_consent_pdf(
                 ["Expediente", expediente.folio],
                 ["Procedimiento", consentimiento.procedimiento],
                 ["Médico", consentimiento.medico_nombre or ""],
-                ["Cédula / especialidad", f"{consentimiento.medico_cedula or ''} / {consentimiento.medico_especialidad or 'General'}"],
-                ["Firmado", consentimiento.firmado_medico_en.isoformat() if consentimiento.firmado_medico_en else ""],
+                [
+                    "Cédula / especialidad",
+                    f"{consentimiento.medico_cedula or ''} / {consentimiento.medico_especialidad or 'General'}",
+                ],
+                [
+                    "Firmado",
+                    consentimiento.firmado_medico_en.isoformat()
+                    if consentimiento.firmado_medico_en
+                    else "",
+                ],
             ],
             colWidths=[42 * mm, 125 * mm],
             style=TableStyle(
@@ -111,9 +119,7 @@ def build_final_consent_pdf(
             ),
         ),
         Spacer(1, 6 * mm),
-        Paragraph(
-            html.escape(consentimiento.contenido_renderizado).replace("\n", "<br/>") , body
-        ),
+        Paragraph(html.escape(consentimiento.contenido_renderizado).replace("\n", "<br/>"), body),
         Spacer(1, 7 * mm),
         Paragraph("Firmantes", styles["Heading3"]),
     ]
@@ -123,7 +129,9 @@ def build_final_consent_pdf(
         signer_rows.append(
             [
                 signer.tipo.capitalize(),
-                Paragraph(html.escape(f"{signer.nombre}{' — ' + relation if relation else ''}"), small),
+                Paragraph(
+                    html.escape(f"{signer.nombre}{' — ' + relation if relation else ''}"), small
+                ),
                 _signature_image(signer.firma_base64)
                 or Paragraph(f"Evidencia SHA-256: {signer.firma_sha256[:16]}…", small),
             ]
@@ -132,7 +140,9 @@ def build_final_consent_pdf(
         [
             "Médico",
             Paragraph(
-                html.escape(f"{consentimiento.medico_nombre or ''} — Cédula {consentimiento.medico_cedula or ''}"),
+                html.escape(
+                    f"{consentimiento.medico_nombre or ''} — Cédula {consentimiento.medico_cedula or ''}"
+                ),
                 small,
             ),
             Paragraph("Firma digital ECDSA P-256", small),
@@ -196,7 +206,7 @@ def store_final_consent_pdf(
             sha256=digest,
             size_bytes=len(pdf_bytes),
         )
-    response = boto3.client("s3").put_object(
+    response = get_s3_client().put_object(
         Bucket=settings.s3_consent_bucket,
         Key=key,
         Body=pdf_bytes,
@@ -226,7 +236,7 @@ def final_consent_download_url(*, key: str, version_id: str | None) -> str:
         params["VersionId"] = version_id
     return cast(
         str,
-        boto3.client("s3").generate_presigned_url(
+        get_s3_client().generate_presigned_url(
             "get_object", Params=params, ExpiresIn=settings.file_signed_url_ttl_seconds
         ),
     )

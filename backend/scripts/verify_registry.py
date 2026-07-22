@@ -226,10 +226,7 @@ async def _table_rls_checks(session: Any, table: str) -> tuple[list[dict[str, An
     ).first()
     policy_count = (
         await session.execute(
-            text(
-                "SELECT count(*) FROM pg_policies "
-                "WHERE schemaname = 'public' AND tablename = :t"
-            ),
+            text("SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = :t"),
             {"t": table},
         )
     ).scalar_one()
@@ -292,12 +289,8 @@ async def verify_medicos() -> dict[str, Any]:
             warnings.extend(twarn)
 
         counts = {
-            "tenants": (
-                await session.execute(text("SELECT count(*) FROM tenants"))
-            ).scalar_one(),
-            "medicos": (
-                await session.execute(text("SELECT count(*) FROM medicos"))
-            ).scalar_one(),
+            "tenants": (await session.execute(text("SELECT count(*) FROM tenants"))).scalar_one(),
+            "medicos": (await session.execute(text("SELECT count(*) FROM medicos"))).scalar_one(),
             "credenciales": (
                 await session.execute(text("SELECT count(*) FROM medico_credenciales"))
             ).scalar_one(),
@@ -452,9 +445,7 @@ async def verify_encuentros() -> dict[str, Any]:
             ).scalar_one(),
             "encuentros_completados": (
                 await session.execute(
-                    text(
-                        "SELECT count(*) FROM encuentros_clinicos WHERE estado = 'completado'"
-                    )
+                    text("SELECT count(*) FROM encuentros_clinicos WHERE estado = 'completado'")
                 )
             ).scalar_one(),
         }
@@ -513,9 +504,7 @@ async def verify_cie10() -> dict[str, Any]:
             )
         )
 
-        cie10_total = (
-            await session.execute(text("SELECT count(*) FROM cie10"))
-        ).scalar_one()
+        cie10_total = (await session.execute(text("SELECT count(*) FROM cie10"))).scalar_one()
         checks.append(
             _check(
                 f"CIE-10 catalog imported (≥ {_CIE10_MIN_ROWS} rows)",
@@ -584,9 +573,7 @@ async def verify_cie10() -> dict[str, Any]:
         counts = {
             "cie10_total": cie10_total,
             "cie10_active": (
-                await session.execute(
-                    text("SELECT count(*) FROM cie10 WHERE active")
-                )
+                await session.execute(text("SELECT count(*) FROM cie10 WHERE active"))
             ).scalar_one(),
             "nota_diagnosticos": (
                 await session.execute(text("SELECT count(*) FROM nota_diagnosticos"))
@@ -612,7 +599,9 @@ async def verify_plantillas() -> dict[str, Any]:
         table_names = ("consentimiento_plantillas", "consentimiento_plantilla_versiones")
         for table in table_names:
             exists = (
-                await session.execute(text("SELECT to_regclass(:table) IS NOT NULL"), {"table": table})
+                await session.execute(
+                    text("SELECT to_regclass(:table) IS NOT NULL"), {"table": table}
+                )
             ).scalar_one()
             checks.append(_check(f"{table} exists", bool(exists)))
             can_select = (
@@ -762,8 +751,7 @@ async def verify_biblioteca_normativa() -> dict[str, Any]:
     reviews = load_phase6_reviews()
     readiness = publication_readiness(documents, reviews)
     expected_hashes = {
-        (document.template_key, document.version): version_hash(document)
-        for document in documents
+        (document.template_key, document.version): version_hash(document) for document in documents
     }
     expected_types = {review.template_key: review.tipo_documento for review in reviews}
     checks = [
@@ -797,7 +785,9 @@ async def verify_biblioteca_normativa() -> dict[str, Any]:
         if actual_hashes.get(identity) != expected_hash
     )
     type_mismatches = sorted(
-        key for key, expected_type in expected_types.items() if actual_types.get(key) != expected_type
+        key
+        for key, expected_type in expected_types.items()
+        if actual_types.get(key) != expected_type
     )
     checks.extend(
         [
@@ -1133,14 +1123,18 @@ async def verify_fase8() -> dict[str, Any]:
     factory = _get_session_factory()
     async with factory() as session, session.begin():
         index_rows = (
-            await session.execute(
-                text(
-                    "SELECT indexname FROM pg_indexes "
-                    "WHERE schemaname='public' AND indexname = ANY(CAST(:names AS text[]))"
-                ),
-                {"names": sorted(expected_indexes)},
+            (
+                await session.execute(
+                    text(
+                        "SELECT indexname FROM pg_indexes "
+                        "WHERE schemaname='public' AND indexname = ANY(CAST(:names AS text[]))"
+                    ),
+                    {"names": sorted(expected_indexes)},
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         found_indexes = set(index_rows)
         checks.append(
             _check(
@@ -1152,15 +1146,19 @@ async def verify_fase8() -> dict[str, Any]:
         counts["performance_indexes"] = len(found_indexes)
 
         legacy_columns = (
-            await session.execute(
-                text(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_schema='public' AND table_name='tenants' "
-                    "AND column_name = ANY(CAST(:names AS text[]))"
-                ),
-                {"names": ["nombre_medico", "cedula", "especialidad"]},
+            (
+                await session.execute(
+                    text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema='public' AND table_name='tenants' "
+                        "AND column_name = ANY(CAST(:names AS text[]))"
+                    ),
+                    {"names": ["nombre_medico", "cedula", "especialidad"]},
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         checks.append(
             _check(
                 "legacy signing columns remain available for rollback",
@@ -1287,6 +1285,116 @@ async def verify_fase8() -> dict[str, Any]:
     return _envelope("fase8", checks, warnings=warnings, counts=counts)
 
 
+async def verify_fase9() -> dict[str, Any]:
+    """Fase 9: fail-closed auth, secret indirection and session audit evidence.
+
+    No secret value, token, user identifier or patient data is returned by this
+    verifier. The Secrets Manager read only proves that an AWSCURRENT value exists.
+    """
+    from app.core.config import get_clerk_secret_key, settings
+    from app.db.session import _get_session_factory
+
+    checks: list[dict[str, Any]] = [
+        _check(
+            "Clerk backend secret is absent from Lambda environment",
+            "CLERK_SECRET_KEY" not in os.environ,
+            "secret value must be resolved through Secrets Manager",
+        ),
+        _check(
+            "application secret ARN is configured",
+            bool(settings.app_config_secret_arn),
+            "APP_CONFIG_SECRET_ARN is set" if settings.app_config_secret_arn else "missing ARN",
+        ),
+        _check(
+            "Clerk endpoints require HTTPS",
+            settings.clerk_issuer_url.startswith("https://")
+            and settings.clerk_jwks_url.startswith("https://"),
+            "issuer/JWKS transport policy",
+        ),
+        _check(
+            "authorized parties are explicit",
+            bool(settings.clerk_authorized_parties),
+            f"configured_parties={len(settings.clerk_authorized_parties)}",
+        ),
+        _check("MFA is mandatory", settings.clerk_require_mfa, "CLERK_REQUIRE_MFA=true"),
+        _check(
+            "sensitive-action window is at most 10 minutes",
+            1 <= settings.clerk_reauth_max_age_minutes <= 10,
+            f"window_minutes={settings.clerk_reauth_max_age_minutes}",
+        ),
+    ]
+
+    secret_available = False
+    try:
+        secret_available = bool(get_clerk_secret_key())
+    except Exception as exc:
+        # Only the exception type is reported; provider responses can contain
+        # account metadata and must not become deployment artifacts.
+        lookup_status = type(exc).__name__
+    else:
+        lookup_status = "available"
+    checks.append(
+        _check(
+            "Clerk secret has an active Secrets Manager value",
+            secret_available,
+            f"lookup_result={lookup_status}",
+        )
+    )
+
+    expected_columns = {
+        "identity_provider_id",
+        "session_id",
+        "factor_verification_age",
+    }
+    factory = _get_session_factory()
+    async with factory() as session, session.begin():
+        columns = set(
+            (
+                await session.execute(
+                    text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema='public' AND table_name='audit_log' "
+                        "AND column_name = ANY(CAST(:names AS text[]))"
+                    ),
+                    {"names": sorted(expected_columns)},
+                )
+            ).scalars()
+        )
+        audit_index = int(
+            (
+                await session.execute(
+                    text(
+                        "SELECT count(*) FROM pg_indexes WHERE schemaname='public' "
+                        "AND tablename='audit_log' "
+                        "AND indexname='ix_audit_log_tenant_identity_timestamp'"
+                    )
+                )
+            ).scalar_one()
+        )
+
+    checks.extend(
+        [
+            _check(
+                "audit trail captures identity/session/MFA context",
+                columns == expected_columns,
+                f"columns={len(columns)}/{len(expected_columns)}",
+            ),
+            _check(
+                "identity audit lookup index exists",
+                audit_index == 1,
+                f"indexes={audit_index}",
+            ),
+        ]
+    )
+    return _envelope(
+        "fase9",
+        checks,
+        warnings=[
+            "Clerk Dashboard MFA enforcement and independent penetration testing require external evidence."
+        ],
+    )
+
+
 # action name → verifier coroutine. Each phase appends one entry.
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
@@ -1298,6 +1406,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "paquete_dermatologia": verify_paquete_dermatologia,
     "consentimientos": verify_consentimientos,
     "fase8": verify_fase8,
+    "fase9": verify_fase9,
     "backups": verify_backups,
 }
 

@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Clerk publishable keys are intentionally embedded in browser bundles"
+regexTarget = "match"
+regexes = ['''pk_(test|live)_[A-Za-z0-9_-]+''']

@@ -30,7 +30,17 @@ export const setTokenFetcher = (fetcher: () => Promise<string | null>) => {
 // Native fetch wrapper
 async function fetchClient<T>(
   endpoint: string,
-  { data, params, ...customConfig }: { data?: any; params?: Record<string, string | number>; [key: string]: any } = {}
+  {
+    data,
+    params,
+    allowReverificationHint = false,
+    ...customConfig
+  }: {
+    data?: any;
+    params?: Record<string, string | number>;
+    allowReverificationHint?: boolean;
+    [key: string]: any;
+  } = {}
 ): Promise<T> {
   let url = `${API_BASE_URL}${endpoint}`;
   
@@ -78,6 +88,15 @@ async function fetchClient<T>(
     let errorCode: string | undefined;
     try {
       const errBody = await response.json();
+      // Clerk's useReverification hook detects this standard response body and
+      // transparently retries the original request after a fresh MFA challenge.
+      if (
+        allowReverificationHint
+        && response.status === 403
+        && errBody?.clerk_error?.reason === 'reverification-error'
+      ) {
+        return errBody as T;
+      }
       if (errBody.detail) {
         if (Array.isArray(errBody.detail)) {
           errorDetail = errBody.detail.map((e: any) => `${e.loc?.[e.loc?.length-1] || 'Campo'}: ${e.msg}`).join(', ');
@@ -111,8 +130,23 @@ export const api = {
   // query when the search text changes); it is forwarded to fetch via customConfig.
   get: <T>(url: string, params?: any, options?: { signal?: AbortSignal }) =>
     fetchClient<T>(url, { method: 'GET', params, signal: options?.signal }),
+  getWithReauthentication: <T>(url: string, params?: any) => fetchClient<T>(url, {
+    method: 'GET',
+    params,
+    allowReverificationHint: true,
+  }),
   post: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'POST', data }),
+  postWithReauthentication: <T>(url: string, data?: any) => fetchClient<T>(url, {
+    method: 'POST',
+    data,
+    allowReverificationHint: true,
+  }),
   put: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'PUT', data }),
+  putWithReauthentication: <T>(url: string, data?: any) => fetchClient<T>(url, {
+    method: 'PUT',
+    data,
+    allowReverificationHint: true,
+  }),
   patch: <T>(url: string, data?: any) => fetchClient<T>(url, { method: 'PATCH', data }),
   delete: <T>(url: string) => fetchClient<T>(url, { method: 'DELETE' }),
 };
@@ -131,7 +165,7 @@ export const authApi = {
     return api.get('/auth/me');
   },
   updateProfile: async (data: { cedula?: string; especialidad?: string; notification_email?: string }): Promise<any> => {
-    return api.put('/auth/profile', data);
+    return api.putWithReauthentication('/auth/profile', data);
   },
   onboarding: async (data: { nombre_medico: string; cedula: string; especialidad?: string }): Promise<any> => {
     return api.post('/auth/onboarding', data);
@@ -192,7 +226,7 @@ export const notasApi = {
     return api.put(`/notas/${notaId}`, data);
   },
   firmar: async (notaId: string): Promise<{ id: string; firma_digital: string; firmado_en: string }> => {
-    return api.post(`/notas/${notaId}/firmar`);
+    return api.postWithReauthentication(`/notas/${notaId}/firmar`);
   },
   legalPreview: async (notaId: string): Promise<any> => {
     return api.get(`/notas/${notaId}/legal-preview`);
@@ -335,7 +369,7 @@ export const filesApi = {
     return api.post<ClinicalFile>(`/files/${grant.file_id}/complete`);
   },
   downloadUrl: (fileId: string): Promise<{ url: string; expires_in: number }> =>
-    api.get(`/files/${fileId}/download-url`),
+    api.getWithReauthentication(`/files/${fileId}/download-url`),
   archive: (fileId: string): Promise<void> => api.delete(`/files/${fileId}`),
 };
 
@@ -347,7 +381,7 @@ export const recetasApi = {
     return api.post('/recetas', data);
   },
   firmar: async (id: string): Promise<Receta & { verification_url?: string }> => {
-    return api.post(`/recetas/${id}/firmar`);
+    return api.postWithReauthentication(`/recetas/${id}/firmar`);
   },
   print: async (id: string): Promise<any> => {
     return api.get(`/recetas/${id}/print`);
@@ -364,11 +398,11 @@ export const consentimientosApi = {
   firmarPaciente: async (id: string, data: any): Promise<any> => {
     return api.post(`/consentimientos/${id}/firmar-paciente`, data);
   },
-  firmarMedico: async (id: string, credencialId?: string): Promise<any> => api.post(
+  firmarMedico: async (id: string, credencialId?: string): Promise<any> => api.postWithReauthentication(
     `/consentimientos/${id}/firmar-medico`,
     credencialId ? { credencial_id: credencialId } : undefined,
   ),
-  revocar: async (id: string, motivo: string): Promise<any> => api.post(
+  revocar: async (id: string, motivo: string): Promise<any> => api.postWithReauthentication(
     `/consentimientos/${id}/revocar`,
     { motivo },
   ),

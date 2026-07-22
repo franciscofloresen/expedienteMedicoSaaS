@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.consentimiento import Consentimiento
 from app.models.consentimiento_evidencia import (
@@ -113,9 +114,11 @@ def _fallback_payloads(
     for document in documents:
         if especialidad and especialidad.casefold() not in (document.especialidad or "").casefold():
             continue
-        if procedimiento and procedimiento.casefold() not in (
-            document.procedimiento or document.nombre
-        ).casefold():
+        if (
+            procedimiento
+            and procedimiento.casefold()
+            not in (document.procedimiento or document.nombre).casefold()
+        ):
             continue
         runtime = LEGACY_TEMPLATES[document.template_key]
         results.append(
@@ -195,7 +198,9 @@ def _serialize(
         "procedimiento": row.procedimiento,
         "contenido_renderizado": row.contenido_renderizado,
         "firmado_paciente_nombre": row.firmado_paciente_nombre,
-        "firmado_paciente_en": row.firmado_paciente_en.isoformat() if row.firmado_paciente_en else None,
+        "firmado_paciente_en": row.firmado_paciente_en.isoformat()
+        if row.firmado_paciente_en
+        else None,
         "firmado_medico_en": row.firmado_medico_en.isoformat() if row.firmado_medico_en else None,
         "hash_contenido": row.hash_contenido,
         "firma_algoritmo": row.firma_algoritmo,
@@ -255,12 +260,16 @@ async def _evidence_for_consent(
     ConsentimientoRevocacion | None,
 ]:
     firmantes = (
-        await db.execute(
-            select(ConsentimientoFirmante)
-            .where(ConsentimientoFirmante.consentimiento_id == consentimiento_id)
-            .order_by(ConsentimientoFirmante.tipo, ConsentimientoFirmante.orden)
+        (
+            await db.execute(
+                select(ConsentimientoFirmante)
+                .where(ConsentimientoFirmante.consentimiento_id == consentimiento_id)
+                .order_by(ConsentimientoFirmante.tipo, ConsentimientoFirmante.orden)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     documento = (
         await db.execute(
             select(ConsentimientoDocumentoFinal).where(
@@ -293,30 +302,42 @@ async def _evidence_for_consents(
         return {}
 
     firmantes = (
-        await db.execute(
-            select(ConsentimientoFirmante)
-            .where(ConsentimientoFirmante.consentimiento_id.in_(consentimiento_ids))
-            .order_by(
-                ConsentimientoFirmante.consentimiento_id,
-                ConsentimientoFirmante.tipo,
-                ConsentimientoFirmante.orden,
+        (
+            await db.execute(
+                select(ConsentimientoFirmante)
+                .where(ConsentimientoFirmante.consentimiento_id.in_(consentimiento_ids))
+                .order_by(
+                    ConsentimientoFirmante.consentimiento_id,
+                    ConsentimientoFirmante.tipo,
+                    ConsentimientoFirmante.orden,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     documentos = (
-        await db.execute(
-            select(ConsentimientoDocumentoFinal).where(
-                ConsentimientoDocumentoFinal.consentimiento_id.in_(consentimiento_ids)
+        (
+            await db.execute(
+                select(ConsentimientoDocumentoFinal).where(
+                    ConsentimientoDocumentoFinal.consentimiento_id.in_(consentimiento_ids)
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     revocaciones = (
-        await db.execute(
-            select(ConsentimientoRevocacion).where(
-                ConsentimientoRevocacion.consentimiento_id.in_(consentimiento_ids)
+        (
+            await db.execute(
+                select(ConsentimientoRevocacion).where(
+                    ConsentimientoRevocacion.consentimiento_id.in_(consentimiento_ids)
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     grouped_signers: dict[uuid.UUID, list[ConsentimientoFirmante]] = {
         row_id: [] for row_id in consentimiento_ids
@@ -627,8 +648,7 @@ async def firmar_paciente(
             detail=f"La plantilla requiere exactamente {required_witnesses} testigo(s)",
         )
     if data.tipo_firmante != "paciente" and (
-        not (data.relacion_paciente or "").strip()
-        or not (data.motivo_representacion or "").strip()
+        not (data.relacion_paciente or "").strip() or not (data.motivo_representacion or "").strip()
     ):
         raise HTTPException(
             status_code=400,
@@ -688,6 +708,7 @@ async def firmar_medico(
     request: Request,
     data: FirmaMedico | None = None,
     db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
     tenant_id = _tenant_uuid(request)
     result = (
@@ -706,7 +727,9 @@ async def firmar_medico(
     if not row.firmado_paciente_en:
         raise HTTPException(status_code=400, detail="Primero debe firmar el paciente")
     if row.firmado_medico_en:
-        raise HTTPException(status_code=400, detail="El consentimiento ya fue firmado por el médico")
+        raise HTTPException(
+            status_code=400, detail="El consentimiento ya fue firmado por el médico"
+        )
 
     from app.core.clinical_rollout import feature_enabled
 
@@ -819,7 +842,9 @@ async def print_consentimiento(
         raise HTTPException(status_code=404, detail="Consentimiento no encontrado")
     consentimiento, paciente, expediente = row
     if not consentimiento.hash_contenido:
-        raise HTTPException(status_code=400, detail="El consentimiento debe estar firmado por el médico")
+        raise HTTPException(
+            status_code=400, detail="El consentimiento debe estar firmado por el médico"
+        )
     firmantes, documento, revocacion = await _evidence_for_consent(db, consentimiento.id)
     token_row, plain_token = await get_or_create_verification_token(
         db,
@@ -830,7 +855,9 @@ async def print_consentimiento(
             "folio": f"CONS-{str(consentimiento.id)[:8].upper()}",
             "medico_nombre": consentimiento.medico_nombre,
             "medico_cedula": consentimiento.medico_cedula,
-            "fecha_emision": consentimiento.firmado_medico_en.isoformat() if consentimiento.firmado_medico_en else None,
+            "fecha_emision": consentimiento.firmado_medico_en.isoformat()
+            if consentimiento.firmado_medico_en
+            else None,
             "hash": consentimiento.hash_contenido,
         },
     )
@@ -869,6 +896,7 @@ async def revocar_consentimiento(
     data: RevocacionCreate,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
     """Create an immutable revocation event without updating the signed consent."""
     from app.core.clinical_rollout import feature_enabled

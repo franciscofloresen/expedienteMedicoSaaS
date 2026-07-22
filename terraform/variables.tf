@@ -24,12 +24,6 @@ variable "alarm_email" {
   description = "Email for alarm notifications"
 }
 
-variable "clerk_secret_key" {
-  description = "Clerk API Secret Key"
-  type        = string
-  sensitive   = true
-}
-
 variable "clerk_issuer_url" {
   description = "Clerk Issuer URL"
   type        = string
@@ -38,6 +32,12 @@ variable "clerk_issuer_url" {
 variable "clerk_jwks_url" {
   description = "Clerk JWKS URL"
   type        = string
+}
+
+variable "clerk_audience" {
+  description = "Optional expected aud claim; azp is always validated"
+  type        = string
+  default     = ""
 }
 
 variable "ses_sender_email" {

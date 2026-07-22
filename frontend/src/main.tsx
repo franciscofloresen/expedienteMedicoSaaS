@@ -11,7 +11,12 @@ if (!clerkPubKey) {
 }
 
 createRoot(document.getElementById('root')!).render(
-  <ClerkProvider publishableKey={clerkPubKey} afterSignOutUrl="/" localization={esES}>
+  <ClerkProvider
+    publishableKey={clerkPubKey}
+    afterSignOutUrl="/"
+    localization={esES}
+    taskUrls={{ 'setup-mfa': '/session-tasks/setup-mfa' }}
+  >
     <App />
   </ClerkProvider>,
 )

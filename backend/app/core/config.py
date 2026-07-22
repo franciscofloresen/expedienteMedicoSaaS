@@ -58,8 +58,13 @@ class Settings(BaseSettings):
 
     # Clerk Auth
     clerk_issuer_url: str = ""
+    app_config_secret_arn: str = ""
     clerk_secret_key: str = ""
     clerk_jwks_url: str = ""
+    clerk_authorized_parties: list[str] = Field(default_factory=list)
+    clerk_audience: str = ""
+    clerk_require_mfa: bool = True
+    clerk_reauth_max_age_minutes: int = Field(default=10, ge=1, le=60)
 
     # Cache TTLs (seconds)
     secrets_cache_ttl: int = 300  # 5 minutes
@@ -71,7 +76,7 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = Field(default=["http://localhost:5173"])
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", "clerk_authorized_parties", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, list[str]]) -> list[str]:
         if isinstance(v, str):
@@ -157,6 +162,24 @@ def get_database_url() -> str:
     dbname = os.environ.get("DB_NAME") or secret.get("dbname", "postgres")
 
     return f"postgresql+asyncpg://{secret['username']}:{secret['password']}@{host}:{port}/{dbname}"
+
+
+def get_clerk_secret_key() -> str:
+    """Resolve the Clerk backend key without exposing it in Lambda environment variables.
+
+    Development and tests may still use ``CLERK_SECRET_KEY``. Production must receive
+    only ``APP_CONFIG_SECRET_ARN`` and reads ``CLERK_SECRET_KEY`` from the JSON secret.
+    """
+    s = get_settings()
+    if s.environment in ("development", "testing"):
+        return s.clerk_secret_key
+    if not s.app_config_secret_arn:
+        raise RuntimeError("APP_CONFIG_SECRET_ARN no está configurado")
+    secret = get_secret(s.app_config_secret_arn)
+    value = secret.get("CLERK_SECRET_KEY")
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError("CLERK_SECRET_KEY no está disponible en app-config")
+    return value
 
 
 # Backward compat: some files import `settings` directly.

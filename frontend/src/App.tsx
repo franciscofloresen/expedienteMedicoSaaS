@@ -16,6 +16,7 @@ import VerifyDocument from './pages/VerifyDocument';
 import PrintDocument from './pages/PrintDocument';
 import Onboarding from './pages/Onboarding';
 import Agenda from './pages/Agenda';
+import SetupMFA from './pages/SetupMFA';
 
 import { ToastProvider } from './contexts/ToastContext';
 import { useAuth } from '@clerk/react';
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/privacidad" element={<Privacidad />} />
                 <Route path="/seguridad-y-cumplimiento" element={<SeguridadCumplimiento />} />
                 <Route path="/verify/:token" element={<VerifyDocument />} />
+                <Route path="/session-tasks/setup-mfa" element={<SetupMFA />} />
 
                 {/* Protected routes — handled by Clerk */}
                 <Route element={<ProtectedRoute />}>

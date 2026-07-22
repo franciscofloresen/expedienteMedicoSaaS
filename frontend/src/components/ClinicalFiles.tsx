@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, LoaderCircle, ShieldCheck, Trash2, Upload } from 'lucide-react';
 import { type ClinicalFile, filesApi } from '../services/api';
 import { useToast } from '../hooks/useToast';
+import { useReverification } from '@clerk/react';
 
 const MIB = 1024 * 1024;
 
@@ -23,6 +24,7 @@ export default function ClinicalFiles({ expedienteId }: { expedienteId: string }
   const [category, setCategory] = useState<ClinicalFile['category']>('other');
   const client = useQueryClient();
   const { showToast } = useToast();
+  const downloadWithReauthentication = useReverification(filesApi.downloadUrl);
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['clinical-files', expedienteId],
     queryFn: () => filesApi.list(expedienteId),
@@ -57,7 +59,7 @@ export default function ClinicalFiles({ expedienteId }: { expedienteId: string }
 
   const download = async (file: ClinicalFile) => {
     try {
-      const { url } = await filesApi.downloadUrl(file.id);
+      const { url } = await downloadWithReauthentication(file.id);
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.rel = 'noopener noreferrer';

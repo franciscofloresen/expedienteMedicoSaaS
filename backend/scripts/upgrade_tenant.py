@@ -6,7 +6,6 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.core.config import settings
 from app.db.session import _get_session_factory
 from app.models.tenant import Tenant
 
@@ -36,18 +35,17 @@ async def _apply_plan(db: Any, tenant: Tenant, plan: str) -> None:
     tenant.plan = plan
 
     # 2. Sync Clerk public_metadata so the next JWT carries the new plan.
-    if not settings.clerk_secret_key:
-        logger.warning(
-            "⚠️ No se encontró CLERK_SECRET_KEY, omitiendo sincronización con Clerk."
-        )
+    from app.core.config import get_clerk_secret_key
+
+    clerk_secret_key = get_clerk_secret_key()
+    if not clerk_secret_key:
+        logger.warning("⚠️ No se encontró CLERK_SECRET_KEY, omitiendo sincronización con Clerk.")
         await db.commit()
         logger.info(f"✅ Base de datos actualizada (plan={plan}).")
         return
 
     if not tenant.clerk_id:
-        logger.warning(
-            "⚠️ El tenant no tiene clerk_id asociado. No se sincronizará con Clerk."
-        )
+        logger.warning("⚠️ El tenant no tiene clerk_id asociado. No se sincronizará con Clerk.")
         await db.commit()
         logger.info(f"✅ Base de datos actualizada (plan={plan}).")
         return
@@ -59,7 +57,7 @@ async def _apply_plan(db: Any, tenant: Tenant, plan: str) -> None:
             resp = await client.patch(
                 f"https://api.clerk.com/v1/users/{tenant.clerk_id}/metadata",
                 headers={
-                    "Authorization": f"Bearer {settings.clerk_secret_key}",
+                    "Authorization": f"Bearer {clerk_secret_key}",
                     "Content-Type": "application/json",
                 },
                 json={"public_metadata": {"plan": plan}},
@@ -115,9 +113,7 @@ def main() -> None:
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("email", nargs="?", help="Correo electrónico del médico")
     target.add_argument("--tenant-id", help="ID (UUID) del tenant a actualizar")
-    parser.add_argument(
-        "--plan", default="pro", help="Nombre del plan (por defecto: pro)"
-    )
+    parser.add_argument("--plan", default="pro", help="Nombre del plan (por defecto: pro)")
     args = parser.parse_args()
 
     if args.tenant_id:

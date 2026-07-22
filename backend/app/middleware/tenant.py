@@ -16,18 +16,16 @@ from app.core.security import decode_jwt
 # Paths that don't require tenant context
 PUBLIC_PATHS = {
     "/health",
+    "/health/live",
+    "/health/ready",
     "/docs",
 }
 
-PUBLIC_PREFIXES = (
-    "/verify/",
-)
+PUBLIC_PREFIXES = ("/verify/",)
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         # Skip public paths and CORS preflight OPTIONS requests
         if (
             request.method == "OPTIONS"
@@ -48,10 +46,19 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 claims = decode_jwt(token)
             except Exception as e:
                 import logging
-                logging.getLogger("medrecord.security").error(f"JWT Validation Error: {e}")
+
+                logging.getLogger("medrecord.security").warning(
+                    "JWT validation rejected",
+                    extra={"error_code": type(e).__name__},
+                )
                 return JSONResponse(
                     status_code=401,
-                    content={"detail": f"Token inválido o expirado: {e}"},
+                    content={
+                        "detail": {
+                            "code": "invalid_session_token",
+                            "message": "Token inválido o expirado",
+                        }
+                    },
                 )
 
             # Clerk puts custom claims in publicMetadata or custom JWT template
@@ -78,12 +85,11 @@ class TenantMiddleware(BaseHTTPMiddleware):
             else:
                 return JSONResponse(
                     status_code=401,
-                    content={
-                        "detail": "Token de autenticación requerido o tenant_id faltante"
-                    },
+                    content={"detail": "Token de autenticación requerido o tenant_id faltante"},
                 )
 
         request.state.tenant_id = tenant_id
+        request.state.auth_claims = claims
 
         user_id = claims.get("sub")
         if not user_id:
@@ -92,12 +98,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         request.state.user_email = claims.get("email") or metadata.get(
             "email", f"{claims.get('sub', 'dev')}@test.local"
         )
-        request.state.user_name = claims.get("nombre_medico") or metadata.get(
-            "nombre_medico"
-        )
+        request.state.user_name = claims.get("nombre_medico") or metadata.get("nombre_medico")
         request.state.user_cedula = claims.get("cedula") or metadata.get("cedula")
-        request.state.user_especialidad = claims.get("especialidad") or metadata.get(
-            "especialidad"
-        )
+        request.state.user_especialidad = claims.get("especialidad") or metadata.get("especialidad")
         request.state.plan = claims.get("plan") or metadata.get("plan") or "basico"
+        request.state.session_id = claims.get("sid")
+        request.state.factor_verification_age = claims.get("fva")
         return await call_next(request)

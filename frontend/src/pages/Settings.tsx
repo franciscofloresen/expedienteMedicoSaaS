@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lucide-react';
-import { UserProfile } from '@clerk/react';
+import { UserProfile, useReverification } from '@clerk/react';
 import { useToast } from '../hooks/useToast';
 import UpgradeBanner from '../components/UpgradeBanner';
 import StorageUsageCard from '../components/StorageUsageCard';
@@ -10,6 +10,7 @@ import { authApi } from '../services/api';
 export default function Settings() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const updateProfileWithReauthentication = useReverification(authApi.updateProfile);
 
   const [isEditingProf, setIsEditingProf] = useState(false);
   const [editCedula, setEditCedula] = useState('');
@@ -24,7 +25,8 @@ export default function Settings() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { cedula: string; especialidad: string; notification_email: string }) => authApi.updateProfile(data),
+    mutationFn: (data: { cedula: string; especialidad: string; notification_email: string }) =>
+      updateProfileWithReauthentication(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       showToast('Datos actualizados correctamente', 'success');

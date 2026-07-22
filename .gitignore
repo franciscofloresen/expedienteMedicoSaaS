@@ -86,3 +86,19 @@ sales.md
 finalPrompt.md
 flyer.html
 test_log.txt
+
+# ── Local/internal workspace artifacts (public repository) ──
+/.claude/
+/tmp/
+/ROADMAP_CLINICO_SIN_INCREMENTO_AWS*.md
+/VERSION2.md
+/WALKTHROUGH_FASE*.md
+/plan_general_cloudmedrecord_beta_lean.md
+/propose*.md
+/uxui.md
+/compliance_matrix.md
+/docs/compliance_matrix.md
+/docs/security/
+/docs/runbooks/security_access_lifecycle.md
+/backend/scripts/reset_environment.py
+/terraform/backend.hcl

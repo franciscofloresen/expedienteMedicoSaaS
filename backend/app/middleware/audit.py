@@ -65,11 +65,21 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     status_code=response.status_code,
                     ip=_client_ip(request),
                     user_agent=request.headers.get("user-agent"),
-                    request_id=request.headers.get("x-request-id"),
+                    request_id=getattr(request.state, "request_id", None),
+                    identity_provider_id=getattr(request.state, "user_id", None),
+                    session_id=getattr(request.state, "session_id", None),
+                    factor_verification_age=getattr(request.state, "factor_verification_age", None),
                     duration_ms=(time.monotonic() - start) * 1000,
                 )
         except Exception as e:  # noqa: BLE001 — audit must never break the request
-            logger.warning(f"Audit write failed for {request.url.path}: {e}")
+            logger.warning(
+                "Audit persistence failed",
+                extra={
+                    "alarm_key": "AUDIT_PERSISTENCE_FAILURE",
+                    "error_code": type(e).__name__,
+                    "path": request.url.path,
+                },
+            )
 
         return response
 
@@ -83,6 +93,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
         ip: str | None,
         user_agent: str | None,
         request_id: str | None,
+        identity_provider_id: str | None,
+        session_id: str | None,
+        factor_verification_age: list[int] | None,
         duration_ms: float,
     ) -> None:
         from sqlalchemy import text
@@ -109,6 +122,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
                         ip_origen=ip,
                         user_agent=user_agent,
                         request_id=request_id,
+                        identity_provider_id=identity_provider_id,
+                        session_id=session_id,
+                        factor_verification_age=factor_verification_age,
                         duration_ms=duration_ms,
                     )
                 )

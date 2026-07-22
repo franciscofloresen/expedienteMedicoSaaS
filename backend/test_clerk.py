@@ -2,14 +2,14 @@ import asyncio
 
 import httpx
 
-from app.core.config import settings
+from app.core.config import get_clerk_secret_key
 
 
 async def test():
     async with httpx.AsyncClient() as client:
         resp = await client.patch(
             "https://api.clerk.com/v1/users/user_3F1fR5VmF7lY84WqGrXMZw6Gb1F/metadata",
-            headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+            headers={"Authorization": f"Bearer {get_clerk_secret_key()}"},
             json={
                 "public_metadata": {
                     "tenant_id": "00000000-0000-0000-0000-000000000000"
@@ -21,7 +21,7 @@ async def test():
 
         resp2 = await client.patch(
             "https://api.clerk.com/v1/users/user_3F1fR5VmF7lY84WqGrXMZw6Gb1F",
-            headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+            headers={"Authorization": f"Bearer {get_clerk_secret_key()}"},
             json={"first_name": "Test", "last_name": "Doctor"},
         )
         print("Profile Status:", resp2.status_code)

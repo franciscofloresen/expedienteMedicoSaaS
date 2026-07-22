@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import require_reauthentication
 from app.db.session import get_db
 
 logger = logging.getLogger("medrecord.auth")
@@ -29,18 +30,21 @@ async def _fetch_clerk_primary_email(user_id: str) -> str | None:
     """
     import httpx
 
-    from app.core.config import settings
+    from app.core.config import get_clerk_secret_key
 
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"https://api.clerk.com/v1/users/{user_id}",
-                headers={"Authorization": f"Bearer {settings.clerk_secret_key}"},
+                headers={"Authorization": f"Bearer {get_clerk_secret_key()}"},
             )
             resp.raise_for_status()
             data = resp.json()
-    except Exception as e:
-        logger.warning(f"Could not resolve Clerk email for {user_id}: {e}")
+    except Exception as exc:
+        logger.warning(
+            "Could not resolve verified Clerk email",
+            extra={"error_code": type(exc).__name__},
+        )
         return None
 
     primary_id = data.get("primary_email_address_id")
@@ -69,10 +73,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 
     from app.models.tenant import Tenant
 
-    stmt = (
-        select(Tenant)
-        .where(Tenant.id == tenant_id)
-    )
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
     result = await db.execute(stmt)
     tenant = result.scalar_one_or_none()
 
@@ -113,7 +114,10 @@ class ProfileUpdate(BaseModel):
 
 @router.put("/profile")
 async def update_profile(
-    data: ProfileUpdate, request: Request, db: AsyncSession = Depends(get_db)
+    data: ProfileUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
     from sqlalchemy import select
 
@@ -153,14 +157,14 @@ async def update_profile(
         try:
             import httpx
 
-            from app.core.config import settings
+            from app.core.config import get_clerk_secret_key
 
             async with httpx.AsyncClient() as client:
                 # Update Clerk publicMetadata
                 resp = await client.patch(
                     f"https://api.clerk.com/v1/users/{user_id}/metadata",
                     headers={
-                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Authorization": f"Bearer {get_clerk_secret_key()}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -232,9 +236,7 @@ async def terms_status(request: Request, db: AsyncSession = Depends(get_db)) -> 
 
     return {
         "accepted": tenant.terms_accepted_at is not None,
-        "accepted_at": tenant.terms_accepted_at.isoformat()
-        if tenant.terms_accepted_at
-        else None,
+        "accepted_at": tenant.terms_accepted_at.isoformat() if tenant.terms_accepted_at else None,
         "version": tenant.terms_version,
     }
 
@@ -257,29 +259,24 @@ async def onboarding(
     if not user_id:
         raise HTTPException(status_code=401, detail="No authenticated Clerk user found")
 
-    user_email = getattr(
-        request.state, "user_email", f"doctor_{user_id}@medrecord.local"
-    )
+    user_email = getattr(request.state, "user_email", f"doctor_{user_id}@medrecord.local")
 
     import uuid
 
     import httpx
     from sqlalchemy import select
 
-    from app.core.config import settings
+    from app.core.config import get_clerk_secret_key
     from app.models.tenant import Tenant
 
     # The Clerk session token often omits the email claim, so the middleware may
     # have fallen back to a synthetic "*.local" address. Resolve the real verified
     # email from the Clerk API so the self-heal below can re-link this login to an
     # existing (e.g. dev→prod migrated) tenant instead of creating a duplicate.
-    if user_email.endswith(".local") and settings.clerk_secret_key:
+    if user_email.endswith(".local"):
         resolved_email = await _fetch_clerk_primary_email(user_id)
         if resolved_email:
-            logger.info(
-                f"Resolved real email for {user_id} from Clerk API "
-                f"(JWT had no email claim): {resolved_email}"
-            )
+            logger.info("Resolved verified Clerk email absent from JWT")
             user_email = resolved_email
 
     # Check if they already have a tenant
@@ -306,10 +303,7 @@ async def onboarding(
         stmt = select(Tenant).where(Tenant.email == user_email)
         tenant_row = (await db.execute(stmt)).scalar_one_or_none()
         if tenant_row and tenant_row.clerk_id != user_id:
-            logger.info(
-                f"Re-linking tenant {tenant_row.id} ({user_email}) from stale "
-                f"clerk_id={tenant_row.clerk_id} to {user_id} (dev→prod migration)."
-            )
+            logger.info("Re-linking stale Clerk identity during environment migration")
             tenant_row.clerk_id = user_id
             await db.commit()
 
@@ -332,10 +326,7 @@ async def onboarding(
         from app.services.email import is_deliverable
 
         if not is_deliverable(user_email):
-            logger.error(
-                f"Onboarding abortado para {user_id}: correo no verificable "
-                f"({user_email!r})."
-            )
+            logger.error("Onboarding aborted because verified email was unavailable")
             raise HTTPException(
                 status_code=422,
                 detail=(
@@ -361,6 +352,7 @@ async def onboarding(
         from sqlalchemy.exc import IntegrityError
 
         from app.services.credenciales import provision_medico_para_tenant
+
         try:
             # §1.3 dual-write: a new tenant gets its médico + default credential in the
             # same transaction, so tenants.cedula and the credential are born in sync.
@@ -376,11 +368,15 @@ async def onboarding(
             await db.rollback()
             raise HTTPException(
                 status_code=400,
-                detail="La cédula o el correo proporcionado ya se encuentra registrado."
+                detail="La cédula o el correo proporcionado ya se encuentra registrado.",
             ) from None
 
     # Update Clerk Metadata so future tokens contain the tenant_id
-    if settings.clerk_secret_key:
+    try:
+        clerk_secret_key = get_clerk_secret_key()
+    except RuntimeError:
+        clerk_secret_key = ""
+    if clerk_secret_key:
         try:
             nombre_parts = data.nombre_medico.split()
             first_name = nombre_parts[0] if nombre_parts else ""
@@ -391,7 +387,7 @@ async def onboarding(
                 resp_meta = await client.patch(
                     f"https://api.clerk.com/v1/users/{user_id}/metadata",
                     headers={
-                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Authorization": f"Bearer {clerk_secret_key}",
                         "Content-Type": "application/json",
                     },
                     json={
@@ -410,27 +406,31 @@ async def onboarding(
                 resp_profile = await client.patch(
                     f"https://api.clerk.com/v1/users/{user_id}",
                     headers={
-                        "Authorization": f"Bearer {settings.clerk_secret_key}",
+                        "Authorization": f"Bearer {clerk_secret_key}",
                         "Content-Type": "application/json",
                     },
                     json={"first_name": first_name, "last_name": last_name},
                 )
                 resp_profile.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            err_text = e.response.text
+        except httpx.HTTPStatusError as exc:
             logger.error(
-                f"Failed to update Clerk metadata for {user_id}: {e} - "
-                f"Response: {err_text}"
+                "Clerk metadata update rejected",
+                extra={
+                    "error_code": "clerk_metadata_update_failed",
+                    "upstream_status": exc.response.status_code,
+                },
             )
-            # Raise an exception so frontend actually fails and shows the error
             raise HTTPException(
-                status_code=500, detail=f"Error actualizando Clerk: {err_text}"
-            ) from e
-        except Exception as e:
-            logger.error(f"Failed to update Clerk metadata for {user_id}: {e}")
+                status_code=502, detail="No pudimos actualizar la identidad de acceso"
+            ) from exc
+        except Exception as exc:
+            logger.error(
+                "Clerk metadata update failed",
+                extra={"error_code": type(exc).__name__},
+            )
             raise HTTPException(
-                status_code=500, detail=f"Error interno: {str(e)}"
-            ) from e
+                status_code=502, detail="No pudimos actualizar la identidad de acceso"
+            ) from exc
 
     if not tenant_row:
         tenant_profile = {
