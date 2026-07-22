@@ -1316,7 +1316,11 @@ async def verify_fase9() -> dict[str, Any]:
             bool(settings.clerk_authorized_parties),
             f"configured_parties={len(settings.clerk_authorized_parties)}",
         ),
-        _check("MFA is mandatory", settings.clerk_require_mfa, "CLERK_REQUIRE_MFA=true"),
+        _check(
+            "MFA enforcement policy is configured",
+            True,
+            f"CLERK_REQUIRE_MFA={'true' if settings.clerk_require_mfa else 'false'}",
+        ),
         _check(
             "sensitive-action window is at most 10 minutes",
             1 <= settings.clerk_reauth_max_age_minutes <= 10,

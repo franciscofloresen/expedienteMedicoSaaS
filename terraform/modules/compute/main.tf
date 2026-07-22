@@ -226,7 +226,10 @@ resource "aws_lambda_function" "api" {
       CLERK_JWKS_URL               = var.clerk_jwks_url
       CLERK_AUTHORIZED_PARTIES     = jsonencode(["https://${var.frontend_url}"])
       CLERK_AUDIENCE               = var.clerk_audience
-      CLERK_REQUIRE_MFA            = "true"
+      # MFA enforcement is disabled while the Clerk plan does not include MFA.
+      # Setting this back to "true" re-enables both the mandatory-MFA gate and the
+      # step-up reauthentication required before signing/credential changes.
+      CLERK_REQUIRE_MFA            = "false"
       CLERK_REAUTH_MAX_AGE_MINUTES = "10"
       SES_SENDER_EMAIL             = var.ses_sender_email
     }
