@@ -38,6 +38,9 @@ class AuditLog(Base):
     # Actor / tenant
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    identity_provider_id: Mapped[str | None] = mapped_column(String(128))
+    session_id: Mapped[str | None] = mapped_column(String(128))
+    factor_verification_age: Mapped[list[int] | None] = mapped_column(JSONB)
     ip_origen: Mapped[str | None] = mapped_column(INET)
     user_agent: Mapped[str | None] = mapped_column(Text)
 

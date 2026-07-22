@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
@@ -91,7 +92,9 @@ async def _build_legal_note_payload(
 
     nota, expediente, paciente = row
     if not nota.firma_digital or not nota.firma_hash_contenido:
-        raise HTTPException(status_code=400, detail="La nota debe estar firmada para generar el documento legal")
+        raise HTTPException(
+            status_code=400, detail="La nota debe estar firmada para generar el documento legal"
+        )
 
     # This is a read/render path (GET legal-preview & print) over an already-signed,
     # immutable note. Do NOT write back nota.verification_token_id: the note is locked
@@ -187,17 +190,12 @@ class NotaCreate(BaseModel):
     def validate_nom004_compliance(self) -> "NotaCreate":
         if self.tipo_nota not in ("evolucion", "interconsulta", "ingreso", "egreso"):
             raise ValueError("Tipo de nota inválido según la NOM-004")
-        if (
-            self.tipo_nota in ("evolucion", "ingreso", "egreso")
-            and not self.signos_vitales
-        ):
+        if self.tipo_nota in ("evolucion", "ingreso", "egreso") and not self.signos_vitales:
             raise ValueError(
                 f"Los signos vitales son obligatorios para notas de {self.tipo_nota} (NOM-004)"
             )
         if self.tipo_nota == "evolucion" and not self.diagnosticos:
-            raise ValueError(
-                "El diagnóstico es obligatorio para notas de evolución (NOM-004)"
-            )
+            raise ValueError("El diagnóstico es obligatorio para notas de evolución (NOM-004)")
         return self
 
 
@@ -365,11 +363,7 @@ async def update_nota(
             "Según la NOM-004, las correcciones deben realizarse como notas de adenda.",
         )
 
-    if (
-        data.contenido is not None
-        or data.diagnosticos is not None
-        or data.tratamiento is not None
-    ):
+    if data.contenido is not None or data.diagnosticos is not None or data.tratamiento is not None:
         current = json.loads(nota.contenido) if nota.contenido else {}
         if data.contenido is not None:
             current.update(data.contenido)
@@ -448,6 +442,7 @@ async def firmar_nota(
     nota_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
     """
     Firma digitalmente la nota utilizando ECDSA P-256.

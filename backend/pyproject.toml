@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=83"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "medrecord-backend"
 version = "0.1.0"
@@ -71,5 +75,5 @@ strict = true
 
 
 [[tool.mypy.overrides]]
-module = ["boto3.*", "botocore.*", "slowapi.*", "mangum.*", "httpx.*", "reportlab.*"]
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "slowapi.*", "mangum.*", "httpx.*", "reportlab", "reportlab.*", "PIL", "PIL.*"]
 ignore_missing_imports = true

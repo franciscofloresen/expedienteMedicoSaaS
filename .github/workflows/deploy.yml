@@ -64,16 +64,12 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform
-        run: terraform init -backend-config="key=prod/terraform.tfstate"
+        run: terraform init -backend-config=backend.hcl -backend-config="key=prod/terraform.tfstate"
 
-      - name: Validate Clerk Secrets
+      - name: Validate Clerk public configuration
         run: |
           if [ -z "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" ]; then
             echo "❌ ERROR: VITE_CLERK_PUBLISHABLE_KEY is missing from GitHub Secrets!"
-            exit 1
-          fi
-          if [ -z "${{ secrets.CLERK_SECRET_KEY }}" ]; then
-            echo "❌ ERROR: CLERK_SECRET_KEY is missing from GitHub Secrets!"
             exit 1
           fi
 
@@ -82,7 +78,6 @@ jobs:
         run: |
           B64_KEY=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3)
           ISSUER_DOMAIN=$(python3 -c "import base64, sys; print(base64.b64decode(sys.argv[1] + '=' * (-len(sys.argv[1]) % 4)).decode('utf-8').strip('$'))" "$B64_KEY")
-          export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
           export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
           export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
           export TF_VAR_acm_certificate_arn="${{ secrets.TF_VAR_ACM_CERTIFICATE_ARN }}"
@@ -142,14 +137,13 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform
-        run: terraform init -backend-config="key=prod/terraform.tfstate"
+        run: terraform init -backend-config=backend.hcl -backend-config="key=prod/terraform.tfstate"
 
       - name: Terraform Apply
         working-directory: terraform
         run: |
           B64_KEY=$(echo "${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" | cut -d'_' -f3)
           ISSUER_DOMAIN=$(python3 -c "import base64, sys; print(base64.b64decode(sys.argv[1] + '=' * (-len(sys.argv[1]) % 4)).decode('utf-8').strip('$'))" "$B64_KEY")
-          export TF_VAR_clerk_secret_key="${{ secrets.CLERK_SECRET_KEY }}"
           export TF_VAR_clerk_issuer_url="https://${ISSUER_DOMAIN}"
           export TF_VAR_clerk_jwks_url="https://${ISSUER_DOMAIN}/.well-known/jwks.json"
           export TF_VAR_acm_certificate_arn="${{ secrets.TF_VAR_ACM_CERTIFICATE_ARN }}"
@@ -258,6 +252,16 @@ jobs:
             /tmp/consent_verify_result.json
           cat /tmp/consent_verify_result.json
           grep -q '"statusCode": 200' /tmp/consent_verify_result.json || exit 1
+
+      - name: Verify Phase 9 security controls
+        run: |
+          aws lambda invoke --function-name ${{ env.LAMBDA_FUNCTION_PROD }} \
+            --payload '{"verify":"fase9"}' \
+            --cli-binary-format raw-in-base64-out \
+            /tmp/fase9_verify_result.json
+          jq '{statusCode, body: {ok: .body.ok, action: .body.action, checks: .body.checks, warnings: .body.warnings}}' \
+            /tmp/fase9_verify_result.json
+          jq -e '.statusCode == 200 and .body.ok == true' /tmp/fase9_verify_result.json >/dev/null
 
       - name: Install dependencies for Smoke Test
         working-directory: backend

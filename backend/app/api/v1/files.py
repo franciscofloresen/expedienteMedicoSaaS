@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.plans import entitlement
+from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.clinical_file import ClinicalFile, TenantStorageUsage
 from app.models.expediente import Expediente
@@ -279,7 +280,10 @@ async def _refresh_scan(item: ClinicalFile) -> None:
 
 @router.get("/{file_id}/download-url")
 async def download_url(
-    file_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)
+    file_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
 ) -> dict[str, Any]:
     tenant_id = _tenant_uuid(request)
     item = (

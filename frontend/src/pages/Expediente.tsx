@@ -12,6 +12,7 @@ import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
 import ClinicalFiles from '../components/ClinicalFiles';
 import { SignaturePad } from '../components/SignaturePad';
+import { useReverification } from '@clerk/react';
 
 type TabKey = 'resumen' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
 
@@ -52,6 +53,10 @@ export default function Expediente() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const { showToast } = useToast();
+  const signNotaWithReauthentication = useReverification(notasApi.firmar);
+  const signRecetaWithReauthentication = useReverification(recetasApi.firmar);
+  const signConsentWithReauthentication = useReverification(consentimientosApi.firmarMedico);
+  const revokeConsentWithReauthentication = useReverification(consentimientosApi.revocar);
 
   const [activeTab, setActiveTab] = useState<TabKey>(window.location.hash ? 'consultas' : 'resumen');
 
@@ -238,7 +243,7 @@ export default function Expediente() {
   });
 
   const signNotaMutation = useMutation({
-    mutationFn: (notaId: string) => notasApi.firmar(notaId),
+    mutationFn: (notaId: string) => signNotaWithReauthentication(notaId),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['notas', expediente?.id] });
       setIsSignModalOpen(false);
@@ -419,7 +424,7 @@ export default function Expediente() {
         medicamentos: [{ descripcion: data.texto }],
         indicaciones_generales: "Indicaciones incluidas en receta"
       });
-      return recetasApi.firmar(receta.id);
+      return signRecetaWithReauthentication(receta.id);
     },
     onSuccess: async (receta) => {
       setIsRecetaModalOpen(false);
@@ -956,7 +961,7 @@ export default function Expediente() {
                               return;
                             }
                             try {
-                              await consentimientosApi.revocar(cons.id, motivo.trim());
+                              await revokeConsentWithReauthentication(cons.id, motivo.trim());
                               await client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
                               showToast('Revocación registrada. El original permanece inmutable.', 'success');
                             } catch (error) {
@@ -989,7 +994,7 @@ export default function Expediente() {
                             const credentialId = credentialByConsent[cons.id]
                               || signingCredentials.find((item: any) => item.es_predeterminada)?.credencial_id
                               || signingCredentials[0]?.credencial_id;
-                            await consentimientosApi.firmarMedico(cons.id, credentialId);
+                            await signConsentWithReauthentication(cons.id, credentialId);
                             await client.invalidateQueries({ queryKey: ['consentimientos', expediente?.id] });
                             showToast('Consentimiento finalizado: firma KMS y PDF único guardados.', 'success');
                           } catch (error) {

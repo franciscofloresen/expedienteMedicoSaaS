@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.expediente import Expediente
 from app.models.nota import Nota
@@ -70,7 +71,9 @@ async def _build_receta_print_payload(
 
     receta, nota, expediente, paciente = row
     if not receta.firma_digital or not receta.firma_hash_contenido:
-        raise HTTPException(status_code=400, detail="La receta debe estar firmada para imprimirse con QR")
+        raise HTTPException(
+            status_code=400, detail="La receta debe estar firmada para imprimirse con QR"
+        )
 
     token_row, plain_token = await get_or_create_verification_token(
         db,
@@ -166,20 +169,25 @@ async def get_receta(id: str, request: Request, db: AsyncSession = Depends(get_d
 
 
 @router.post("/{id}/firmar")
-async def firmar_receta(id: str, request: Request, db: AsyncSession = Depends(get_db)) -> Any:
+async def firmar_receta(
+    id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _reauthenticated: None = Depends(require_reauthentication),
+) -> Any:
     tenant_id = _tenant_uuid(request)
     receta_id = uuid.UUID(id)
     receta = (
-        await db.execute(select(Receta).where(Receta.id == receta_id, Receta.tenant_id == tenant_id))
+        await db.execute(
+            select(Receta).where(Receta.id == receta_id, Receta.tenant_id == tenant_id)
+        )
     ).scalar_one_or_none()
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
     if not receta.es_editable or receta.firma_digital:
         raise HTTPException(status_code=400, detail="La receta ya ha sido firmada")
 
-    tenant = (
-        await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-    ).scalar_one_or_none()
+    tenant = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=400, detail="Perfil médico no encontrado")
     credencial = await get_credencial_para_firma(db, tenant)

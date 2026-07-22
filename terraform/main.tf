@@ -12,13 +12,9 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "medrecord-terraform-state"
-    key            = "dev/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "medrecord-terraform-locks"
-    encrypt        = true
-  }
+  # Supplied by -backend-config. An environment-specific key here can silently
+  # create a duplicate stack when a local init forgets to override it.
+  backend "s3" {}
 }
 
 provider "aws" {
@@ -82,10 +78,12 @@ module "compute" {
   s3_consent_bucket        = module.storage.consent_bucket_name
   waf_acl_arn              = module.security.waf_acl_arn
   frontend_url             = var.custom_domain != "" ? var.custom_domain : module.cdn.cloudfront_domain_name
-  clerk_secret_key         = var.clerk_secret_key
+  app_config_secret_arn    = module.security.app_config_secret_arn
   clerk_issuer_url         = var.clerk_issuer_url
   clerk_jwks_url           = var.clerk_jwks_url
+  clerk_audience           = var.clerk_audience
   ses_sender_email         = var.ses_sender_email
+  ses_domain               = var.ses_domain
   clinical_rollout_stage   = var.clinical_rollout_stage
 }
 

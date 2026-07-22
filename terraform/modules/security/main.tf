@@ -107,6 +107,13 @@ resource "aws_kms_key" "signing" {
           "kms:GetPublicKey"
         ]
         Resource = "*"
+        # Signing uses a direct KMS SDK call. kms:ViaService=lambda would never
+        # match that request, so scope to the exact execution-role ARN instead.
+        Condition = {
+          ArnLike = {
+            "aws:PrincipalArn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/medrecord-lambda-exec-${var.environment}"
+          }
+        }
       }
     ]
   })
@@ -268,7 +275,7 @@ resource "aws_cloudtrail" "main" {
   name                          = "medrecord-trail-${var.environment}"
   s3_bucket_name                = var.cloudtrail_bucket_name
   include_global_service_events = true
-  is_multi_region_trail         = false
+  is_multi_region_trail         = true
   enable_log_file_validation    = true # Tamper detection
 
   event_selector {
@@ -327,6 +334,10 @@ output "signing_key_arn" {
 
 output "signing_key_id" {
   value = aws_kms_key.signing.key_id
+}
+
+output "app_config_secret_arn" {
+  value = aws_secretsmanager_secret.app_config.arn
 }
 
 output "waf_acl_arn" {

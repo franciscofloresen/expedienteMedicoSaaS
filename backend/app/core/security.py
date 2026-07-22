@@ -1,63 +1,44 @@
-"""
-JWT Token Validation — Dual-mode (Development + Cognito)
-
-Development: Validates HS256 JWTs issued by the local auth endpoints.
-Production: Validates RS256 JWTs from AWS Cognito via JWKS.
-
-The TenantMiddleware calls decode_jwt() — it doesn't care which
-mode issued the token as long as the claims contain `custom:tenant_id`.
-"""
+"""JWT validation, mandatory MFA, and step-up authentication controls."""
 
 import logging
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 import jwt as pyjwt
+from fastapi import Request
 
 from app.core.config import settings
 
 logger = logging.getLogger("medrecord.security")
 
-# ── JWKS Cache (Clerk production mode) ──
-
 _jwks_cache: dict[str, Any] | None = None
 _jwks_cached_at: float = 0
-JWKS_CACHE_TTL = 3600  # 1 hour
-
-# ── Local JWT Config (development mode) ──
-# SECURITY: The secret is NEVER hardcoded. It is read from the
-# JWT_DEV_SECRET env var, or generated ephemerally per process.
+JWKS_CACHE_TTL = 3600
+JWKS_TIMEOUT = httpx.Timeout(5.0, connect=2.0)
 
 LOCAL_JWT_ALGORITHM = "HS256"
+CLERK_JWT_ALGORITHM = "RS256"
 _ephemeral_secret: str | None = None
 
 
+class ReauthenticationRequiredError(Exception):
+    """Raised when a sensitive action needs a fresh multi-factor verification."""
+
+
 def _get_local_jwt_secret() -> str:
-    """
-    Get the JWT signing secret for local development.
-
-    Priority:
-    1. JWT_DEV_SECRET env var (via settings) — for stable tokens across restarts.
-    2. Ephemeral random secret — generated once per process, tokens expire on restart.
-
-    NEVER hardcoded. NEVER committed to source control.
-    """
+    """Return the configured development secret or a process-local random value."""
     global _ephemeral_secret
-
-    # Try configured secret first
     if settings.jwt_dev_secret:
         return settings.jwt_dev_secret
-
-    # Generate ephemeral secret (tokens won't survive Lambda cold start — acceptable in dev)
     if _ephemeral_secret is None:
         import os
 
         _ephemeral_secret = os.urandom(32).hex()
         logger.warning(
-            "No JWT_DEV_SECRET configured — using ephemeral secret. "
-            "Tokens will be invalidated on process restart. "
-            "Set JWT_DEV_SECRET in .env.local for persistent dev sessions."
+            "JWT_DEV_SECRET is absent; using a process-local development key",
+            extra={"error_code": "ephemeral_dev_jwt_key"},
         )
     return _ephemeral_secret
 
@@ -67,115 +48,177 @@ def _get_jwks_url() -> str:
 
 
 def _get_issuer() -> str:
-    return settings.clerk_issuer_url
+    return settings.clerk_issuer_url.rstrip("/")
 
 
-def _fetch_jwks() -> dict[str, Any]:
-    """Fetch JWKS from Clerk with caching."""
+def _validate_clerk_configuration() -> None:
+    issuer = urlparse(_get_issuer())
+    jwks = urlparse(_get_jwks_url())
+    if issuer.scheme != "https" or jwks.scheme != "https":
+        raise ValueError("Configuración Clerk insegura")
+    if not issuer.hostname or issuer.hostname != jwks.hostname:
+        raise ValueError("Issuer y JWKS de Clerk no coinciden")
+    if not settings.clerk_authorized_parties:
+        raise ValueError("CLERK_AUTHORIZED_PARTIES no está configurado")
+
+
+def _validated_jwks(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("JWKS inválido")
+    keys = payload.get("keys")
+    if not isinstance(keys, list) or not keys:
+        raise ValueError("JWKS sin llaves")
+    return payload
+
+
+def _fetch_jwks(*, force_refresh: bool = False) -> dict[str, Any]:
+    """Fetch and validate Clerk JWKS with a bounded cache and fail-closed timeout."""
     global _jwks_cache, _jwks_cached_at
-
-    now = time.time()
-    if _jwks_cache and (now - _jwks_cached_at) < JWKS_CACHE_TTL:
+    now = time.monotonic()
+    if not force_refresh and _jwks_cache and now - _jwks_cached_at < JWKS_CACHE_TTL:
         return _jwks_cache
 
-    response = httpx.get(_get_jwks_url(), timeout=5)
+    _validate_clerk_configuration()
+    response = httpx.get(
+        _get_jwks_url(),
+        timeout=JWKS_TIMEOUT,
+        follow_redirects=False,
+        headers={"Accept": "application/json"},
+    )
     response.raise_for_status()
-    _jwks_cache = response.json()
+    payload = _validated_jwks(response.json())
+    _jwks_cache = payload
     _jwks_cached_at = now
-    return _jwks_cache
+    return payload
+
+
+def _find_key_by_kid(jwks_data: dict[str, Any], kid: str) -> dict[str, Any] | None:
+    for key in jwks_data.get("keys", []):
+        if not isinstance(key, dict) or key.get("kid") != kid:
+            continue
+        if key.get("kty") != "RSA":
+            raise ValueError("Tipo de llave JWT no permitido")
+        if key.get("use") not in (None, "sig"):
+            raise ValueError("Uso de llave JWT no permitido")
+        if key.get("alg") not in (None, CLERK_JWT_ALGORITHM):
+            raise ValueError("Algoritmo de llave JWT no permitido")
+        return key
+    return None
+
+
+def _validate_authorized_party(claims: dict[str, Any]) -> None:
+    azp = claims.get("azp")
+    if not isinstance(azp, str) or azp not in settings.clerk_authorized_parties:
+        raise ValueError("Authorized party (azp) no permitida")
+
+
+def _factor_ages(claims: dict[str, Any]) -> tuple[int, int] | None:
+    fva = claims.get("fva")
+    if (
+        not isinstance(fva, list)
+        or len(fva) != 2
+        or any(
+            isinstance(value, bool) or not isinstance(value, int) or value < -1
+            for value in fva
+        )
+    ):
+        return None
+    return fva[0], fva[1]
+
+
+def has_mfa(claims: dict[str, Any]) -> bool:
+    """Return true only when Clerk reports an enrolled second factor."""
+    ages = _factor_ages(claims)
+    return ages is not None and ages[1] >= 0
+
+
+def has_recent_reauthentication(claims: dict[str, Any], max_age_minutes: int) -> bool:
+    """Mirror Clerk's strict_mfa policy without trusting frontend state."""
+    ages = _factor_ages(claims)
+    if ages is None:
+        return False
+    first_factor_age, second_factor_age = ages
+    return (
+        first_factor_age >= 0
+        and second_factor_age >= 0
+        and first_factor_age < max_age_minutes
+        and second_factor_age < max_age_minutes
+    )
+
+
+def require_reauthentication(request: Request) -> None:
+    """FastAPI dependency for signatures, credential changes, and legal revocations."""
+    if settings.environment in ("development", "testing"):
+        return
+    claims = getattr(request.state, "auth_claims", {})
+    if not has_recent_reauthentication(claims, settings.clerk_reauth_max_age_minutes):
+        raise ReauthenticationRequiredError
 
 
 def decode_jwt(token: str) -> dict[str, Any]:
-    """
-    Decode and validate a JWT token.
-
-    In development: validates HS256 tokens issued by our local auth endpoints.
-    In production: validates RS256 tokens from Clerk via JWKS.
-
-    Returns:
-        dict: Token claims including sub, email, custom:tenant_id
-
-    Raises:
-        ValueError: If token is invalid, expired, or missing required claims
-    """
-    # Try local HS256 first in development mode
+    """Decode a local development token or a fully validated Clerk session token."""
     if settings.environment == "development":
         try:
-            claims = pyjwt.decode(
+            return pyjwt.decode(
                 token,
                 _get_local_jwt_secret(),
                 algorithms=[LOCAL_JWT_ALGORITHM],
                 options={"verify_aud": False},
             )
-            return claims
-        except pyjwt.ExpiredSignatureError as e:
-            raise ValueError("Token expirado") from e
+        except pyjwt.ExpiredSignatureError as exc:
+            raise ValueError("Token expirado") from exc
         except pyjwt.InvalidTokenError:
-            # Not a local token — fall through to Clerk validation
             pass
-
-    # Production: Clerk RS256 validation via JWKS
     return _decode_clerk_jwt(token)
 
 
 def _decode_clerk_jwt(token: str) -> dict[str, Any]:
-    """
-    Decode and validate a Clerk JWT token using JWKS.
-
-    Validates:
-    - Signature (via JWKS)
-    - Expiration
-    - Issuer (Clerk)
-    """
+    """Validate Clerk signature, time claims, issuer, audience/azp, alg and kid."""
     try:
         headers = pyjwt.get_unverified_header(token)
-    except pyjwt.InvalidTokenError as e:
-        raise ValueError(f"Token inválido: {e}") from e
+    except pyjwt.InvalidTokenError as exc:
+        raise ValueError("Token malformado") from exc
 
+    if headers.get("alg") != CLERK_JWT_ALGORITHM:
+        raise ValueError("Algoritmo JWT no permitido")
     kid = headers.get("kid")
-    if not kid:
+    if not isinstance(kid, str) or not kid:
         raise ValueError("Token sin key ID (kid)")
 
-    # Find the matching key in JWKS
-    jwks_data = _fetch_jwks()
-    key = _find_key_by_kid(jwks_data, kid)
+    key = _find_key_by_kid(_fetch_jwks(), kid)
+    if key is None:
+        key = _find_key_by_kid(_fetch_jwks(force_refresh=True), kid)
+    if key is None:
+        raise ValueError("Llave de firma no encontrada")
 
-    if not key:
-        # Key not found — JWKS might be stale, force refresh
-        global _jwks_cached_at
-        _jwks_cached_at = 0
-        jwks_data = _fetch_jwks()
-        key = _find_key_by_kid(jwks_data, kid)
-
-    if not key:
-        raise ValueError("Llave de firma no encontrada en JWKS")
-
-    # Decode and validate
     try:
-        # Convert JWK to PEM for PyJWT
         from jwt.algorithms import RSAAlgorithm
 
         public_key = RSAAlgorithm.from_jwk(key)
+        decode_kwargs: dict[str, Any] = {
+            "algorithms": [CLERK_JWT_ALGORITHM],
+            "issuer": _get_issuer(),
+            "leeway": 5,
+            "options": {
+                "require": ["exp", "iat", "nbf", "iss", "sub", "sid"],
+                "verify_aud": bool(settings.clerk_audience),
+            },
+        }
+        if settings.clerk_audience:
+            decode_kwargs["audience"] = settings.clerk_audience
+        claims = pyjwt.decode(token, public_key, **decode_kwargs)  # type: ignore[arg-type]
+    except pyjwt.ExpiredSignatureError as exc:
+        raise ValueError("Token expirado") from exc
+    except pyjwt.InvalidTokenError as exc:
+        raise ValueError("Token inválido") from exc
 
-        claims = pyjwt.decode(
-            token,
-            public_key,  # type: ignore[arg-type]
-            algorithms=["RS256"],
-            # Clerk doesn't strictly enforce standard audience in all tokens unless configured
-            options={"verify_aud": False},
-            issuer=_get_issuer(),
-        )
-    except pyjwt.ExpiredSignatureError as e:
-        raise ValueError("Token expirado") from e
-    except pyjwt.InvalidTokenError as e:
-        raise ValueError(f"Token inválido: {e}") from e
-
+    _validate_authorized_party(claims)
+    if claims.get("sts") == "pending":
+        raise ValueError("Sesión Clerk pendiente")
+    if claims.get("act") is not None:
+        # Support impersonation is deliberately unavailable until a consented,
+        # expiring and audited support-access model exists.
+        raise ValueError("Impersonación de soporte no permitida")
+    if settings.clerk_require_mfa and not has_mfa(claims):
+        raise ValueError("MFA obligatorio")
     return claims
-
-
-def _find_key_by_kid(jwks_data: dict[str, Any], kid: str) -> dict[str, Any] | None:
-    """Find a key in JWKS data by its key ID."""
-    for k in jwks_data.get("keys", []):
-        if k.get("kid") == kid:
-            return k  # type: ignore[no-any-return]
-    return None

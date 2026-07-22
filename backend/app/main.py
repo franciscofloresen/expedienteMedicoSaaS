@@ -5,6 +5,7 @@ NOM-004-SSA3-2012 + NOM-024-SSA3-2012 compliant
 Electronic Health Record for independent Mexican doctors.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -32,7 +33,9 @@ from app.api.v1 import (
     verify,
 )
 from app.core.config import settings
+from app.core.security import ReauthenticationRequiredError
 from app.middleware.audit import AuditMiddleware
+from app.middleware.request_context import RequestContextFilter, RequestContextMiddleware
 from app.middleware.tenant import TenantMiddleware
 
 # ── Structured JSON Logging ──
@@ -44,7 +47,7 @@ def _configure_logging() -> None:
     from pythonjsonlogger.json import JsonFormatter
 
     formatter = JsonFormatter(
-        fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+        fmt="%(asctime)s %(name)s %(levelname)s %(message)s %(request_id)s",
         rename_fields={"asctime": "timestamp", "levelname": "level"},
     )
 
@@ -57,6 +60,7 @@ def _configure_logging() -> None:
 
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
+    stream_handler.addFilter(RequestContextFilter())
     root_logger.addHandler(stream_handler)
 
 
@@ -147,6 +151,23 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(ReauthenticationRequiredError)
+async def reauthentication_required_handler(
+    _request: Request, _exc: ReauthenticationRequiredError
+) -> JSONResponse:
+    """Return Clerk's standard hint so useReverification can open its MFA modal."""
+    return JSONResponse(
+        status_code=403,
+        content={
+            "clerk_error": {
+                "type": "forbidden",
+                "reason": "reverification-error",
+                "metadata": {"reverification": "strict_mfa"},
+            }
+        },
+    )
+
+
 # ── Middleware (order matters: last added = first executed) ──
 
 # 5. Audit — innermost, so it runs after TenantMiddleware has set tenant_id and
@@ -161,6 +182,9 @@ app.add_middleware(ClinicalRolloutMiddleware)
 
 # 2. Security headers — runs early
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Correlation ID — generated when absent/invalid and propagated to logs + audit.
+app.add_middleware(RequestContextMiddleware)
 
 # 1. CORS — CRIT-04: MUST be added LAST so it executes FIRST and catches 401s from TenantMiddleware
 app.add_middleware(
@@ -178,9 +202,7 @@ app.include_router(expedientes.router, prefix="/api/v1/expedientes", tags=["Expe
 app.include_router(files.router, prefix="/api/v1/files", tags=["Archivos clínicos"])
 app.include_router(notas.router, prefix="/api/v1/notas", tags=["Notas Médicas"])
 app.include_router(citas.router, prefix="/api/v1/citas", tags=["Agenda Médica"])
-app.include_router(
-    encuentros.router, prefix="/api/v1/encuentros", tags=["Encuentros Clínicos"]
-)
+app.include_router(encuentros.router, prefix="/api/v1/encuentros", tags=["Encuentros Clínicos"])
 app.include_router(cie10.router, prefix="/api/v1/cie10", tags=["CIE-10"])
 app.include_router(recetas.router, prefix="/api/v1/recetas", tags=["Recetas"])
 app.include_router(
@@ -192,10 +214,32 @@ app.include_router(reminders.router, prefix="/api/v1/reminders", tags=["Recordat
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 
+@app.get("/health/live")
 @app.get("/health")
 async def health_check() -> Any:
-    """Health check endpoint for Route53 and monitoring."""
-    return {"status": "ok", "version": "0.1.0"}
+    """Process liveness; deliberately exposes no version or internal detail."""
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def readiness_check() -> Any:
+    """Readiness requires a bounded, minimal PostgreSQL round trip."""
+    from sqlalchemy import text
+
+    from app.db.session import _get_session_factory
+
+    try:
+        async with asyncio.timeout(3):
+            factory = _get_session_factory()
+            async with factory() as session:
+                await session.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception:  # noqa: BLE001 - public response must stay intentionally opaque
+        logging.getLogger("medrecord.health").error(
+            "Readiness database check failed",
+            extra={"error_code": "database_unavailable"},
+        )
+        return JSONResponse(status_code=503, content={"status": "unavailable"})
 
 
 # Lambda handler (Mangum adapter)
@@ -221,9 +265,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
             logger.info("Migrations applied successfully!")
             return {"statusCode": 200, "body": "Migrations successful!"}
-        except Exception as e:
+        except Exception:
             logger.error("Migrations failed", exc_info=True)
-            return {"statusCode": 500, "body": f"Migrations failed: {e}"}
+            return {"statusCode": 500, "body": "Migration failed"}
 
     if isinstance(event, dict) and event.get("verify"):
         from scripts.verify_registry import run_verify
@@ -236,9 +280,9 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "statusCode": 200 if verify_result.get("ok") else 500,
                 "body": verify_result,
             }
-        except Exception as e:
+        except Exception:
             logger.error(f"verify action={action} failed", exc_info=True)
-            return {"statusCode": 500, "body": f"verify failed: {e}"}
+            return {"statusCode": 500, "body": "Verification failed"}
 
     if isinstance(event, dict) and event.get("import_cie10"):
         from scripts.import_cie10 import run_import_sync

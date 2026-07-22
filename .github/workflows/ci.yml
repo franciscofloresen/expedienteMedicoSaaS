@@ -39,7 +39,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip "setuptools>=83"
         pip install -e ".[dev]"
         pip install pip-audit
         
@@ -118,7 +118,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip "setuptools>=83"
         pip install -e ".[dev]"
 
     - name: Create DB role for RLS
@@ -188,3 +188,76 @@ jobs:
         VITE_API_URL: https://api.cloudmedrecord.test
         VITE_CLERK_PUBLISHABLE_KEY: pk_test_cloudmedrecord123
       run: npm run build
+
+  security-evidence:
+    name: SAST, secrets, IaC and SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install scanners and application dependencies
+      run: |
+        python -m pip install --upgrade pip "setuptools>=83"
+        python -m venv /tmp/medrecord-app-sbom
+        /tmp/medrecord-app-sbom/bin/pip install ./backend
+        pip install bandit==1.9.4 checkov==3.3.8 cyclonedx-bom==4.6.1
+        npm ci --prefix frontend
+
+    - name: Generate CycloneDX software bills of materials
+      run: |
+        mkdir -p security-artifacts
+        cyclonedx-py environment /tmp/medrecord-app-sbom/bin/python --of JSON -o security-artifacts/backend-sbom.cdx.json
+        npm sbom --prefix frontend --sbom-format cyclonedx > security-artifacts/frontend-sbom.cdx.json
+
+    - name: Install verified Gitleaks binary
+      env:
+        GITLEAKS_VERSION: "8.30.1"
+      run: |
+        curl -sSfL -o /tmp/gitleaks.tar.gz \
+          "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+        curl -sSfL -o /tmp/gitleaks_checksums.txt \
+          "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+        EXPECTED=$(grep "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" /tmp/gitleaks_checksums.txt | cut -d' ' -f1)
+        echo "${EXPECTED}  /tmp/gitleaks.tar.gz" | sha256sum --check --strict
+        tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+
+    - name: Secret scan (full Git history)
+      run: /tmp/gitleaks git . --redact --no-banner --exit-code 1
+
+    - name: SAST (high severity and confidence)
+      run: bandit -r backend/app --severity-level high --confidence-level high
+
+    - name: Terraform IaC policy scan
+      # Existing infrastructure has a triaged baseline (including cost-increasing
+      # HA/logging controls scheduled in later phases). Keep the full report as
+      # evidence without hiding newly discovered checks behind a blanket skip list.
+      run: >-
+        checkov -d terraform --framework terraform --compact --soft-fail
+        -o cli -o json --output-file-path console,security-artifacts/checkov.json
+
+    - name: Upload SBOM evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: phase9-sbom-${{ github.sha }}
+        path: security-artifacts/*
+        if-no-files-found: error
+        retention-days: 90

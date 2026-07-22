@@ -22,6 +22,7 @@ name: Ops — Verify (Production)
 #   backups  — el archivo legal a 5 años (AWS Backup) tiene al menos un recovery
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
 #   fase8    — stage de rollout, prerrequisitos, pool directo RDS e índices críticos.
+#   fase9    — JWT/MFA, Secrets Manager y trazabilidad de sesión en auditoría.
 
 on:
   workflow_dispatch:
@@ -41,6 +42,7 @@ on:
           - paquete_dermatologia
           - consentimientos
           - fase8
+          - fase9
           - backups
 
 permissions:
