@@ -101,4 +101,3 @@ test_log.txt
 /docs/security/
 /docs/runbooks/security_access_lifecycle.md
 /backend/scripts/reset_environment.py
-/terraform/backend.hcl
