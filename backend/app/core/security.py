@@ -150,6 +150,12 @@ def require_reauthentication(request: Request) -> None:
     """FastAPI dependency for signatures, credential changes, and legal revocations."""
     if settings.environment in ("development", "testing"):
         return
+    # Step-up reauthentication is part of the same policy as MFA and relies on a
+    # second factor being enrolled. When MFA enforcement is disabled (e.g. the
+    # Clerk plan does not include MFA), this check is disabled too so sensitive
+    # actions keep working with the normal session.
+    if not settings.clerk_require_mfa:
+        return
     claims = getattr(request.state, "auth_claims", {})
     if not has_recent_reauthentication(claims, settings.clerk_reauth_max_age_minutes):
         raise ReauthenticationRequiredError

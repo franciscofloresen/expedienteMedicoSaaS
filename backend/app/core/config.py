@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     clerk_jwks_url: str = ""
     clerk_authorized_parties: list[str] = Field(default_factory=list)
     clerk_audience: str = ""
-    clerk_require_mfa: bool = True
+    clerk_require_mfa: bool = False
     clerk_reauth_max_age_minutes: int = Field(default=10, ge=1, le=60)
 
     # Cache TTLs (seconds)

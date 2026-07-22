@@ -192,6 +192,7 @@ def test_jwks_payload_and_configuration_are_fail_closed(monkeypatch: pytest.Monk
 
 def test_reauthentication_requires_two_recent_factors(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "environment", "prod")
+    monkeypatch.setattr(settings, "clerk_require_mfa", True)
     monkeypatch.setattr(settings, "clerk_reauth_max_age_minutes", 10)
     request = SimpleNamespace(state=SimpleNamespace(auth_claims={"fva": [9, 9]}))
     assert security.require_reauthentication(request) is None  # type: ignore[arg-type]
@@ -199,6 +200,16 @@ def test_reauthentication_requires_two_recent_factors(monkeypatch: pytest.Monkey
     request.state.auth_claims = {"fva": [10, 0]}
     with pytest.raises(security.ReauthenticationRequiredError):
         security.require_reauthentication(request)  # type: ignore[arg-type]
+
+
+def test_reauthentication_is_bypassed_when_mfa_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With MFA enforcement off, step-up reauth is disabled so signing keeps working."""
+    monkeypatch.setattr(settings, "environment", "prod")
+    monkeypatch.setattr(settings, "clerk_require_mfa", False)
+    monkeypatch.setattr(settings, "clerk_reauth_max_age_minutes", 10)
+    # Even claims that would fail the two-recent-factors policy are allowed through.
+    request = SimpleNamespace(state=SimpleNamespace(auth_claims={"fva": [10000, -1]}))
+    assert security.require_reauthentication(request) is None  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
