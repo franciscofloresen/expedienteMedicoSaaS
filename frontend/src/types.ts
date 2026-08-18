@@ -151,6 +151,25 @@ export interface RecetaCreate {
   indicaciones_generales?: string;
 }
 
+// ── Médico favoritos (Fase 13) ──
+
+export type FavoritoKind = 'diagnostico' | 'plan' | 'indicacion' | 'receta';
+
+export interface MedicoFavorito {
+  id: string;
+  kind: FavoritoKind;
+  label: string;
+  texto: string;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface MedicoFavoritoCreate {
+  kind: FavoritoKind;
+  label: string;
+  texto: string;
+}
+
 // ── CIE-10 ──
 
 export interface CIE10 {

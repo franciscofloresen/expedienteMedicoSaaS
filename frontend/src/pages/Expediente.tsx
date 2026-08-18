@@ -3,12 +3,13 @@ import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, RefreshCcw, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
-import { consentimientosApi, expedientesApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
+import { consentimientosApi, expedientesApi, favoritosApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
 import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
 import PatientIdentityBanner from '../components/PatientIdentityBanner';
+import FavoritesPicker from '../components/FavoritesPicker';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -448,6 +449,29 @@ export default function Expediente() {
   const handlePrintReceta = () => {
     if (!activeNotaForReceta) return;
     createRecetaMutation.mutate({ nota_id: activeNotaForReceta.id, texto: recetaText });
+  };
+
+  // Fase 13: doctor's prescription favorites — one-click insertion + save-current.
+  const { data: recetaFavoritos = [] } = useQuery({
+    queryKey: ['favoritos', 'receta'],
+    queryFn: () => favoritosApi.list('receta'),
+  });
+  const saveRecetaFavoritoMutation = useMutation({
+    mutationFn: (data: { label: string; texto: string }) =>
+      favoritosApi.create({ kind: 'receta', label: data.label, texto: data.texto }),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['favoritos', 'receta'] });
+      showToast('Receta guardada en tus favoritos.', 'success');
+    },
+    onError: (error: unknown) =>
+      showToast(friendlyActionError(error, 'No se pudo guardar el favorito.'), 'error'),
+  });
+  const handleSaveRecetaFavorito = () => {
+    const texto = recetaText.trim();
+    if (!texto) return;
+    const label = window.prompt('Nombre corto para este favorito:', texto.slice(0, 40));
+    if (!label || !label.trim()) return;
+    saveRecetaFavoritoMutation.mutate({ label: label.trim(), texto });
   };
 
   const createConsentimientoMutation = useMutation({
@@ -1242,6 +1266,13 @@ export default function Expediente() {
         }
       >
         <PatientIdentityBanner paciente={paciente} context="receta" />
+        <FavoritesPicker
+          favoritos={recetaFavoritos}
+          label="Recetas favoritas"
+          onInsert={(texto) => setRecetaText((prev) => (prev ? `${prev}\n${texto}` : texto))}
+          onSaveCurrent={handleSaveRecetaFavorito}
+          canSave={Boolean(recetaText.trim())}
+        />
         <div className="form-group">
           <label className="form-label">Medicamentos e indicaciones <span className="required-mark">*</span></label>
           <textarea

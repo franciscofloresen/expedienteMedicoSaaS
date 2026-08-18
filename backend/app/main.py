@@ -24,6 +24,7 @@ from app.api.v1 import (
     consentimientos,
     encuentros,
     expedientes,
+    favoritos,
     files,
     messages,
     notas,
@@ -211,6 +212,7 @@ app.include_router(
 app.include_router(messages.router, prefix="/api/v1/messages", tags=["Mensajes"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 app.include_router(reminders.router, prefix="/api/v1/reminders", tags=["Recordatorios"])
+app.include_router(favoritos.router, prefix="/api/v1/favoritos", tags=["Favoritos"])
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 
