@@ -182,7 +182,10 @@ jobs:
         
     - name: Check Types (TSC)
       run: npm run typecheck
-      
+
+    - name: Run Frontend Tests (Vitest)
+      run: npm test
+
     - name: Build Project
       env:
         VITE_API_URL: https://api.cloudmedrecord.test

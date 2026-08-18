@@ -164,3 +164,32 @@ async def test_crear_firmar_verificar_end_to_end(
         assert verified["medico_cedula"] == _TENANT_A_CEDULA
     finally:
         await _purge_chain(patient_id, expediente_id, nota_id)
+
+
+async def test_double_click_firma_does_not_double_sign(
+    client: AsyncClient, signed_note_trigger
+) -> None:
+    """Fase 11 idempotency: a second firmar (double click) is rejected with 400 and
+    the note keeps its original, single signature — never a second sign or a 500."""
+    headers = {"X-Tenant-ID": TENANT_A_ID, "X-Plan": "pro"}
+    nota_id, expediente_id, patient_id = await _create_draft_note(
+        client, headers, "CCCC900101MDFXYZ08"
+    )
+    try:
+        first = await client.post(f"/api/v1/notas/{nota_id}/firmar", headers=headers)
+        assert first.status_code == 200, first.text
+        original_hash = first.json()["firma_hash_contenido"]
+
+        # Second click on an already-signed note: rejected, not re-signed.
+        second = await client.post(f"/api/v1/notas/{nota_id}/firmar", headers=headers)
+        assert second.status_code == 400, second.text
+        assert "firmada" in second.text.lower()
+
+        # The stored signature is unchanged and still verifies.
+        verified = (
+            await client.get(f"/api/v1/notas/{nota_id}/verificar-firma", headers=headers)
+        ).json()
+        assert verified["valid"] is True
+        assert verified["firma_hash_contenido"] == original_hash
+    finally:
+        await _purge_chain(patient_id, expediente_id, nota_id)
