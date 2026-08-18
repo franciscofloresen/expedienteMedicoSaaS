@@ -1,0 +1,168 @@
+name: Ops — Rollback (Production)
+
+# Reverts a bad deploy without rebuilding (Fase 10, §8 of the recovery runbook).
+#   * Lambda (backend): re-publish a previous artifact by its release SHA. The
+#     deploy stores immutable artifacts at lambda/medrecord-api-prod/<sha>/backend.zip
+#     and publishes a Lambda version per deploy, so rollback is re-pointing code
+#     at a known-good artifact — not a rebuild.
+#   * Frontend: restore a previous S3 object version of index.html and invalidate
+#     CloudFront so clients fetch it.
+#
+# Migrations are expand/contract (additive first, column retirement later), so a
+# Lambda rollback to the previous version stays schema-compatible. Never ship a
+# contract migration in the same deploy as its expand.
+#
+# dry_run lists the available targets and changes nothing. apply requires
+# REVERTIR_PRODUCCION, main, and the production environment's human approval
+# (OIDC, no static credentials).
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Qué revertir"
+        required: true
+        default: "lambda"
+        type: choice
+        options:
+          - lambda
+          - frontend
+          - both
+      action:
+        description: "dry_run lista; apply revierte"
+        required: true
+        default: "dry_run"
+        type: choice
+        options:
+          - dry_run
+          - apply
+      lambda_target_sha:
+        description: "SHA del artefacto Lambda a restaurar (target=lambda|both)"
+        required: false
+        type: string
+      frontend_index_version_id:
+        description: "VersionId de index.html a restaurar (target=frontend|both)"
+        required: false
+        type: string
+      confirm_production:
+        description: "Para apply escribe REVERTIR_PRODUCCION"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_PROD: "medrecord-api-prod"
+  S3_LAMBDA_ARTIFACTS_PROD: "medrecord-lambda-artifacts-prod-${{ secrets.AWS_ACCOUNT_ID }}"
+  S3_FRONTEND_PROD: "medrecord-frontend-prod-${{ secrets.AWS_ACCOUNT_ID }}"
+  CLOUDFRONT_DIST_PROD: ${{ secrets.CLOUDFRONT_DIST_PROD }}
+
+concurrency:
+  group: rollback-production
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Rollback (${{ inputs.target }} / ${{ inputs.action }})
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate apply gate
+        if: ${{ inputs.action == 'apply' }}
+        env:
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "El rollback sólo puede aplicarse desde main." >&2
+            exit 1
+          fi
+          if [ "${CONFIRM_PRODUCTION}" != "REVERTIR_PRODUCCION" ]; then
+            echo "Confirmación inválida." >&2
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── Lambda ──
+      - name: List Lambda versions (dry-run context)
+        if: ${{ inputs.target == 'lambda' || inputs.target == 'both' }}
+        run: |
+          echo "## Lambda — versiones publicadas" >> "${GITHUB_STEP_SUMMARY}"
+          aws lambda list-versions-by-function \
+            --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --query 'reverse(Versions[?Version!=`$LATEST`])[].{Version:Version,LastModified:LastModified,Description:Description}' \
+            --output table | tee -a "${GITHUB_STEP_SUMMARY}"
+
+      - name: Verify target artifact exists
+        if: ${{ (inputs.target == 'lambda' || inputs.target == 'both') && inputs.action == 'apply' }}
+        env:
+          SHA: ${{ inputs.lambda_target_sha }}
+        run: |
+          if [ -z "${SHA}" ]; then
+            echo "lambda_target_sha es obligatorio para revertir Lambda." >&2
+            exit 1
+          fi
+          KEY="lambda/${LAMBDA_FUNCTION_PROD}/${SHA}/backend.zip"
+          aws s3api head-object --bucket "${S3_LAMBDA_ARTIFACTS_PROD}" --key "${KEY}" \
+            || { echo "No existe el artefacto ${KEY}." >&2; exit 1; }
+          echo "artifact_key=${KEY}" >> "${GITHUB_ENV}"
+
+      - name: Apply Lambda rollback
+        if: ${{ (inputs.target == 'lambda' || inputs.target == 'both') && inputs.action == 'apply' }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "${LAMBDA_FUNCTION_PROD}" \
+            --s3-bucket "${S3_LAMBDA_ARTIFACTS_PROD}" \
+            --s3-key "${artifact_key}" \
+            --publish >/dev/null
+          aws lambda wait function-updated --function-name "${LAMBDA_FUNCTION_PROD}"
+          echo "- Lambda revertido a artefacto \`${artifact_key}\`" >> "${GITHUB_STEP_SUMMARY}"
+
+      # ── Frontend ──
+      - name: List index.html versions (dry-run context)
+        if: ${{ inputs.target == 'frontend' || inputs.target == 'both' }}
+        run: |
+          echo "## Frontend — versiones de index.html" >> "${GITHUB_STEP_SUMMARY}"
+          aws s3api list-object-versions \
+            --bucket "${S3_FRONTEND_PROD}" \
+            --prefix "index.html" \
+            --query 'reverse(sort_by(Versions,&LastModified))[].{VersionId:VersionId,LastModified:LastModified,IsLatest:IsLatest}' \
+            --output table | tee -a "${GITHUB_STEP_SUMMARY}"
+
+      - name: Apply frontend rollback
+        if: ${{ (inputs.target == 'frontend' || inputs.target == 'both') && inputs.action == 'apply' }}
+        env:
+          VERSION_ID: ${{ inputs.frontend_index_version_id }}
+        run: |
+          if [ -z "${VERSION_ID}" ]; then
+            echo "frontend_index_version_id es obligatorio para revertir el frontend." >&2
+            exit 1
+          fi
+          # Restore the chosen version by copying it over index.html (creates a new
+          # version; the history is preserved).
+          aws s3api copy-object \
+            --bucket "${S3_FRONTEND_PROD}" \
+            --key "index.html" \
+            --copy-source "${S3_FRONTEND_PROD}/index.html?versionId=${VERSION_ID}" \
+            --metadata-directive COPY \
+            --content-type "text/html" >/dev/null
+          echo "- index.html restaurado a versión \`${VERSION_ID}\`" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Invalidate CloudFront
+        if: ${{ (inputs.target == 'frontend' || inputs.target == 'both') && inputs.action == 'apply' }}
+        run: |
+          if [ -z "${CLOUDFRONT_DIST_PROD}" ]; then
+            echo "::warning::CLOUDFRONT_DIST_PROD no configurado; omitida la invalidación. Invalida manualmente."
+            exit 0
+          fi
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DIST_PROD}" \
+            --paths "/" "/index.html" >/dev/null
+          echo "- CloudFront invalidado (/ , /index.html)" >> "${GITHUB_STEP_SUMMARY}"

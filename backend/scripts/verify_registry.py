@@ -1400,6 +1400,76 @@ async def verify_fase9() -> dict[str, Any]:
 
 
 # action name → verifier coroutine. Each phase appends one entry.
+# Fase 10: recovery must be *possible*, not just backups fresh. PITR needs a
+# non-trivial retention window, and every clinical bucket must be versioned so a
+# bad overwrite/delete is recoverable by version.
+_PITR_MIN_RETENTION_DAYS = 35
+
+
+async def verify_recuperacion() -> dict[str, Any]:
+    """Fase 10: assert recovery capability — RDS PITR window and S3 versioning.
+
+    Read-only, no PHI: only queries RDS/S3 control-plane configuration (the
+    backup retention period and bucket versioning status), never data. Archive
+    freshness (a recent recovery point in the legal vault) is the separate
+    concern of :func:`verify_backups`; this verifier asserts the recovery
+    *capability* is configured (§1–§2 of the recovery runbook).
+    """
+    import boto3
+
+    environment = os.environ.get("ENVIRONMENT", "prod")
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    # RDS point-in-time recovery: retention window must cover the operational
+    # recovery horizon. A window of 0 means PITR is effectively disabled.
+    rds = boto3.client("rds")
+    instance_id = f"medrecord-{environment}"
+    try:
+        described = rds.describe_db_instances(DBInstanceIdentifier=instance_id)
+        instance = described["DBInstances"][0]
+        retention = int(instance.get("BackupRetentionPeriod", 0))
+        counts["pitr_retention_days"] = retention
+        checks.append(
+            _check(
+                f"RDS PITR retention >= {_PITR_MIN_RETENTION_DAYS}d",
+                retention >= _PITR_MIN_RETENTION_DAYS,
+                f"{instance_id}: BackupRetentionPeriod={retention}",
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 - surfaced as a failed check, never raised
+        checks.append(_check("RDS PITR retention", False, f"{instance_id}: {exc}"))
+
+    # S3 versioning: a bad overwrite/delete of a clinical object must be
+    # recoverable by version. Bucket names arrive as Lambda env vars.
+    s3 = boto3.client("s3")
+    bucket_env_vars = {
+        "expedientes": "S3_EXPEDIENTES_BUCKET",
+        "consent": "S3_CONSENT_BUCKET",
+        "audit": "S3_AUDIT_BUCKET",
+    }
+    versioned = 0
+    for label, env_var in bucket_env_vars.items():
+        bucket = os.environ.get(env_var)
+        if not bucket:
+            warnings.append(f"{env_var} not set; skipped {label} bucket versioning check")
+            continue
+        try:
+            status = s3.get_bucket_versioning(Bucket=bucket).get("Status")
+            ok = status == "Enabled"
+            if ok:
+                versioned += 1
+            checks.append(
+                _check(f"S3 versioning ({label})", ok, f"{bucket}: Status={status!r}")
+            )
+        except Exception as exc:  # noqa: BLE001 - surfaced as a failed check, never raised
+            checks.append(_check(f"S3 versioning ({label})", False, f"{bucket}: {exc}"))
+    counts["versioned_clinical_buckets"] = versioned
+
+    return _envelope("recuperacion", checks, warnings=warnings, counts=counts)
+
+
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
@@ -1412,6 +1482,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "fase8": verify_fase8,
     "fase9": verify_fase9,
     "backups": verify_backups,
+    "recuperacion": verify_recuperacion,
 }
 
 

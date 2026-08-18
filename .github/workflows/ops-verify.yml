@@ -23,6 +23,8 @@ name: Ops — Verify (Production)
 #              point COMPLETED reciente (< 40 días) en el vault inmutable (§5.14).
 #   fase8    — stage de rollout, prerrequisitos, pool directo RDS e índices críticos.
 #   fase9    — JWT/MFA, Secrets Manager y trazabilidad de sesión en auditoría.
+#   recuperacion — Fase 10: PITR de RDS con ventana suficiente y versionado S3 en los
+#              buckets clínicos (capacidad de recuperación configurada).
 
 on:
   workflow_dispatch:
@@ -44,6 +46,7 @@ on:
           - fase8
           - fase9
           - backups
+          - recuperacion
 
 permissions:
   id-token: write
