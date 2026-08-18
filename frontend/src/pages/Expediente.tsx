@@ -7,6 +7,7 @@ import { consentimientosApi, expedientesApi, messagesApi, notasApi, pacientesApi
 import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
+import { useServerHealth } from '../hooks/useServerHealth';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -53,6 +54,9 @@ export default function Expediente() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const { showToast } = useToast();
+  // Fase 10: while the server can't confirm writes, signing is blocked — a signed
+  // note is immutable evidence and must never be produced over data we can't persist.
+  const { isDegraded } = useServerHealth();
   const signNotaWithReauthentication = useReverification(notasApi.firmar);
   const signRecetaWithReauthentication = useReverification(recetasApi.firmar);
   const signConsentWithReauthentication = useReverification(consentimientosApi.firmarMedico);
@@ -1000,7 +1004,8 @@ export default function Expediente() {
                           } catch (error) {
                             showToast(friendlyActionError(error, 'No se pudo finalizar el consentimiento.'), 'error');
                           }
-                        }} disabled={!cons.firmado_paciente_en || signingCredentials.length === 0}>
+                        }} disabled={!cons.firmado_paciente_en || signingCredentials.length === 0 || isDegraded}
+                        title={isDegraded ? 'Firma bloqueada: el servidor no puede confirmar el guardado.' : undefined}>
                           <Lock size={14} /> Firmar y finalizar
                         </button>
                       </div>
@@ -1149,7 +1154,8 @@ export default function Expediente() {
               type="button"
               className="btn btn-gold"
               onClick={() => notaToSign && signNotaMutation.mutate(notaToSign.id)}
-              disabled={signNotaMutation.isPending}
+              disabled={signNotaMutation.isPending || isDegraded}
+              title={isDegraded ? 'Firma bloqueada: el servidor no puede confirmar el guardado.' : undefined}
             >
               <Lock size={14} /> {signNotaMutation.isPending ? 'Firmando nota…' : 'Firmar nota'}
             </button>
@@ -1160,6 +1166,15 @@ export default function Expediente() {
           <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
           <p style={{ margin: 0 }}>Al firmar esta nota médica, se genera evidencia verificable vinculada a tu identidad profesional y al contenido del documento.</p>
         </div>
+        {isDegraded && (
+          <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
+            <Lock size={18} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+            <p style={{ margin: 0 }}>
+              La firma está bloqueada: el servidor no puede confirmar el guardado. Registra la
+              atención en el <strong>formato de continuidad</strong> y firma al restablecerse.
+            </p>
+          </div>
+        )}
         <p style={{ marginBottom: '0.75rem', fontWeight: 500, fontSize: '0.9rem' }}>
           De acuerdo con la NOM-004-SSA3-2012:
         </p>

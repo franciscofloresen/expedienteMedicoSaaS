@@ -17,8 +17,10 @@ import PrintDocument from './pages/PrintDocument';
 import Onboarding from './pages/Onboarding';
 import Agenda from './pages/Agenda';
 import SetupMFA from './pages/SetupMFA';
+import ContinuidadImprimible from './pages/ContinuidadImprimible';
 
 import { ToastProvider } from './contexts/ToastContext';
+import { ServerHealthProvider } from './contexts/ServerHealthContext';
 import { useAuth } from '@clerk/react';
 import type { ReactNode } from 'react';
 import { setTokenFetcher } from './services/api';
@@ -39,6 +41,7 @@ function App() {
       <ToastProvider>
         <ErrorBoundary>
           <ApiSetup>
+            <ServerHealthProvider>
             <BrowserRouter>
               <Routes>
                 {/* Public routes */}
@@ -59,11 +62,13 @@ function App() {
                     <Route path="settings" element={<Settings />} />
                     <Route path="auditoria" element={<Auditoria />} />
                     <Route path="pacientes/:id" element={<Expediente />} />
+                    <Route path="continuidad" element={<ContinuidadImprimible />} />
                     <Route path="documentos/:kind/:id/print" element={<PrintDocument />} />
                   </Route>
                 </Route>
               </Routes>
             </BrowserRouter>
+            </ServerHealthProvider>
           </ApiSetup>
         </ErrorBoundary>
       </ToastProvider>

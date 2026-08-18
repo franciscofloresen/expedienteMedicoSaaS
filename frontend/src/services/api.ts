@@ -27,6 +27,28 @@ export const setTokenFetcher = (fetcher: () => Promise<string | null>) => {
   getToken = fetcher;
 };
 
+/**
+ * checkReadiness — honest server-write signal for degraded mode (Fase 10).
+ *
+ * Hits the public, unauthenticated `/health/ready`, which does a bounded round
+ * trip to PostgreSQL and returns 200 only when writes can be confirmed (503
+ * otherwise). Used to decide whether it is safe to sign; never claim a save
+ * succeeded without a 2xx from the server.
+ */
+export async function checkReadiness(signal?: AbortSignal): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_ROOT_URL}/health/ready`, {
+      method: 'GET',
+      signal,
+      cache: 'no-store',
+    });
+    return response.ok;
+  } catch {
+    // Network failure / server unreachable — treat as not ready.
+    return false;
+  }
+}
+
 // Native fetch wrapper
 async function fetchClient<T>(
   endpoint: string,
