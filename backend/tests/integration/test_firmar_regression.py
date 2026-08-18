@@ -193,3 +193,104 @@ async def test_double_click_firma_does_not_double_sign(
         assert verified["firma_hash_contenido"] == original_hash
     finally:
         await _purge_chain(patient_id, expediente_id, nota_id)
+
+
+async def test_signing_stamps_credential_on_encuentro(
+    client: AsyncClient, signed_note_trigger
+) -> None:
+    """Fase 12 §9 (Fase 2 debt): signing a note that belongs to an encuentro stamps
+    the signing credential on the encuentro (mutable side), while the signed note is
+    never UPDATEd again. Runs in migration mode, where a real credential is seeded."""
+    if not use_migrations():
+        # create_all mode has no seeded médico/credential, so the signing adapter
+        # falls back to a credential with no id — nothing to stamp. The behavior is
+        # verified in migration mode (the CI trigger/RLS job), matching production.
+        pytest.skip("encuentro credential stamping needs the seeded credential (migration mode)")
+
+    headers = {"X-Tenant-ID": TENANT_A_ID, "X-Plan": "pro"}
+
+    res = await client.post(
+        "/api/v1/pacientes/",
+        json={
+            "nombre_completo": "Paciente Encuentro Credencial",
+            "sexo": "F",
+            "fecha_nacimiento": "1988-05-05",
+            "curp": "CCCC880505MDFXYZ09",
+            "telefono": "555-000-7777",
+            "domicilio": "Calle Cred 9",
+            "ocupacion": "Ingeniera",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201, res.text
+    patient_id = res.json()["id"]
+
+    res = await client.post(
+        "/api/v1/expedientes/", json={"paciente_id": patient_id}, headers=headers
+    )
+    assert res.status_code == 201, res.text
+    expediente_id = res.json()["id"]
+
+    res = await client.post(
+        "/api/v1/encuentros/",
+        json={"expediente_id": expediente_id, "tipo": "subsecuente"},
+        headers=headers,
+    )
+    assert res.status_code == 201, res.text
+    encuentro_id = res.json()["id"]
+
+    res = await client.post(
+        "/api/v1/notas/",
+        json={
+            "expediente_id": expediente_id,
+            "tipo_nota": "evolucion",
+            "contenido": {"evolucion_y_actualizacion_cuadro": "Estable."},
+            "encuentro_clinico_id": encuentro_id,
+            "signos_vitales": {
+                "frecuencia_cardiaca": 78,
+                "frecuencia_respiratoria": 16,
+                "temperatura": 36.6,
+                "tension_arterial": "118/76",
+            },
+            "diagnosticos": ["Cefalea"],
+            "tratamiento": "Reposo",
+        },
+        headers=headers,
+    )
+    assert res.status_code == 201, res.text
+    nota_id = res.json()["id"]
+
+    try:
+        # Before signing, the encuentro credential link is still NULL (§5.2).
+        engine = create_async_engine(os.environ["DATABASE_URL"])
+        async with engine.connect() as conn:
+            before = (
+                await conn.execute(
+                    text("SELECT credencial_id FROM encuentros_clinicos WHERE id = :id"),
+                    {"id": encuentro_id},
+                )
+            ).scalar_one()
+        assert before is None
+
+        res = await client.post(f"/api/v1/notas/{nota_id}/firmar", headers=headers)
+        assert res.status_code == 200, res.text
+
+        # After signing, the encuentro carries the signing credential.
+        async with engine.connect() as conn:
+            after = (
+                await conn.execute(
+                    text("SELECT credencial_id FROM encuentros_clinicos WHERE id = :id"),
+                    {"id": encuentro_id},
+                )
+            ).scalar_one()
+        assert after is not None, "encuentro.credencial_id must be stamped at signing"
+        await engine.dispose()
+    finally:
+        await _purge_chain(patient_id, expediente_id, nota_id)
+        if not use_migrations():
+            cleanup = create_async_engine(os.environ["DATABASE_URL"])
+            async with cleanup.begin() as conn:
+                await conn.execute(
+                    text("DELETE FROM encuentros_clinicos WHERE id = :id"), {"id": encuentro_id}
+                )
+            await cleanup.dispose()

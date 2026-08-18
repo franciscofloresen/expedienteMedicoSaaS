@@ -8,6 +8,7 @@ import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useAutosave } from '../hooks/useAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
+import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -1034,6 +1035,8 @@ export default function Expediente() {
           </button>
         </div>
 
+        <PatientIdentityBanner paciente={paciente} context="captura" />
+
         {!editingNota && hasDraft && (
           <div style={{ backgroundColor: 'var(--color-primary-tint)', border: '1px solid rgba(0,194,184,0.3)', padding: '0.8rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.85rem' }}>
@@ -1162,6 +1165,7 @@ export default function Expediente() {
           </>
         }
       >
+        <PatientIdentityBanner paciente={paciente} context="firma" />
         <div className="alert alert-gold" style={{ marginBottom: '1.25rem' }}>
           <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
           <p style={{ margin: 0 }}>Al firmar esta nota médica, se genera evidencia verificable vinculada a tu identidad profesional y al contenido del documento.</p>
@@ -1237,6 +1241,7 @@ export default function Expediente() {
           </>
         }
       >
+        <PatientIdentityBanner paciente={paciente} context="receta" />
         <div className="form-group">
           <label className="form-label">Medicamentos e indicaciones <span className="required-mark">*</span></label>
           <textarea
