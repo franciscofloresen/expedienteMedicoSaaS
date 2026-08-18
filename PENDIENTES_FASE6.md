@@ -1,26 +1,33 @@
 # Pendientes — Fase 6
 
+> **RESUELTO.** La reordenación del snapshot vive en
+> `.github/workflows/ops-consent-templates.yml` (dry-run → snapshot → apply) y el
+> workflow de limpieza es `.github/workflows/ops-snapshot-cleanup.yml`. La lógica de
+> clasificación (keep_latest, cutoff de antigüedad, protección `Retention=hold`, filtro
+> por etiqueta de propósito) quedó verificada. Los criterios abajo se conservan como
+> especificación del comportamiento.
+
 ## Retención y limpieza de snapshots manuales de rollout
 
-- [ ] Mover la creación del snapshot en
+- [x] Mover la creación del snapshot en
   `.github/workflows/ops-consent-templates.yml` para que ocurra después de un dry-run
   exitoso y justo antes del `apply`. Así una publicación rechazada por la compuerta
   clínica/jurídica no genera almacenamiento innecesario.
-- [ ] Crear un workflow manual de limpieza para snapshots de rollout con estos inputs:
+- [x] Crear un workflow manual de limpieza para snapshots de rollout con estos inputs:
   - `action`: `dry_run` o `delete`;
   - `older_than_days`: 14 por defecto;
   - `keep_latest`: 3 por defecto;
   - `confirm_production`: exigir `ELIMINAR_SNAPSHOTS_ANTIGUOS` para borrar.
-- [ ] Ejecutar el workflow bajo el environment `production`, con OIDC y aprobación
+- [x] Ejecutar el workflow bajo el environment `production`, con OIDC y aprobación
   humana, sin credenciales AWS persistentes.
-- [ ] Limitar candidatos a snapshots manuales de `medrecord-prod` etiquetados con
+- [x] Limitar candidatos a snapshots manuales de `medrecord-prod` etiquetados con
   `Purpose=pre-consent-template-publication`.
-- [ ] Proteger snapshots con `Retention=hold`, aunque superen la antigüedad configurada.
-- [ ] Mostrar identificador, fecha, antigüedad y tamaño/costo estimado en el resumen del
+- [x] Proteger snapshots con `Retention=hold`, aunque superen la antigüedad configurada.
+- [x] Mostrar identificador, fecha, antigüedad y tamaño/costo estimado en el resumen del
   dry-run antes de permitir el borrado.
-- [ ] No borrar snapshots automáticos de RDS ni recovery points del vault
+- [x] No borrar snapshots automáticos de RDS ni recovery points del vault
   `medrecord-legal-5yr-prod` protegido con Vault Lock.
-- [ ] Después de borrar, registrar en el resumen de GitHub los identificadores eliminados
+- [x] Después de borrar, registrar en el resumen de GitHub los identificadores eliminados
   y volver a listar los snapshots conservados.
 
 ### Política recomendada
