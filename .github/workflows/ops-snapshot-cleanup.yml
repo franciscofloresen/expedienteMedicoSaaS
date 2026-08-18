@@ -1,0 +1,225 @@
+name: Ops — Rollout Snapshot Cleanup (Production)
+
+# Prunes the manual RDS snapshots that the consent-template rollout creates
+# (ops-consent-templates.yml, tagged Purpose=pre-consent-template-publication).
+# See PENDIENTES_FASE6.md for the full policy.
+#
+# Safety model:
+#   * dry_run never deletes; it only lists the exact candidates.
+#   * delete requires confirm_production == ELIMINAR_SNAPSHOTS_ANTIGUOS, main,
+#     and the production environment's human approval (OIDC, no static creds).
+#   * Only manual snapshots of medrecord-prod tagged with the rollout purpose are
+#     ever candidates. Automated/PITR snapshots and the medrecord-legal-5yr-prod
+#     Vault Lock recovery points are never touched by this workflow.
+#   * Snapshots tagged Retention=hold are protected even when older than the cutoff.
+#   * The keep_latest most recent rollout snapshots always survive.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Operación de limpieza"
+        required: true
+        default: "dry_run"
+        type: choice
+        options:
+          - dry_run
+          - delete
+      older_than_days:
+        description: "Sólo elimina snapshots más antiguos que N días"
+        required: true
+        default: "14"
+        type: string
+      keep_latest:
+        description: "Conserva siempre los N snapshots de rollout más recientes"
+        required: true
+        default: "3"
+        type: string
+      confirm_production:
+        description: "Para borrar escribe ELIMINAR_SNAPSHOTS_ANTIGUOS"
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+  RDS_INSTANCE_PROD: "medrecord-prod"
+  PURPOSE_TAG: "pre-consent-template-publication"
+
+concurrency:
+  group: snapshot-cleanup-production
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Snapshot cleanup (${{ inputs.action }})
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate inputs
+        env:
+          OLDER_THAN_DAYS: ${{ inputs.older_than_days }}
+          KEEP_LATEST: ${{ inputs.keep_latest }}
+        run: |
+          if ! [[ "${OLDER_THAN_DAYS}" =~ ^[0-9]+$ ]]; then
+            echo "older_than_days debe ser un entero." >&2
+            exit 1
+          fi
+          if ! [[ "${KEEP_LATEST}" =~ ^[0-9]+$ ]]; then
+            echo "keep_latest debe ser un entero." >&2
+            exit 1
+          fi
+          if [ "${KEEP_LATEST}" -lt 1 ]; then
+            echo "keep_latest debe ser al menos 1: nunca dejar cero snapshots de rollout." >&2
+            exit 1
+          fi
+
+      - name: Validate production delete gate
+        if: ${{ inputs.action == 'delete' }}
+        env:
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "El borrado sólo puede ejecutarse desde main." >&2
+            exit 1
+          fi
+          if [ "${CONFIRM_PRODUCTION}" != "ELIMINAR_SNAPSHOTS_ANTIGUOS" ]; then
+            echo "Confirmación inválida." >&2
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Classify every manual rollout snapshot into keep vs. delete. Only manual
+      # snapshots of the prod instance are described; automated snapshots have
+      # SnapshotType="automated" and are excluded by --snapshot-type manual.
+      - name: Classify candidates
+        id: classify
+        env:
+          OLDER_THAN_DAYS: ${{ inputs.older_than_days }}
+          KEEP_LATEST: ${{ inputs.keep_latest }}
+        run: |
+          aws rds describe-db-snapshots \
+            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
+            --snapshot-type manual \
+            > /tmp/snapshots.json
+
+          # Annotate: newest-first rank, age in days, and a deletable flag that
+          # honors the purpose tag, Retention=hold, keep_latest and the age cutoff.
+          jq \
+            --argjson keep "${KEEP_LATEST}" \
+            --argjson maxage "${OLDER_THAN_DAYS}" \
+            --arg purpose "${PURPOSE_TAG}" '
+            [ .DBSnapshots[]
+              | select(.Status == "available")
+              | select(any(.TagList[]?; .Key == "Purpose" and .Value == $purpose))
+              | {
+                  id: .DBSnapshotIdentifier,
+                  created: .SnapshotCreateTime,
+                  gb: (.AllocatedStorage // 0),
+                  hold: (any(.TagList[]?; .Key == "Retention" and .Value == "hold")),
+                  age_days: (
+                    ( now - ( .SnapshotCreateTime
+                              | sub("\\.[0-9]+"; "")
+                              | sub("\\+00:00"; "Z")
+                              | fromdateiso8601 )
+                    ) / 86400 | floor
+                  )
+                }
+            ]
+            | sort_by(.created) | reverse
+            | to_entries
+            | map(.value + { rank: .key })
+            | map(. + {
+                est_monthly_usd: ((.gb * 0.095) * 100 | round / 100),
+                protected_reason: (
+                  if .hold then "retention-hold"
+                  elif .rank < $keep then "keep-latest"
+                  elif .age_days <= $maxage then "within-age-window"
+                  else "" end
+                )
+              })
+            | map(. + { deletable: (.protected_reason == "") })
+          ' /tmp/snapshots.json > /tmp/classified.json
+
+          jq '[.[] | select(.deletable)]' /tmp/classified.json > /tmp/to_delete.json
+          DELETE_COUNT="$(jq 'length' /tmp/to_delete.json)"
+          echo "delete_count=${DELETE_COUNT}" >> "${GITHUB_OUTPUT}"
+
+      - name: Report candidates
+        env:
+          OLDER_THAN_DAYS: ${{ inputs.older_than_days }}
+          KEEP_LATEST: ${{ inputs.keep_latest }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          {
+            echo "## Limpieza de snapshots de rollout — ${ACTION}"
+            echo ""
+            echo "- Instancia: \`${RDS_INSTANCE_PROD}\`"
+            echo "- Etiqueta de propósito: \`${PURPOSE_TAG}\`"
+            echo "- Cutoff de antigüedad: ${OLDER_THAN_DAYS} días · keep_latest: ${KEEP_LATEST}"
+            echo ""
+            echo "### A eliminar"
+            if [ "$(jq 'length' /tmp/to_delete.json)" -eq 0 ]; then
+              echo "_Ningún snapshot cumple los criterios de borrado._"
+            else
+              echo "| Snapshot | Creado | Antigüedad (días) | Tamaño (GB) | Costo est. USD/mes |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '.[] | "| \(.id) | \(.created) | \(.age_days) | \(.gb) | \(.est_monthly_usd) |"' /tmp/to_delete.json
+            fi
+            echo ""
+            echo "### Conservados"
+            echo "| Snapshot | Creado | Antigüedad (días) | Tamaño (GB) | Motivo |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r '.[] | select(.deletable | not) | "| \(.id) | \(.created) | \(.age_days) | \(.gb) | \(.protected_reason) |"' /tmp/classified.json
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Delete aged snapshots
+        if: ${{ inputs.action == 'delete' }}
+        run: |
+          DELETED=()
+          for SNAPSHOT_ID in $(jq -r '.[].id' /tmp/to_delete.json); do
+            echo "Eliminando ${SNAPSHOT_ID}..."
+            aws rds delete-db-snapshot --db-snapshot-identifier "${SNAPSHOT_ID}" >/dev/null
+            DELETED+=("${SNAPSHOT_ID}")
+          done
+
+          {
+            echo ""
+            echo "### Eliminados"
+            if [ "${#DELETED[@]}" -eq 0 ]; then
+              echo "_No se eliminó ningún snapshot._"
+            else
+              for SNAPSHOT_ID in "${DELETED[@]}"; do
+                echo "- \`${SNAPSHOT_ID}\`"
+              done
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      # Re-list what survives so the run's evidence shows the post-delete state.
+      - name: Re-list retained snapshots
+        if: ${{ inputs.action == 'delete' }}
+        run: |
+          aws rds describe-db-snapshots \
+            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
+            --snapshot-type manual \
+            > /tmp/snapshots_after.json
+
+          {
+            echo ""
+            echo "### Snapshots de rollout tras la limpieza"
+            echo "| Snapshot | Creado | Tamaño (GB) |"
+            echo "| --- | --- | --- |"
+            jq -r --arg purpose "${PURPOSE_TAG}" '
+              .DBSnapshots[]
+              | select(any(.TagList[]?; .Key == "Purpose" and .Value == $purpose))
+              | "| \(.DBSnapshotIdentifier) | \(.SnapshotCreateTime) | \(.AllocatedStorage // 0) |"
+            ' /tmp/snapshots_after.json
+          } >> "${GITHUB_STEP_SUMMARY}"

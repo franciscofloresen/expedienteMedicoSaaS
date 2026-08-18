@@ -64,18 +64,6 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Create and wait for pre-publication RDS snapshot
-        if: ${{ inputs.action == 'production_rollout' }}
-        id: snapshot
-        run: |
-          SNAPSHOT_ID="medrecord-prod-pre-consent-templates-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          aws rds create-db-snapshot \
-            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
-            --db-snapshot-identifier "${SNAPSHOT_ID}" \
-            --tags Key=Purpose,Value=pre-consent-template-publication Key=GitHubRun,Value="${GITHUB_RUN_ID}"
-          aws rds wait db-snapshot-completed --db-snapshot-identifier "${SNAPSHOT_ID}"
-          echo "snapshot_id=${SNAPSHOT_ID}" >> "${GITHUB_OUTPUT}"
-
       - name: Dry-run publication
         env:
           CATALOG: ${{ inputs.catalog }}
@@ -97,6 +85,21 @@ jobs:
             .statusCode == 200 and .body.ok == true and
             .body.counts.templates_total == $expected
           ' /tmp/templates_dry_run.json >/dev/null
+
+      # Snapshot runs only after the dry-run above succeeds and immediately
+      # before apply, so a publish rejected by the clinical/legal gate (a failed
+      # dry-run) never creates throwaway snapshot storage. See PENDIENTES_FASE6.md.
+      - name: Create and wait for pre-publication RDS snapshot
+        if: ${{ inputs.action == 'production_rollout' }}
+        id: snapshot
+        run: |
+          SNAPSHOT_ID="medrecord-prod-pre-consent-templates-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws rds create-db-snapshot \
+            --db-instance-identifier "${RDS_INSTANCE_PROD}" \
+            --db-snapshot-identifier "${SNAPSHOT_ID}" \
+            --tags Key=Purpose,Value=pre-consent-template-publication Key=GitHubRun,Value="${GITHUB_RUN_ID}"
+          aws rds wait db-snapshot-completed --db-snapshot-identifier "${SNAPSHOT_ID}"
+          echo "snapshot_id=${SNAPSHOT_ID}" >> "${GITHUB_OUTPUT}"
 
       - name: Publish reviewed immutable templates
         if: ${{ inputs.action == 'production_rollout' }}

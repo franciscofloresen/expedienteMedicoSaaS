@@ -103,7 +103,7 @@ resource "aws_cloudfront_distribution" "spa" {
     ssl_support_method             = var.acm_certificate_arn != "" ? "sni-only" : null
     minimum_protocol_version       = var.acm_certificate_arn != "" ? "TLSv1.2_2021" : "TLSv1"
   }
-  
+
   tags = {
     Environment = var.environment
   }
