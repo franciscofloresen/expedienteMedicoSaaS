@@ -201,7 +201,11 @@ export const authApi = {
   },
   onboarding: async (data: { nombre_medico: string; cedula: string; especialidad?: string }): Promise<any> => {
     return api.post('/auth/onboarding', data);
-  }
+  },
+  // Fase 13A: UI theme preference (separate from the professional profile).
+  setTheme: async (tema: string): Promise<{ tema: string }> => {
+    return api.put<{ tema: string }>('/auth/preferences/theme', { tema });
+  },
 };
 
 // Servicios de Pacientes

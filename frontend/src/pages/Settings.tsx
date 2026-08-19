@@ -5,6 +5,7 @@ import { UserProfile, useReverification } from '@clerk/react';
 import { useToast } from '../hooks/useToast';
 import UpgradeBanner from '../components/UpgradeBanner';
 import StorageUsageCard from '../components/StorageUsageCard';
+import ThemePicker from '../components/ThemePicker';
 import { authApi } from '../services/api';
 
 export default function Settings() {
@@ -186,6 +187,9 @@ export default function Settings() {
                 }}
               />
             </div>
+
+          {/* Apariencia (Fase 13A) */}
+          <ThemePicker />
 
           {/* Tarjeta de Seguridad y Facturación */}
           <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s' }}>

@@ -37,6 +37,10 @@ def test_procedimientos_is_registered() -> None:
 
 def test_fotografias_is_registered() -> None:
     assert "fotografias" in available_actions()
+
+
+def test_preferencias_is_registered() -> None:
+    assert "preferencias" in available_actions()
 def test_unknown_action_returns_failing_envelope() -> None:
     """An unknown action must not raise — it returns an ok=False envelope so the
     Lambda handler can map it to a 500 rather than crashing."""

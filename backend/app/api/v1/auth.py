@@ -6,6 +6,7 @@ This router provides the `/me` endpoint to fetch local user context linked to th
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -14,7 +15,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import require_reauthentication
+from app.core.themes import DEFAULT_THEME, is_valid_theme
 from app.db.session import get_db
+from app.models.preferencia_interfaz import PreferenciaInterfazUsuario
 
 logger = logging.getLogger("medrecord.auth")
 
@@ -80,6 +83,19 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     if not tenant:
         raise HTTPException(status_code=404, detail="User profile not found")
 
+    identity_id = getattr(request.state, "user_id", None)
+    tema = DEFAULT_THEME
+    if identity_id:
+        pref = (
+            await db.execute(
+                select(PreferenciaInterfazUsuario).where(
+                    PreferenciaInterfazUsuario.identity_provider_id == str(identity_id)
+                )
+            )
+        ).scalar_one_or_none()
+        if pref is not None and is_valid_theme(pref.tema):
+            tema = pref.tema
+
     return {
         "tenant_id": str(tenant.id),
         "nombre_medico": tenant.nombre_medico,
@@ -88,7 +104,57 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         "cedula": tenant.cedula,
         "especialidad": tenant.especialidad,
         "plan": tenant.plan,
+        "tema": tema,
     }
+
+
+class ThemePreferenceUpdate(BaseModel):
+    tema: str = Field(..., max_length=50)
+
+    @field_validator("tema")
+    @classmethod
+    def _validate_tema(cls, v: str) -> str:
+        if not is_valid_theme(v):
+            raise ValueError("Tema no permitido")
+        return v
+
+
+@router.put("/preferences/theme")
+async def update_theme_preference(
+    payload: ThemePreferenceUpdate, request: Request, db: AsyncSession = Depends(get_db)
+) -> Any:
+    """Upsert the current identity's UI theme (Fase 13A).
+
+    Derives tenant + identity from the JWT, validates against the allowlist, and
+    writes a single row keyed by (tenant_id, identity_provider_id). It never
+    touches professional data or Clerk (that is ``PUT /profile``).
+    """
+    tenant_id = getattr(request.state, "tenant_id", None)
+    identity_id = getattr(request.state, "user_id", None)
+    if not tenant_id or not identity_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    pref = (
+        await db.execute(
+            select(PreferenciaInterfazUsuario).where(
+                PreferenciaInterfazUsuario.identity_provider_id == str(identity_id)
+            )
+        )
+    ).scalar_one_or_none()
+
+    if pref is None:
+        pref = PreferenciaInterfazUsuario(
+            tenant_id=tenant_id,
+            identity_provider_id=str(identity_id),
+            tema=payload.tema,
+        )
+        db.add(pref)
+    else:
+        pref.tema = payload.tema
+        pref.modificado_en = datetime.now(timezone.utc)
+
+    await db.flush()
+    return {"tema": payload.tema}
 
 
 class ProfileUpdate(BaseModel):

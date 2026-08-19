@@ -51,6 +51,7 @@ on:
           - plantillas_nota
           - procedimientos
           - fotografias
+          - preferencias
 
 permissions:
   id-token: write
