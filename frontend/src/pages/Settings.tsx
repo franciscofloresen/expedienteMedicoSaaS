@@ -139,20 +139,10 @@ export default function Settings() {
 
             {/* Perfil de Usuario de Clerk */}
             <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s', padding: 0, overflow: 'hidden' }}>
-              <UserProfile 
+              {/* Colors inherit from ClerkProvider's themed appearance (Fase 13A);
+                  only layout is overridden here. */}
+              <UserProfile
                 appearance={{
-                  variables: {
-                    colorPrimary: '#00C2B8',
-                    colorPrimaryForeground: '#04211F',
-                    fontFamily: "'Inter', sans-serif",
-                    colorBackground: '#161B22',
-                    colorForeground: '#E6EDF3',
-                    colorMutedForeground: '#7D8590',
-                    colorInput: '#0D1117',
-                    colorInputForeground: '#E6EDF3',
-                    colorNeutral: '#E6EDF3',
-                    colorBorder: '#21262D',
-                  },
                   elements: {
                     rootBox: {
                       width: '100%',

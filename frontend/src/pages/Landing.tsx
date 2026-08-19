@@ -4,7 +4,9 @@ import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
 
 export default function Landing() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-app)', color: 'var(--text-main)' }}>
+    // The marketing page is intentionally always dark (photo overlays, white
+    // headline text) — it must not inherit a signed-in doctor's light theme.
+    <div className="landing-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       {/* Navbar Transparente / Elegante */}
       <nav className="landing-nav">

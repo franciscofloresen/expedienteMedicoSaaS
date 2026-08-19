@@ -15,9 +15,34 @@ export function applyThemeTokens(
     target.style.setProperty(name, value);
   }
   target.setAttribute('data-theme', theme.key);
+  target.setAttribute('data-theme-mode', theme.mode);
   // Native controls, scrollbars and form widgets follow the light/dark mode.
   target.style.colorScheme = theme.mode;
+  if (target === document.documentElement) notifyApplied(resolved);
   return resolved;
+}
+
+/**
+ * Tiny external store of the theme currently applied to the document, so code
+ * ABOVE the ThemeProvider (ClerkProvider's `appearance` in main.tsx) can follow
+ * the active theme via useSyncExternalStore.
+ */
+let appliedTheme: ThemeKey = DEFAULT_THEME;
+const appliedListeners = new Set<() => void>();
+
+function notifyApplied(key: ThemeKey): void {
+  if (key === appliedTheme) return;
+  appliedTheme = key;
+  for (const l of appliedListeners) l();
+}
+
+export function getAppliedTheme(): ThemeKey {
+  return appliedTheme;
+}
+
+export function subscribeAppliedTheme(listener: () => void): () => void {
+  appliedListeners.add(listener);
+  return () => appliedListeners.delete(listener);
 }
 
 const CACHE_PREFIX = 'cmr:theme:';
