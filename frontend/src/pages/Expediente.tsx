@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
 import { consentimientosApi, expedientesApi, favoritosApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
-import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
+import type { Nota, NotaCreate, NotaDiagnosticoCie10, FavoritoKind, MedicoFavoritoCreate } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useServerAutosave } from '../hooks/useServerAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
@@ -473,6 +473,48 @@ export default function Expediente() {
     const label = window.prompt('Nombre corto para este favorito:', texto.slice(0, 40));
     if (!label || !label.trim()) return;
     saveRecetaFavoritoMutation.mutate({ label: label.trim(), texto });
+  };
+
+  // Fase 13: favoritos inside the note editor (diagnosis + plan). Fields are
+  // uncontrolled, so insertion writes to the DOM value and re-syncs the autosave
+  // snapshot. Reused for save-current.
+  const { data: diagnosticoFavoritos = [] } = useQuery({
+    queryKey: ['favoritos', 'diagnostico'],
+    queryFn: () => favoritosApi.list('diagnostico'),
+  });
+  const { data: planFavoritos = [] } = useQuery({
+    queryKey: ['favoritos', 'plan'],
+    queryFn: () => favoritosApi.list('plan'),
+  });
+  const createFavoritoMutation = useMutation({
+    mutationFn: (data: MedicoFavoritoCreate) => favoritosApi.create(data),
+    onSuccess: async (_res, vars) => {
+      await client.invalidateQueries({ queryKey: ['favoritos', vars.kind] });
+      showToast('Guardado en tus favoritos.', 'success');
+    },
+    onError: (error: unknown) =>
+      showToast(friendlyActionError(error, 'No se pudo guardar el favorito.'), 'error'),
+  });
+
+  const readNoteField = (name: string): string => {
+    const form = document.getElementById('nota-form') as HTMLFormElement | null;
+    const el = form?.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | undefined;
+    return el?.value ?? '';
+  };
+  const insertIntoNoteField = (name: string, texto: string) => {
+    const form = document.getElementById('nota-form') as HTMLFormElement | null;
+    const el = form?.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | undefined;
+    if (!form || !el) return;
+    el.value = el.value ? `${el.value}\n${texto}` : texto;
+    el.focus();
+    setFormSnapshot(buildNoteSnapshot(form));
+  };
+  const promptSaveNoteFavorito = (kind: FavoritoKind, name: string) => {
+    const texto = readNoteField(name).trim();
+    if (!texto) return;
+    const label = window.prompt('Nombre corto para este favorito:', texto.slice(0, 40));
+    if (!label || !label.trim()) return;
+    createFavoritoMutation.mutate({ kind, label: label.trim(), texto });
   };
 
   const createConsentimientoMutation = useMutation({
@@ -1145,6 +1187,13 @@ export default function Expediente() {
 
               <div className="form-group">
                 <label className="form-label">Diagnóstico clínico <span className="required-mark">*</span></label>
+                <FavoritesPicker
+                  favoritos={diagnosticoFavoritos}
+                  label="Diagnósticos favoritos"
+                  onInsert={(texto) => insertIntoNoteField('diagnostico', texto)}
+                  onSaveCurrent={() => promptSaveNoteFavorito('diagnostico', 'diagnostico')}
+                  canSave
+                />
                 <input type="text" name="diagnostico" className="form-input" required minLength={5} defaultValue={editingNota?.contenido?.diagnosticos?.[0]} />
               </div>
 
@@ -1165,6 +1214,13 @@ export default function Expediente() {
 
               <div className="form-group">
                 <label className="form-label">Plan / Tratamiento <span className="required-mark">*</span></label>
+                <FavoritesPicker
+                  favoritos={planFavoritos}
+                  label="Planes favoritos"
+                  onInsert={(texto) => insertIntoNoteField('plan_tratamiento', texto)}
+                  onSaveCurrent={() => promptSaveNoteFavorito('plan', 'plan_tratamiento')}
+                  canSave
+                />
                 <textarea name="plan_tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.plan_tratamiento || editingNota?.contenido?.tratamiento || seedDraft?.plan_tratamiento}></textarea>
               </div>
             </div>
