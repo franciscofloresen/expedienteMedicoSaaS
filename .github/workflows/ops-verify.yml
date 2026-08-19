@@ -49,6 +49,7 @@ on:
           - recuperacion
           - favoritos
           - plantillas_nota
+          - procedimientos
 
 permissions:
   id-token: write

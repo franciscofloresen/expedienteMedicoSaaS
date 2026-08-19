@@ -20,6 +20,9 @@ import type {
   FavoritoKind,
   NotaPlantilla,
   NotaPlantillaCreate,
+  ProcedimientoChecklist,
+  ChecklistItem,
+  EventoAdverso,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -310,6 +313,38 @@ export const plantillasNotaApi = {
   update: async (id: string, data: NotaPlantillaCreate): Promise<NotaPlantilla> =>
     api.put<NotaPlantilla>(`/plantillas-nota/${id}`, data),
   remove: async (id: string): Promise<void> => api.delete<void>(`/plantillas-nota/${id}`),
+};
+
+export const procedimientosApi = {
+  listChecklists: async (pacienteId: string): Promise<ProcedimientoChecklist[]> =>
+    api.get<ProcedimientoChecklist[]>('/procedimientos/checklists', { paciente_id: pacienteId }),
+  createChecklist: async (data: {
+    paciente_id: string;
+    momento: 'pre' | 'post';
+    items: ChecklistItem[];
+  }): Promise<ProcedimientoChecklist> =>
+    api.post<ProcedimientoChecklist>('/procedimientos/checklists', data),
+  updateChecklist: async (
+    id: string,
+    data: { items: ChecklistItem[]; observaciones?: string | null },
+  ): Promise<ProcedimientoChecklist> =>
+    api.put<ProcedimientoChecklist>(`/procedimientos/checklists/${id}`, data),
+  removeChecklist: async (id: string): Promise<void> =>
+    api.delete<void>(`/procedimientos/checklists/${id}`),
+
+  listEventos: async (pacienteId: string): Promise<EventoAdverso[]> =>
+    api.get<EventoAdverso[]>('/procedimientos/eventos-adversos', { paciente_id: pacienteId }),
+  createEvento: async (data: {
+    paciente_id: string;
+    descripcion: string;
+    severidad: 'leve' | 'moderado' | 'grave';
+  }): Promise<EventoAdverso> =>
+    api.post<EventoAdverso>('/procedimientos/eventos-adversos', data),
+  updateEvento: async (
+    id: string,
+    data: { descripcion: string; severidad: 'leve' | 'moderado' | 'grave'; estado: 'abierto' | 'resuelto'; manejo?: string | null },
+  ): Promise<EventoAdverso> =>
+    api.put<EventoAdverso>(`/procedimientos/eventos-adversos/${id}`, data),
 };
 
 export const encuentrosApi = {

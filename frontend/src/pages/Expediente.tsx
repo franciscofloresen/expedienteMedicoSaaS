@@ -13,6 +13,7 @@ import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import FavoritesPicker from '../components/FavoritesPicker';
 import NoteTemplatePicker from '../components/NoteTemplatePicker';
 import LongitudinalSummary from '../components/LongitudinalSummary';
+import ProcedimientosPanel from '../components/ProcedimientosPanel';
 import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
 import { buildLongitudinalSummary } from '../utils/longitudinalSummary';
 import { useEffect } from 'react';
@@ -22,7 +23,7 @@ import ClinicalFiles from '../components/ClinicalFiles';
 import { SignaturePad } from '../components/SignaturePad';
 import { useReverification } from '@clerk/react';
 
-type TabKey = 'resumen' | 'longitudinal' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
+type TabKey = 'resumen' | 'longitudinal' | 'consultas' | 'historia' | 'procedimientos' | 'archivos' | 'consentimientos';
 
 function initials(nombre?: string): string {
   if (!nombre) return '';
@@ -752,6 +753,9 @@ export default function Expediente() {
         <button role="tab" aria-selected={activeTab === 'historia'} className={activeTab === 'historia' ? 'tab active' : 'tab'} onClick={() => setActiveTab('historia')}>
           Historia clínica
         </button>
+        <button role="tab" aria-selected={activeTab === 'procedimientos'} className={activeTab === 'procedimientos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('procedimientos')}>
+          Procedimientos
+        </button>
         <button role="tab" aria-selected={activeTab === 'archivos'} className={activeTab === 'archivos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('archivos')}>
           Archivos
         </button>
@@ -856,6 +860,9 @@ export default function Expediente() {
           summary={buildLongitudinalSummary(paciente, notas, consentimientos)}
         />
       )}
+
+      {/* ── Tab: Procedimientos ── */}
+      {activeTab === 'procedimientos' && id && <ProcedimientosPanel pacienteId={id} />}
 
       {/* ── Tab: Consultas ── */}
       {activeTab === 'consultas' && (

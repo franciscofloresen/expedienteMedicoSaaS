@@ -186,6 +186,37 @@ export interface NotaPlantillaCreate {
   campos: Record<string, string>;
 }
 
+// ── Procedimientos (Fase 13) ──
+
+export interface ChecklistItem {
+  texto: string;
+  completado: boolean;
+}
+
+export interface ProcedimientoChecklist {
+  id: string;
+  paciente_id: string;
+  encuentro_id?: string | null;
+  momento: 'pre' | 'post';
+  items: ChecklistItem[];
+  observaciones?: string | null;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface EventoAdverso {
+  id: string;
+  paciente_id: string;
+  encuentro_id?: string | null;
+  descripcion: string;
+  severidad: 'leve' | 'moderado' | 'grave';
+  fecha?: string | null;
+  manejo?: string | null;
+  estado: 'abierto' | 'resuelto';
+  creado_en: string;
+  modificado_en: string;
+}
+
 // ── CIE-10 ──
 
 export interface CIE10 {

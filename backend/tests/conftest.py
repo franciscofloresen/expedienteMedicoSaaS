@@ -188,6 +188,8 @@ async def setup_database():
             "tenant_storage_usage",
             "medico_favoritos",
             "nota_plantillas",
+            "procedimiento_checklists",
+            "eventos_adversos",
         ]:
             await conn.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
             await conn.execute(text(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY"))

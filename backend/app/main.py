@@ -30,6 +30,7 @@ from app.api.v1 import (
     notas,
     pacientes,
     plantillas_nota,
+    procedimientos,
     recetas,
     reminders,
     verify,
@@ -216,6 +217,9 @@ app.include_router(reminders.router, prefix="/api/v1/reminders", tags=["Recordat
 app.include_router(favoritos.router, prefix="/api/v1/favoritos", tags=["Favoritos"])
 app.include_router(
     plantillas_nota.router, prefix="/api/v1/plantillas-nota", tags=["Plantillas de nota"]
+)
+app.include_router(
+    procedimientos.router, prefix="/api/v1/procedimientos", tags=["Procedimientos"]
 )
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
