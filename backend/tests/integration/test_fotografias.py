@@ -8,16 +8,44 @@ import os
 import uuid
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from tests.conftest import TENANT_A_ID, TENANT_B_ID
+from tests.conftest import TENANT_A_ID, TENANT_B_ID, use_migrations
 
 pytestmark = pytest.mark.asyncio
 
 _A = {"X-Tenant-ID": TENANT_A_ID, "X-Plan": "pro"}
 _B = {"X-Tenant-ID": TENANT_B_ID, "X-Plan": "pro"}
+
+# Patients created here use CURP prefix FFFF9001. In create_all mode the test DB is
+# session-scoped, so these tests must delete their own paciente/expediente rows —
+# otherwise the expedientes accumulate under tenant A and trip the basico
+# max_expedientes=5 limit in a later, plan-limited test (test_notas). Migration mode
+# is throwaway and delete-protected, so cleanup is skipped there.
+@pytest_asyncio.fixture(autouse=True)
+async def _cleanup_created_rows(setup_database):
+    yield
+    if use_migrations():
+        return
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    async with engine.begin() as conn:
+        await conn.execute(
+            text("DELETE FROM fotografias_clinicas WHERE paciente_id IN "
+                 "(SELECT id FROM pacientes WHERE curp LIKE 'FFFF9001%')")
+        )
+        await conn.execute(
+            text("DELETE FROM clinical_files WHERE paciente_id IN "
+                 "(SELECT id FROM pacientes WHERE curp LIKE 'FFFF9001%')")
+        )
+        await conn.execute(
+            text("DELETE FROM expedientes WHERE paciente_id IN "
+                 "(SELECT id FROM pacientes WHERE curp LIKE 'FFFF9001%')")
+        )
+        await conn.execute(text("DELETE FROM pacientes WHERE curp LIKE 'FFFF9001%'"))
+    await engine.dispose()
 
 
 async def _patient_and_expediente(client: AsyncClient, curp: str) -> tuple[str, str]:
