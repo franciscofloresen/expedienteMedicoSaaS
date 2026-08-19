@@ -8,6 +8,7 @@ import type { Nota, NotaCreate, NotaDiagnosticoCie10, FavoritoKind, MedicoFavori
 import { useToast } from '../hooks/useToast';
 import { useServerAutosave } from '../hooks/useServerAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import FavoritesPicker from '../components/FavoritesPicker';
 import NoteTemplatePicker from '../components/NoteTemplatePicker';
@@ -117,6 +118,25 @@ export default function Expediente() {
     setFormKey((k) => k + 1);
     setIsSidePanelOpen(true);
   };
+  const closeNoteEditor = () => {
+    setIsSidePanelOpen(false);
+    setEditingNota(null);
+    setDiagnosticosCie10([]);
+    setSeedDraft(null);
+  };
+
+  // Fase 13 keyboard shortcuts (keyboard-only documentation): Ctrl/Cmd+S (or
+  // Ctrl/Cmd+Enter) saves the draft via the form's own validation; Esc closes.
+  const submitNoteForm = () =>
+    (document.getElementById('nota-form') as HTMLFormElement | null)?.requestSubmit();
+  useKeyboardShortcuts(
+    [
+      { key: 's', ctrlOrMeta: true, handler: submitNoteForm },
+      { key: 'Enter', ctrlOrMeta: true, handler: submitNoteForm },
+      { key: 'Escape', handler: closeNoteEditor },
+    ],
+    isSidePanelOpen,
+  );
 
   // Consent state
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -1158,7 +1178,7 @@ export default function Expediente() {
             <FileSignature size={20} color="var(--color-primary)" />
             {editingNota ? 'Editar borrador' : 'Nueva consulta'}
           </h2>
-          <button className="btn-icon" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); setSeedDraft(null); }} aria-label="Cerrar panel">
+          <button className="btn-icon" onClick={closeNoteEditor} aria-label="Cerrar panel">
             <X size={20} />
           </button>
         </div>
@@ -1234,7 +1254,7 @@ export default function Expediente() {
               <span className="overline" style={{ marginBottom: '0.75rem' }}>Contenido clínico</span>
               <div className="form-group" style={{ marginTop: '0.75rem' }}>
                 <label className="form-label">Motivo de consulta y evolución <span className="required-mark">*</span></label>
-                <textarea name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva…" defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro || seedDraft?.motivo_consulta}></textarea>
+                <textarea autoFocus name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva…" defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro || seedDraft?.motivo_consulta}></textarea>
               </div>
 
               <div className="form-group">
@@ -1283,8 +1303,11 @@ export default function Expediente() {
             </div>
           </div>
 
-          <div style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-outline" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); setSeedDraft(null); }}>Cancelar</button>
+          <div style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span className="text-muted no-print" style={{ fontSize: '0.72rem', marginRight: 'auto' }}>
+              Atajos: <kbd>⌘/Ctrl</kbd>+<kbd>S</kbd> guardar · <kbd>Esc</kbd> cerrar
+            </span>
+            <button type="button" className="btn btn-outline" onClick={closeNoteEditor}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={draftNotaMutation.isPending || updateNotaMutation.isPending}>
               {draftNotaMutation.isPending || updateNotaMutation.isPending ? 'Guardando nota…' : (editingNota ? 'Actualizar borrador' : 'Guardar borrador')}
             </button>
