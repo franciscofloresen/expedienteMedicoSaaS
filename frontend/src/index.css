@@ -7,14 +7,22 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Core palette */
+  /* Core palette — Fase 13A: every token here can be overridden per-theme
+     (applyThemeTokens sets them inline on <html>). These are the defaults for
+     the first paint and any pre-theme page. */
+  color-scheme: dark;
   --color-bg:        #0D1117;
   --color-surface:   #161B22;
   --color-surface-2: #1C222B;   /* raised / hover surfaces */
   --color-border:    #2B3440;
+  --color-border-strong: #3A4654;   /* hover borders */
+  --color-glass: rgba(13, 17, 23, 0.85);   /* translucent bars (topbar) */
+  --color-input-bg: #0F151D;
+  --color-input-bg-focus: #101923;
   --color-primary:   #00C2B8;
   --color-primary-hover: #00D9CE;
   --color-primary-tint: rgba(0, 194, 184, 0.10);
+  --color-on-primary: #04211F;   /* text on solid primary */
   --color-gold:      #D4A843;
   --color-gold-tint: rgba(212, 168, 67, 0.10);
   --color-text:      #E6EDF3;
@@ -24,6 +32,10 @@
   --color-danger-tint: rgba(248, 81, 73, 0.10);
   --color-success:   #3FB950;
   --color-success-tint: rgba(63, 185, 80, 0.10);
+
+  /* Overlay scrims (CSS-only, follow the mode via [data-theme-mode]) */
+  --color-scrim: rgba(1, 4, 9, 0.7);
+  --color-scrim-soft: rgba(0, 0, 0, 0.55);
 
   /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
@@ -63,6 +75,25 @@
   --transition-smooth: 0.2s ease;
 }
 
+/* Light themes: softer elevation and lighter scrims. (Tokens set inline by
+   applyThemeTokens win over :root; these are the CSS-only companions.) */
+:root[data-theme-mode='light'] {
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+  --shadow-glass: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --color-scrim: rgba(15, 23, 42, 0.45);
+  --color-scrim-soft: rgba(15, 23, 42, 0.35);
+}
+
+/* Light-mode gold is a dark amber — the solid gold button needs light text. */
+:root[data-theme-mode='light'] .btn-gold {
+  color: #FFFBEB;
+}
+
+:root[data-theme-mode='light'] .btn-gold:hover:not(:disabled) {
+  background-color: #854D0E;
+}
+
 /* Global reset */
 * {
   box-sizing: border-box;
@@ -84,7 +115,7 @@ body {
 }
 
 ::selection {
-  background: rgba(0, 194, 184, 0.3);
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
 a {
@@ -104,7 +135,7 @@ a {
   border-radius: 5px;
   border: 2px solid var(--color-bg);
 }
-::-webkit-scrollbar-thumb:hover { background: #30363D; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 
 /* Typography */
 h1, h2, h3, h4 {
@@ -276,7 +307,7 @@ h1, h2, h3, h4 {
   gap: 1rem;
   padding: 0.75rem 2rem;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(13, 17, 23, 0.85);
+  background: var(--color-glass);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   position: sticky;
@@ -328,7 +359,7 @@ h1, h2, h3, h4 {
 }
 
 .card-hover:hover {
-  border-color: #30363D;
+  border-color: var(--color-border-strong);
   background: var(--color-surface-2);
 }
 
@@ -391,7 +422,7 @@ h1, h2, h3, h4 {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: #04211F;
+  color: var(--color-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -404,7 +435,7 @@ h1, h2, h3, h4 {
 .btn-secondary:focus-visible,
 .btn-danger:focus-visible,
 .btn-danger-soft:focus-visible {
-  box-shadow: 0 0 0 3px rgba(0, 194, 184, 0.22);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .btn-gold {
@@ -418,7 +449,7 @@ h1, h2, h3, h4 {
 
 .btn-outline,
 .btn-secondary {
-  background-color: rgba(22, 27, 34, 0.75);
+  background-color: color-mix(in srgb, var(--color-surface) 75%, transparent);
   color: var(--color-text);
   border-color: var(--color-border);
 }
@@ -426,7 +457,7 @@ h1, h2, h3, h4 {
 .btn-outline:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled) {
   background-color: var(--color-surface-2);
-  border-color: #30363D;
+  border-color: var(--color-border-strong);
 }
 
 .btn-ghost {
@@ -491,33 +522,33 @@ h1, h2, h3, h4 {
 }
 
 .badge-neutral {
-  background-color: rgba(170, 182, 195, 0.12);
+  background-color: color-mix(in srgb, var(--color-muted) 12%, transparent);
   color: var(--color-muted-strong);
-  border-color: rgba(170, 182, 195, 0.28);
+  border-color: color-mix(in srgb, var(--color-muted) 28%, transparent);
 }
 
 .badge-success {
   background-color: var(--color-success-tint);
   color: var(--color-success);
-  border-color: rgba(63, 185, 80, 0.35);
+  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
 }
 
 .badge-gold {
   background-color: var(--color-gold-tint);
   color: var(--color-gold);
-  border-color: rgba(212, 168, 67, 0.4);
+  border-color: color-mix(in srgb, var(--color-gold) 40%, transparent);
 }
 
 .badge-draft {
   background-color: var(--color-primary-tint);
   color: var(--color-primary);
-  border-color: rgba(0, 194, 184, 0.35);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .badge-danger {
   background-color: var(--color-danger-tint);
   color: var(--color-danger);
-  border-color: rgba(248, 81, 73, 0.35);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
 }
 
 /* ── Forms ─────────────────────────────────────────────────── */
@@ -554,11 +585,11 @@ h1, h2, h3, h4 {
   font-size: 0.9rem;
   color: var(--color-text);
   -webkit-text-fill-color: var(--color-text);
-  background-color: #0F151D;
+  background-color: var(--color-input-bg);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
-.form-input::placeholder { color: #7F8B99; }
+.form-input::placeholder { color: color-mix(in srgb, var(--color-muted) 72%, var(--color-input-bg)); }
 
 textarea.form-input {
   line-height: 1.55;
@@ -566,20 +597,20 @@ textarea.form-input {
 }
 
 .form-input:hover:not(:disabled) {
-  border-color: #3A4654;
+  border-color: var(--color-border-strong);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-tint);
-  background-color: #101923;
+  background-color: var(--color-input-bg-focus);
 }
 
 .form-input:disabled {
-  color: #8E99A8;
-  background-color: rgba(13, 17, 23, 0.55);
-  border-color: rgba(43, 52, 64, 0.75);
+  color: var(--color-muted);
+  background-color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 75%, transparent);
   cursor: not-allowed;
 }
 
@@ -613,14 +644,11 @@ textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-text-fill-color: var(--color-text);
   caret-color: var(--color-text);
-  box-shadow: 0 0 0 1000px #0F151D inset;
+  box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
   border-color: var(--color-border);
 }
 
-input[type="date"].form-input,
-input[type="datetime-local"].form-input {
-  color-scheme: dark;
-}
+/* Date/datetime pickers inherit the root color-scheme (set per theme). */
 
 input[type="radio"], input[type="checkbox"] {
   accent-color: var(--color-primary);
@@ -641,7 +669,7 @@ input[type="radio"], input[type="checkbox"] {
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: #0F151D;
+  background: var(--color-input-bg);
   color: var(--color-text);
   min-width: 0;
   cursor: pointer;
@@ -649,14 +677,14 @@ input[type="radio"], input[type="checkbox"] {
 }
 
 .radio-card:hover {
-  border-color: #3A4654;
+  border-color: var(--color-border-strong);
   background: var(--color-surface-2);
 }
 
 .radio-card:has(input:checked) {
-  border-color: rgba(0, 194, 184, 0.7);
+  border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
   background: var(--color-primary-tint);
-  box-shadow: 0 0 0 1px rgba(0, 194, 184, 0.15);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .radio-card input {
@@ -740,7 +768,7 @@ input[type="radio"], input[type="checkbox"] {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(13, 17, 23, 0.4);
+  background: color-mix(in srgb, var(--color-bg) 40%, transparent);
   white-space: nowrap;
 }
 
@@ -774,7 +802,7 @@ input[type="radio"], input[type="checkbox"] {
   height: 34px;
   border-radius: 50%;
   background: var(--color-primary-tint);
-  border: 1px solid rgba(0, 194, 184, 0.3);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -855,7 +883,7 @@ input[type="radio"], input[type="checkbox"] {
 
 .tab.active .tab-count {
   background: var(--color-primary-tint);
-  border-color: rgba(0, 194, 184, 0.35);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
   color: var(--color-primary);
 }
 
@@ -936,7 +964,7 @@ input[type="radio"], input[type="checkbox"] {
   overflow: hidden;
 }
 
-.note-card.draft { border-color: rgba(0, 194, 184, 0.3); }
+.note-card.draft { border-color: color-mix(in srgb, var(--color-primary) 30%, transparent); }
 
 .note-card-header {
   display: flex;
@@ -946,7 +974,7 @@ input[type="radio"], input[type="checkbox"] {
   flex-wrap: wrap;
   padding: 0.9rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
-  background: rgba(13, 17, 23, 0.4);
+  background: color-mix(in srgb, var(--color-bg) 40%, transparent);
 }
 
 .note-card-body { padding: 1.25rem; }
@@ -984,7 +1012,7 @@ input[type="radio"], input[type="checkbox"] {
 /* Gold signed banner — the "notarial seal" */
 .signed-banner {
   background: var(--color-gold-tint);
-  border-top: 1px solid rgba(212, 168, 67, 0.4);
+  border-top: 1px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
   padding: 0.9rem 1.25rem;
   color: var(--color-gold);
   font-size: 0.85rem;
@@ -1001,7 +1029,7 @@ input[type="radio"], input[type="checkbox"] {
 
 .signed-banner-meta {
   margin-top: 0.4rem;
-  color: rgba(212, 168, 67, 0.85);
+  color: color-mix(in srgb, var(--color-gold) 85%, transparent);
   font-size: 0.8rem;
   display: flex;
   flex-wrap: wrap;
@@ -1032,7 +1060,7 @@ input[type="radio"], input[type="checkbox"] {
 .side-panel-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
+  background-color: var(--color-scrim-soft);
   z-index: 999;
 }
 
@@ -1152,20 +1180,20 @@ input[type="radio"], input[type="checkbox"] {
 
 .alert-danger {
   background: var(--color-danger-tint);
-  border-color: rgba(248, 81, 73, 0.4);
-  color: #FFB7B2;
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+  color: color-mix(in srgb, var(--color-danger) 55%, var(--color-text));
 }
 
 .alert-info {
   background: var(--color-primary-tint);
-  border-color: rgba(0, 194, 184, 0.35);
-  color: #B7F8F3;
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  color: color-mix(in srgb, var(--color-primary) 45%, var(--color-text));
 }
 
 .alert-gold {
   background: var(--color-gold-tint);
-  border-color: rgba(212, 168, 67, 0.4);
-  color: #F3DB9A;
+  border-color: color-mix(in srgb, var(--color-gold) 40%, transparent);
+  color: color-mix(in srgb, var(--color-gold) 55%, var(--color-text));
 }
 
 .loading-state {
@@ -1237,7 +1265,7 @@ dialog.modal-dialog {
 }
 
 dialog.modal-dialog::backdrop {
-  background-color: rgba(1, 4, 9, 0.7);
+  background-color: var(--color-scrim);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
@@ -1284,7 +1312,7 @@ dialog.modal-dialog::backdrop {
   gap: 0.75rem;
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--color-border);
-  background-color: rgba(13, 17, 23, 0.4);
+  background-color: color-mix(in srgb, var(--color-bg) 40%, transparent);
   border-bottom-left-radius: var(--radius-lg);
   border-bottom-right-radius: var(--radius-lg);
 }
@@ -1337,7 +1365,7 @@ dialog.modal-dialog::backdrop {
 .offline-banner {
   background-color: var(--color-danger-tint);
   color: var(--color-danger);
-  border: 1px solid rgba(248, 81, 73, 0.35);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
   border-radius: var(--radius-md);
   padding: 0.6rem 1rem;
   text-align: center;
@@ -1409,7 +1437,7 @@ dialog.modal-dialog::backdrop {
 
 .rbc-toolbar button.rbc-active {
   background-color: var(--color-primary) !important;
-  color: #04211F !important;
+  color: var(--color-on-primary) !important;
   border-color: var(--color-primary) !important;
   box-shadow: none !important;
 }
@@ -1439,8 +1467,8 @@ dialog.modal-dialog::backdrop {
 .rbc-month-row { border-top: 1px solid var(--color-border) !important; }
 .rbc-day-bg + .rbc-day-bg,
 .rbc-header + .rbc-header { border-left: 1px solid var(--color-border) !important; }
-.rbc-off-range-bg { background-color: rgba(255, 255, 255, 0.02) !important; }
-.rbc-off-range { color: #444C56; }
+.rbc-off-range-bg { background-color: color-mix(in srgb, var(--color-text) 2%, transparent) !important; }
+.rbc-off-range { color: color-mix(in srgb, var(--color-muted) 45%, var(--color-bg)); }
 .rbc-today { background-color: var(--color-primary-tint) !important; }
 .rbc-date-cell { color: var(--color-muted); }
 .rbc-date-cell.rbc-now { color: var(--color-primary); font-weight: 700; }
@@ -1450,7 +1478,7 @@ dialog.modal-dialog::backdrop {
   padding: 3px 8px !important;
   background: var(--color-primary) !important;
   border: none !important;
-  color: #04211F !important;
+  color: var(--color-on-primary) !important;
   font-weight: 600;
   font-size: 0.82rem;
 }
@@ -1458,7 +1486,7 @@ dialog.modal-dialog::backdrop {
 .rbc-time-content { border-top: 1px solid var(--color-border) !important; }
 .rbc-timeslot-group { border-bottom: 1px solid var(--color-border) !important; }
 .rbc-time-slot { border-top: none !important; }
-.rbc-day-slot .rbc-time-slot { border-top: 1px solid rgba(33, 38, 45, 0.5) !important; }
+.rbc-day-slot .rbc-time-slot { border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent) !important; }
 .rbc-time-header-content { border-left: 1px solid var(--color-border) !important; }
 .rbc-time-content > * + * > * { border-left: 1px solid var(--color-border) !important; }
 .rbc-current-time-indicator { background-color: var(--color-danger) !important; }
@@ -1504,7 +1532,7 @@ dialog.modal-dialog::backdrop {
     left: 0;
     right: 0;
     z-index: 100;
-    background: rgba(22, 27, 34, 0.96);
+    background: color-mix(in srgb, var(--color-surface) 96%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-top: 1px solid var(--color-border);
@@ -1607,6 +1635,26 @@ dialog.modal-dialog::backdrop {
   }
 
   .table-card { border-radius: var(--radius-lg); }
+}
+
+/* ── Landing (marketing page) — intentionally ALWAYS dark ──────
+   The hero is photo + white text; re-pin the tokens locally so a signed-in
+   doctor's light theme (set inline on <html>) never bleeds into it. */
+.landing-root {
+  --color-bg: #0D1117;
+  --color-surface: #161B22;
+  --color-surface-2: #1C222B;
+  --color-border: #2B3440;
+  --color-primary: #00C2B8;
+  --color-primary-hover: #00D9CE;
+  --color-primary-tint: rgba(0, 194, 184, 0.10);
+  --color-on-primary: #04211F;
+  --color-text: #E6EDF3;
+  --color-muted: #AAB6C3;
+  --color-muted-strong: #C2CBD6;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  color-scheme: dark;
 }
 
 /* ── Landing navbar (marketing page) ───────────────────────── */
@@ -1741,6 +1789,143 @@ dialog.modal-dialog::backdrop {
   .landing-brand-text { display: none; }
 }
 
+/* ── Theme picker (Fase 13A — Apariencia) ──────────────────── */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+}
+
+.theme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-family: inherit;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.theme-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.theme-card:disabled { cursor: wait; }
+
+.theme-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.theme-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Miniature app mockup — colors come inline from the theme's own tokens */
+.theme-preview {
+  display: flex;
+  height: 92px;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.theme-preview-sidebar {
+  width: 26%;
+  border-radius: 5px;
+  border: 1px solid;
+  padding: 5px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.theme-preview-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.theme-preview-card {
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid;
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.theme-preview-bar { height: 4px; border-radius: 2px; }
+.theme-preview-nav {
+  height: 8px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+}
+.theme-preview-nav .theme-preview-bar { flex: 1; height: 3px; }
+.theme-preview-btn {
+  height: 10px;
+  width: 42%;
+  border-radius: 5px;
+  margin-top: auto;
+}
+
+.theme-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.theme-card-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.theme-card-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.theme-card-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--color-muted);
+}
+
 /* ── PRINT — keep black-on-white output intact ─────────────── */
 @media print {
   @page {
@@ -1757,13 +1942,23 @@ dialog.modal-dialog::backdrop {
     --color-surface: #ffffff !important;
     --color-surface-2: #ffffff !important;
     --color-border: #dddddd !important;
+    --color-border-strong: #dddddd !important;
+    --color-glass: #ffffff !important;
+    --color-input-bg: #ffffff !important;
+    --color-input-bg-focus: #ffffff !important;
     --color-text: #000000 !important;
     --color-muted: #444444 !important;
     --color-muted-strong: #222222 !important;
     --color-primary: #000000 !important;
     --color-primary-hover: #000000 !important;
     --color-primary-tint: transparent !important;
+    --color-on-primary: #ffffff !important;
     --color-gold: #000000 !important;
+    --color-gold-tint: transparent !important;
+    --color-danger: #000000 !important;
+    --color-danger-tint: transparent !important;
+    --color-success: #000000 !important;
+    --color-success-tint: transparent !important;
   }
 
   body, .app-container, #root {
