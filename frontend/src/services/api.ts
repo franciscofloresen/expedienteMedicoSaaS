@@ -23,6 +23,8 @@ import type {
   ProcedimientoChecklist,
   ChecklistItem,
   EventoAdverso,
+  FotografiaClinica,
+  FotografiaCreate,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -345,6 +347,18 @@ export const procedimientosApi = {
     data: { descripcion: string; severidad: 'leve' | 'moderado' | 'grave'; estado: 'abierto' | 'resuelto'; manejo?: string | null },
   ): Promise<EventoAdverso> =>
     api.put<EventoAdverso>(`/procedimientos/eventos-adversos/${id}`, data),
+};
+
+export const fotografiasApi = {
+  list: async (pacienteId: string): Promise<FotografiaClinica[]> =>
+    api.get<FotografiaClinica[]>('/fotografias/', { paciente_id: pacienteId }),
+  create: async (data: FotografiaCreate): Promise<FotografiaClinica> =>
+    api.post<FotografiaClinica>('/fotografias/', data),
+  update: async (
+    id: string,
+    data: Omit<FotografiaCreate, 'paciente_id' | 'clinical_file_id'>,
+  ): Promise<FotografiaClinica> => api.put<FotografiaClinica>(`/fotografias/${id}`, data),
+  remove: async (id: string): Promise<void> => api.delete<void>(`/fotografias/${id}`),
 };
 
 export const encuentrosApi = {

@@ -14,6 +14,7 @@ import FavoritesPicker from '../components/FavoritesPicker';
 import NoteTemplatePicker from '../components/NoteTemplatePicker';
 import LongitudinalSummary from '../components/LongitudinalSummary';
 import ProcedimientosPanel from '../components/ProcedimientosPanel';
+import FotografiasPanel from '../components/FotografiasPanel';
 import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
 import { buildLongitudinalSummary } from '../utils/longitudinalSummary';
 import { useEffect } from 'react';
@@ -1072,7 +1073,10 @@ export default function Expediente() {
       )}
 
       {activeTab === 'archivos' && (
-        <ClinicalFiles expedienteId={expediente.id} />
+        <div className="fade-in">
+          <ClinicalFiles expedienteId={expediente.id} />
+          {id && <FotografiasPanel pacienteId={id} />}
+        </div>
       )}
 
       {activeTab === 'consentimientos' && (

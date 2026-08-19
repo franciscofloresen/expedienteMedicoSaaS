@@ -217,6 +217,36 @@ export interface EventoAdverso {
   modificado_en: string;
 }
 
+// ── Fotografías clínicas (Fase 13) ──
+
+export type FotoCategoria = 'antes' | 'despues' | 'seguimiento' | 'general';
+export type FotoLateralidad = 'izquierda' | 'derecha' | 'bilateral' | 'na';
+
+export interface FotografiaClinica {
+  id: string;
+  paciente_id: string;
+  clinical_file_id: string;
+  consentimiento_id?: string | null;
+  categoria: FotoCategoria;
+  lateralidad?: FotoLateralidad | null;
+  zona_anatomica?: string | null;
+  fecha_toma?: string | null;
+  grupo_comparacion?: string | null;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface FotografiaCreate {
+  paciente_id: string;
+  clinical_file_id: string;
+  consentimiento_id?: string | null;
+  categoria: FotoCategoria;
+  lateralidad?: FotoLateralidad | null;
+  zona_anatomica?: string | null;
+  fecha_toma?: string | null;
+  grupo_comparacion?: string | null;
+}
+
 // ── CIE-10 ──
 
 export interface CIE10 {

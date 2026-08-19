@@ -1577,6 +1577,32 @@ async def verify_procedimientos() -> dict[str, Any]:
     return _envelope("procedimientos", checks, warnings=warnings, counts=counts)
 
 
+async def verify_fotografias() -> dict[str, Any]:
+    """Fase 13: clinical-photo metadata sidecar landed tenant-scoped and editable."""
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "fotografias_clinicas")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+        can_delete = (
+            await session.execute(
+                text("SELECT has_table_privilege('medrecord_app', 'fotografias_clinicas', 'DELETE')")
+            )
+        ).scalar_one()
+        checks.append(_check("fotografias_clinicas: app role can DELETE", bool(can_delete), ""))
+        counts["fotografias"] = (
+            await session.execute(text("SELECT count(*) FROM fotografias_clinicas"))
+        ).scalar_one()
+
+    return _envelope("fotografias", checks, warnings=warnings, counts=counts)
+
+
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
@@ -1593,6 +1619,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "favoritos": verify_favoritos,
     "plantillas_nota": verify_plantillas_nota,
     "procedimientos": verify_procedimientos,
+    "fotografias": verify_fotografias,
 }
 
 

@@ -50,6 +50,7 @@ on:
           - favoritos
           - plantillas_nota
           - procedimientos
+          - fotografias
 
 permissions:
   id-token: write
