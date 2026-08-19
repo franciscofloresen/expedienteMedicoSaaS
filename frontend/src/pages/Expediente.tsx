@@ -11,7 +11,9 @@ import { useServerHealth } from '../hooks/useServerHealth';
 import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import FavoritesPicker from '../components/FavoritesPicker';
 import NoteTemplatePicker from '../components/NoteTemplatePicker';
+import LongitudinalSummary from '../components/LongitudinalSummary';
 import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
+import { buildLongitudinalSummary } from '../utils/longitudinalSummary';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -19,7 +21,7 @@ import ClinicalFiles from '../components/ClinicalFiles';
 import { SignaturePad } from '../components/SignaturePad';
 import { useReverification } from '@clerk/react';
 
-type TabKey = 'resumen' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
+type TabKey = 'resumen' | 'longitudinal' | 'consultas' | 'historia' | 'archivos' | 'consentimientos';
 
 function initials(nombre?: string): string {
   if (!nombre) return '';
@@ -721,6 +723,9 @@ export default function Expediente() {
         <button role="tab" aria-selected={activeTab === 'resumen'} className={activeTab === 'resumen' ? 'tab active' : 'tab'} onClick={() => setActiveTab('resumen')}>
           Resumen
         </button>
+        <button role="tab" aria-selected={activeTab === 'longitudinal'} className={activeTab === 'longitudinal' ? 'tab active' : 'tab'} onClick={() => setActiveTab('longitudinal')}>
+          Longitudinal
+        </button>
         <button role="tab" aria-selected={activeTab === 'consultas'} className={activeTab === 'consultas' ? 'tab active' : 'tab'} onClick={() => setActiveTab('consultas')}>
           Consultas <span className="tab-count">{notas.length}</span>
         </button>
@@ -823,6 +828,13 @@ export default function Expediente() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Tab: Longitudinal ── */}
+      {activeTab === 'longitudinal' && (
+        <LongitudinalSummary
+          summary={buildLongitudinalSummary(paciente, notas, consentimientos)}
+        />
       )}
 
       {/* ── Tab: Consultas ── */}
