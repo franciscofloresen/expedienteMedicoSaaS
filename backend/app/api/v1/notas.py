@@ -591,6 +591,23 @@ async def firmar_nota(
     nota.es_editable = False
     nota.estado = "signed"
 
+    # Fase 12 §9 (Fase 2 debt): stamp the signing credential on the ENCUENTRO, not
+    # the note. The signed note is never UPDATEd again (§1.1); the link travels on
+    # the mutable encuentro side. Set once, when still NULL, so a correction never
+    # rewrites which credential signed the encounter's note.
+    if nota.encuentro_clinico_id and credencial.credencial_id:
+        from app.models.encuentro import EncuentroClinico
+
+        encuentro = (
+            await db.execute(
+                select(EncuentroClinico).where(
+                    EncuentroClinico.id == nota.encuentro_clinico_id
+                )
+            )
+        ).scalar_one_or_none()
+        if encuentro is not None and encuentro.credencial_id is None:
+            encuentro.credencial_id = credencial.credencial_id
+
     await db.flush()
 
     return {

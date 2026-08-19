@@ -2,12 +2,14 @@
 import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, RefreshCcw, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
-import { consentimientosApi, expedientesApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
+import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
+import { consentimientosApi, expedientesApi, favoritosApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
 import type { Nota, NotaCreate, NotaDiagnosticoCie10 } from '../types';
 import { useToast } from '../hooks/useToast';
-import { useAutosave } from '../hooks/useAutosave';
+import { useServerAutosave } from '../hooks/useServerAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
+import PatientIdentityBanner from '../components/PatientIdentityBanner';
+import FavoritesPicker from '../components/FavoritesPicker';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -84,8 +86,18 @@ export default function Expediente() {
   const [witnessSignatures, setWitnessSignatures] = useState<string[]>([]);
   const [credentialByConsent, setCredentialByConsent] = useState<Record<string, string>>({});
 
-  // Autosave Draft
-  const { draft, hasDraft, draftAge, saveDraft, clearDraft, lastSaveSecondsAgo } = useAutosave<any>(`nota-${id}`);
+  // Fase 13: server autosave for existing drafts (no PHI in localStorage). A NEW
+  // note can't be autosaved because NOM-004 requires vitals + diagnosis before the
+  // note exists; it persists only on "Guardar borrador".
+  const [formSnapshot, setFormSnapshot] = useState<Record<string, unknown> | null>(null);
+  const autosave = useServerAutosave({
+    data: editingNota ? formSnapshot : null,
+    enabled: Boolean(editingNota) && isSidePanelOpen && !isDegraded,
+    save: async (snap) => {
+      if (!editingNota) return;
+      await notasApi.update(editingNota.id, snap as Partial<NotaCreate>);
+    },
+  });
 
   // Consent state
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -217,7 +229,7 @@ export default function Expediente() {
       setIsSidePanelOpen(false);
       setEditingNota(null);
       setDiagnosticosCie10([]);
-      clearDraft();
+      setFormSnapshot(null);
       showToast("Borrador de nota médica guardado.", "success");
     },
     onError: (error: unknown) => {
@@ -235,7 +247,7 @@ export default function Expediente() {
       setIsSidePanelOpen(false);
       setEditingNota(null);
       setDiagnosticosCie10([]);
-      clearDraft();
+      setFormSnapshot(null);
       showToast("Borrador de nota médica actualizado.", "success");
     },
     onError: (error: unknown) => {
@@ -326,59 +338,32 @@ export default function Expediente() {
     }
   };
 
-  const saveNotaDraft = (
-    form: HTMLFormElement,
-    cie10: NotaDiagnosticoCie10[] = diagnosticosCie10,
-  ) => {
-    const formData = new FormData(form);
-    saveDraft({
-      fc: formData.get('fc'),
-      fr: formData.get('fr'),
-      temp: formData.get('temp'),
-      ta: formData.get('ta'),
-      motivo_consulta: formData.get('motivo_consulta'),
-      exploracion_fisica: formData.get('exploracion_fisica'),
-      diagnostico: formData.get('diagnostico'),
-      diagnosticos_cie10: cie10,
-      plan_tratamiento: formData.get('plan_tratamiento')
-    });
+  // Snapshot the editable fields as a NotaUpdate payload so server autosave can
+  // persist an existing draft. Mirrors the updateNotaMutation payload.
+  const buildNoteSnapshot = (form: HTMLFormElement): Record<string, unknown> => {
+    const fd = new FormData(form);
+    return {
+      contenido: {},
+      signos_vitales: {
+        frecuencia_cardiaca: Number(fd.get('fc')),
+        frecuencia_respiratoria: Number(fd.get('fr')),
+        temperatura: Number(fd.get('temp')),
+        tension_arterial: fd.get('ta') as string,
+      },
+      diagnosticos: [fd.get('diagnostico') as string],
+      tratamiento: fd.get('plan_tratamiento') as string,
+      motivo_consulta: fd.get('motivo_consulta') as string,
+      exploracion_fisica: fd.get('exploracion_fisica') as string,
+      plan_tratamiento: fd.get('plan_tratamiento') as string,
+    };
   };
 
   const handleFormChange = (e: FormEvent<HTMLFormElement>) => {
-    if (editingNota) return; // Only autosave new drafts
-    saveNotaDraft(e.currentTarget);
+    setFormSnapshot(buildNoteSnapshot(e.currentTarget));
   };
 
   const handleCie10Change = (next: NotaDiagnosticoCie10[]) => {
     setDiagnosticosCie10(next);
-    if (editingNota) return;
-    const form = document.getElementById('nota-form') as HTMLFormElement | null;
-    if (form) saveNotaDraft(form, next);
-  };
-
-  const applyDraft = () => {
-    if (!draft) return;
-    const form = document.getElementById('nota-form') as HTMLFormElement;
-    if (!form) return;
-
-    // Helper to set value
-    const setVal = (name: string, val: any) => {
-      if (val) {
-        const input = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
-        if (input) input.value = val;
-      }
-    };
-
-    setVal('fc', draft.fc);
-    setVal('fr', draft.fr);
-    setVal('temp', draft.temp);
-    setVal('ta', draft.ta);
-    setVal('motivo_consulta', draft.motivo_consulta);
-    setVal('exploracion_fisica', draft.exploracion_fisica);
-    setVal('diagnostico', draft.diagnostico);
-    setDiagnosticosCie10(draft.diagnosticos_cie10 || []);
-    setVal('plan_tratamiento', draft.plan_tratamiento);
-    showToast("Borrador recuperado", "success");
   };
 
   const confirmSign = (nota: Nota) => {
@@ -447,6 +432,29 @@ export default function Expediente() {
   const handlePrintReceta = () => {
     if (!activeNotaForReceta) return;
     createRecetaMutation.mutate({ nota_id: activeNotaForReceta.id, texto: recetaText });
+  };
+
+  // Fase 13: doctor's prescription favorites — one-click insertion + save-current.
+  const { data: recetaFavoritos = [] } = useQuery({
+    queryKey: ['favoritos', 'receta'],
+    queryFn: () => favoritosApi.list('receta'),
+  });
+  const saveRecetaFavoritoMutation = useMutation({
+    mutationFn: (data: { label: string; texto: string }) =>
+      favoritosApi.create({ kind: 'receta', label: data.label, texto: data.texto }),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['favoritos', 'receta'] });
+      showToast('Receta guardada en tus favoritos.', 'success');
+    },
+    onError: (error: unknown) =>
+      showToast(friendlyActionError(error, 'No se pudo guardar el favorito.'), 'error'),
+  });
+  const handleSaveRecetaFavorito = () => {
+    const texto = recetaText.trim();
+    if (!texto) return;
+    const label = window.prompt('Nombre corto para este favorito:', texto.slice(0, 40));
+    if (!label || !label.trim()) return;
+    saveRecetaFavoritoMutation.mutate({ label: label.trim(), texto });
   };
 
   const createConsentimientoMutation = useMutation({
@@ -603,7 +611,7 @@ export default function Expediente() {
           <button className="btn btn-outline no-print" onClick={() => window.print()}>
             <Printer size={16} /> Imprimir / PDF
           </button>
-          <button className="btn btn-primary" onClick={() => { setEditingNota(null); setDiagnosticosCie10(draft?.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }}>
+          <button className="btn btn-primary" onClick={() => { setEditingNota(null); setDiagnosticosCie10([]); setFormSnapshot(null); setIsSidePanelOpen(true); }}>
             <Plus size={16} /> Nueva consulta
           </button>
         </div>
@@ -726,7 +734,7 @@ export default function Expediente() {
               <div className="spinner" />
             </div>
           ) : notas.length === 0 ? (
-            <EmptyNotas onCreate={() => { setEditingNota(null); setDiagnosticosCie10(draft?.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }} />
+            <EmptyNotas onCreate={() => { setEditingNota(null); setDiagnosticosCie10([]); setFormSnapshot(null); setIsSidePanelOpen(true); }} />
           ) : (
             <div className="timeline">
               {notas.map((nota: Nota) => (
@@ -1034,21 +1042,13 @@ export default function Expediente() {
           </button>
         </div>
 
-        {!editingNota && hasDraft && (
-          <div style={{ backgroundColor: 'var(--color-primary-tint)', border: '1px solid rgba(0,194,184,0.3)', padding: '0.8rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontSize: '0.85rem' }}>
-              <RefreshCcw size={14} />
-              <span>Borrador guardado localmente {draftAge}</span>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button type="button" className="btn btn-ghost" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', color: 'var(--color-danger)' }} onClick={clearDraft}>
-                Descartar
-              </button>
-              <button type="button" className="btn btn-primary" style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem' }} onClick={applyDraft}>
-                Recuperar
-              </button>
-            </div>
-          </div>
+        <PatientIdentityBanner paciente={paciente} context="captura" />
+
+        {!editingNota && (
+          <p className="text-muted" style={{ fontSize: '0.78rem', marginBottom: '1rem' }}>
+            Este borrador se guarda al presionar <strong>Guardar borrador</strong>. No se
+            almacenan datos del paciente en este dispositivo.
+          </p>
         )}
 
         <form id="nota-form" onSubmit={handleSubmitNota} onChange={handleFormChange}>
@@ -1057,9 +1057,17 @@ export default function Expediente() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
                 <span className="overline">Signos vitales</span>
-                {!editingNota && lastSaveSecondsAgo !== null && (
+                {editingNota && (
                   <span className="text-muted" style={{ fontSize: '0.7rem' }}>
-                    Guardado local hace {lastSaveSecondsAgo}s
+                    {isDegraded
+                      ? 'Sin conexión — cambios sin guardar'
+                      : autosave.status === 'saving'
+                        ? 'Guardando…'
+                        : autosave.status === 'saved'
+                          ? 'Guardado en el servidor'
+                          : autosave.status === 'error'
+                            ? 'No se pudo guardar'
+                            : 'Autoguardado activo'}
                   </span>
                 )}
               </div>
@@ -1162,6 +1170,7 @@ export default function Expediente() {
           </>
         }
       >
+        <PatientIdentityBanner paciente={paciente} context="firma" />
         <div className="alert alert-gold" style={{ marginBottom: '1.25rem' }}>
           <ShieldCheck size={18} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
           <p style={{ margin: 0 }}>Al firmar esta nota médica, se genera evidencia verificable vinculada a tu identidad profesional y al contenido del documento.</p>
@@ -1237,6 +1246,14 @@ export default function Expediente() {
           </>
         }
       >
+        <PatientIdentityBanner paciente={paciente} context="receta" />
+        <FavoritesPicker
+          favoritos={recetaFavoritos}
+          label="Recetas favoritas"
+          onInsert={(texto) => setRecetaText((prev) => (prev ? `${prev}\n${texto}` : texto))}
+          onSaveCurrent={handleSaveRecetaFavorito}
+          canSave={Boolean(recetaText.trim())}
+        />
         <div className="form-group">
           <label className="form-label">Medicamentos e indicaciones <span className="required-mark">*</span></label>
           <textarea

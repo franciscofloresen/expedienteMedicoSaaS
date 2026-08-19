@@ -15,6 +15,9 @@ import type {
   EncuentroTipo,
   TipoSugerido,
   CIE10,
+  MedicoFavorito,
+  MedicoFavoritoCreate,
+  FavoritoKind,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -287,6 +290,16 @@ export function isPrimeraVezConflict(
   const e = error as { status?: number; code?: string } | null;
   return Boolean(e) && e!.status === 409 && e!.code === 'primera_vez_duplicada';
 }
+
+export const favoritosApi = {
+  list: async (kind?: FavoritoKind): Promise<MedicoFavorito[]> =>
+    api.get<MedicoFavorito[]>('/favoritos/', kind ? { kind } : undefined),
+  create: async (data: MedicoFavoritoCreate): Promise<MedicoFavorito> =>
+    api.post<MedicoFavorito>('/favoritos/', data),
+  update: async (id: string, data: { label: string; texto: string }): Promise<MedicoFavorito> =>
+    api.put<MedicoFavorito>(`/favoritos/${id}`, data),
+  remove: async (id: string): Promise<void> => api.delete<void>(`/favoritos/${id}`),
+};
 
 export const encuentrosApi = {
   list: async (pacienteId?: string): Promise<Encuentro[]> => {

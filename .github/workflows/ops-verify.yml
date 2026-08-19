@@ -47,6 +47,7 @@ on:
           - fase9
           - backups
           - recuperacion
+          - favoritos
 
 permissions:
   id-token: write
