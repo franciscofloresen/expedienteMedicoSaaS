@@ -1508,6 +1508,43 @@ async def verify_favoritos() -> dict[str, Any]:
     return _envelope("favoritos", checks, warnings=warnings, counts=counts)
 
 
+async def verify_plantillas_nota() -> dict[str, Any]:
+    """Fase 13: the note-templates table landed tenant-scoped and editable.
+
+    Read-only, no PHI: structural facts + a count. Templates are editable
+    preferences, so — unlike clinical tables — the app role KEEPS DELETE.
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "nota_plantillas")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+
+        can_delete = (
+            await session.execute(
+                text("SELECT has_table_privilege('medrecord_app', 'nota_plantillas', 'DELETE')")
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "nota_plantillas: app role can DELETE (editable preference, not evidence)",
+                bool(can_delete),
+                f"has_delete={can_delete}",
+            )
+        )
+        counts["plantillas"] = (
+            await session.execute(text("SELECT count(*) FROM nota_plantillas"))
+        ).scalar_one()
+
+    return _envelope("plantillas_nota", checks, warnings=warnings, counts=counts)
+
+
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
@@ -1522,6 +1559,7 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "backups": verify_backups,
     "recuperacion": verify_recuperacion,
     "favoritos": verify_favoritos,
+    "plantillas_nota": verify_plantillas_nota,
 }
 
 

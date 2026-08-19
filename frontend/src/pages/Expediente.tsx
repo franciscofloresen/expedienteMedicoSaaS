@@ -3,13 +3,14 @@ import { useState, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
-import { consentimientosApi, expedientesApi, favoritosApi, messagesApi, notasApi, pacientesApi, recetasApi } from '../services/api';
-import type { Nota, NotaCreate, NotaDiagnosticoCie10, FavoritoKind, MedicoFavoritoCreate } from '../types';
+import { consentimientosApi, expedientesApi, favoritosApi, messagesApi, notasApi, pacientesApi, plantillasNotaApi, recetasApi } from '../services/api';
+import type { Nota, NotaCreate, NotaDiagnosticoCie10, FavoritoKind, MedicoFavoritoCreate, NotaPlantilla } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useServerAutosave } from '../hooks/useServerAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
 import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import FavoritesPicker from '../components/FavoritesPicker';
+import NoteTemplatePicker from '../components/NoteTemplatePicker';
 import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
@@ -516,6 +517,44 @@ export default function Expediente() {
     if (!label || !label.trim()) return;
     createFavoritoMutation.mutate({ kind, label: label.trim(), texto });
   };
+
+  // Fase 13: configurable note templates (versioned JSON of field pre-fills).
+  const { data: notaPlantillas = [] } = useQuery({
+    queryKey: ['plantillas-nota'],
+    queryFn: () => plantillasNotaApi.list(),
+  });
+  const createPlantillaMutation = useMutation({
+    mutationFn: (data: { nombre: string; campos: Record<string, string> }) =>
+      plantillasNotaApi.create(data),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['plantillas-nota'] });
+      showToast('Plantilla guardada.', 'success');
+    },
+    onError: (error: unknown) =>
+      showToast(friendlyActionError(error, 'No se pudo guardar la plantilla.'), 'error'),
+  });
+
+  const applyNoteTemplate = (plantilla: NotaPlantilla) => {
+    Object.entries(plantilla.campos).forEach(([field, texto]) => {
+      if (texto) insertIntoNoteField(field, texto);
+    });
+    showToast(`Plantilla "${plantilla.nombre}" aplicada. Revisa y completa.`, 'info');
+  };
+  const handleSaveNoteTemplate = () => {
+    const campos: Record<string, string> = {};
+    for (const field of ['motivo_consulta', 'exploracion_fisica', 'plan_tratamiento', 'diagnostico']) {
+      const value = readNoteField(field).trim();
+      if (value) campos[field] = value;
+    }
+    if (Object.keys(campos).length === 0) return;
+    const nombre = window.prompt('Nombre de la plantilla:');
+    if (!nombre || !nombre.trim()) return;
+    createPlantillaMutation.mutate({ nombre: nombre.trim(), campos });
+  };
+  const noteHasContent = () =>
+    ['motivo_consulta', 'exploracion_fisica', 'plan_tratamiento', 'diagnostico'].some(
+      (f) => readNoteField(f).trim(),
+    );
 
   const createConsentimientoMutation = useMutation({
     mutationFn: async (form: FormData) => {
@@ -1133,6 +1172,12 @@ export default function Expediente() {
         )}
 
         <form key={formKey} id="nota-form" onSubmit={handleSubmitNota} onChange={handleFormChange}>
+          <NoteTemplatePicker
+            plantillas={notaPlantillas}
+            onApply={applyNoteTemplate}
+            onSaveCurrent={handleSaveNoteTemplate}
+            canSave={noteHasContent()}
+          />
           <div className="encounter-grid">
             {/* Left column: vital signs */}
             <div>

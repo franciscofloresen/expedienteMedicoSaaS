@@ -170,6 +170,22 @@ export interface MedicoFavoritoCreate {
   texto: string;
 }
 
+// ── Plantillas de nota (Fase 13) ──
+
+export interface NotaPlantilla {
+  id: string;
+  nombre: string;
+  campos: Record<string, string>;
+  version: number;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface NotaPlantillaCreate {
+  nombre: string;
+  campos: Record<string, string>;
+}
+
 // ── CIE-10 ──
 
 export interface CIE10 {

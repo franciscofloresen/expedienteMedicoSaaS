@@ -18,6 +18,8 @@ import type {
   MedicoFavorito,
   MedicoFavoritoCreate,
   FavoritoKind,
+  NotaPlantilla,
+  NotaPlantillaCreate,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -299,6 +301,15 @@ export const favoritosApi = {
   update: async (id: string, data: { label: string; texto: string }): Promise<MedicoFavorito> =>
     api.put<MedicoFavorito>(`/favoritos/${id}`, data),
   remove: async (id: string): Promise<void> => api.delete<void>(`/favoritos/${id}`),
+};
+
+export const plantillasNotaApi = {
+  list: async (): Promise<NotaPlantilla[]> => api.get<NotaPlantilla[]>('/plantillas-nota/'),
+  create: async (data: NotaPlantillaCreate): Promise<NotaPlantilla> =>
+    api.post<NotaPlantilla>('/plantillas-nota/', data),
+  update: async (id: string, data: NotaPlantillaCreate): Promise<NotaPlantilla> =>
+    api.put<NotaPlantilla>(`/plantillas-nota/${id}`, data),
+  remove: async (id: string): Promise<void> => api.delete<void>(`/plantillas-nota/${id}`),
 };
 
 export const encuentrosApi = {

@@ -25,6 +25,10 @@ def test_recuperacion_is_registered() -> None:
 
 def test_favoritos_is_registered() -> None:
     assert "favoritos" in available_actions()
+
+
+def test_plantillas_nota_is_registered() -> None:
+    assert "plantillas_nota" in available_actions()
 def test_unknown_action_returns_failing_envelope() -> None:
     """An unknown action must not raise — it returns an ok=False envelope so the
     Lambda handler can map it to a 500 rather than crashing."""
