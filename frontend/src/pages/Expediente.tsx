@@ -10,6 +10,7 @@ import { useServerAutosave } from '../hooks/useServerAutosave';
 import { useServerHealth } from '../hooks/useServerHealth';
 import PatientIdentityBanner from '../components/PatientIdentityBanner';
 import FavoritesPicker from '../components/FavoritesPicker';
+import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
 import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
@@ -98,6 +99,21 @@ export default function Expediente() {
       await notasApi.update(editingNota.id, snap as Partial<NotaCreate>);
     },
   });
+
+  // Fase 13: copy-from-previous-consult. seedDraft holds the narrative fields
+  // carried into a NEW draft; formKey remounts the uncontrolled form so the seed
+  // (and edit defaults) actually apply on open.
+  const [seedDraft, setSeedDraft] = useState<CopyForwardDraft | null>(null);
+  const [formKey, setFormKey] = useState(0);
+
+  const openNoteEditor = (opts?: { nota?: Nota; seed?: CopyForwardDraft }) => {
+    setEditingNota(opts?.nota ?? null);
+    setSeedDraft(opts?.seed ?? null);
+    setDiagnosticosCie10(opts?.nota?.diagnosticos_cie10 ?? []);
+    setFormSnapshot(null);
+    setFormKey((k) => k + 1);
+    setIsSidePanelOpen(true);
+  };
 
   // Consent state
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -230,6 +246,7 @@ export default function Expediente() {
       setEditingNota(null);
       setDiagnosticosCie10([]);
       setFormSnapshot(null);
+      setSeedDraft(null);
       showToast("Borrador de nota médica guardado.", "success");
     },
     onError: (error: unknown) => {
@@ -248,6 +265,7 @@ export default function Expediente() {
       setEditingNota(null);
       setDiagnosticosCie10([]);
       setFormSnapshot(null);
+      setSeedDraft(null);
       showToast("Borrador de nota médica actualizado.", "success");
     },
     onError: (error: unknown) => {
@@ -611,7 +629,7 @@ export default function Expediente() {
           <button className="btn btn-outline no-print" onClick={() => window.print()}>
             <Printer size={16} /> Imprimir / PDF
           </button>
-          <button className="btn btn-primary" onClick={() => { setEditingNota(null); setDiagnosticosCie10([]); setFormSnapshot(null); setIsSidePanelOpen(true); }}>
+          <button className="btn btn-primary" onClick={() => openNoteEditor()}>
             <Plus size={16} /> Nueva consulta
           </button>
         </div>
@@ -734,7 +752,7 @@ export default function Expediente() {
               <div className="spinner" />
             </div>
           ) : notas.length === 0 ? (
-            <EmptyNotas onCreate={() => { setEditingNota(null); setDiagnosticosCie10([]); setFormSnapshot(null); setIsSidePanelOpen(true); }} />
+            <EmptyNotas onCreate={() => openNoteEditor()} />
           ) : (
             <div className="timeline">
               {notas.map((nota: Nota) => (
@@ -763,24 +781,34 @@ export default function Expediente() {
                         </div>
                       </div>
 
-                      {!nota.firmada && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            className="btn btn-outline"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                            onClick={() => { setEditingNota(nota); setDiagnosticosCie10(nota.diagnosticos_cie10 || []); setIsSidePanelOpen(true); }}
-                          >
-                            <Edit3 size={13} /> Editar
-                          </button>
-                          <button
-                            className="btn btn-gold"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                            onClick={() => confirmSign(nota)}
-                          >
-                            <Lock size={13} /> Firmar nota
-                          </button>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          className="btn btn-outline"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                          onClick={() => openNoteEditor({ seed: buildCopyForwardDraft(nota) })}
+                          title="Iniciar una nueva consulta con el motivo y plan de ésta (revisables)"
+                        >
+                          <ClipboardList size={13} /> Copiar a nueva
+                        </button>
+                        {!nota.firmada && (
+                          <>
+                            <button
+                              className="btn btn-outline"
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                              onClick={() => openNoteEditor({ nota })}
+                            >
+                              <Edit3 size={13} /> Editar
+                            </button>
+                            <button
+                              className="btn btn-gold"
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                              onClick={() => confirmSign(nota)}
+                            >
+                              <Lock size={13} /> Firmar nota
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Note body */}
@@ -1037,12 +1065,23 @@ export default function Expediente() {
             <FileSignature size={20} color="var(--color-primary)" />
             {editingNota ? 'Editar borrador' : 'Nueva consulta'}
           </h2>
-          <button className="btn-icon" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); }} aria-label="Cerrar panel">
+          <button className="btn-icon" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); setSeedDraft(null); }} aria-label="Cerrar panel">
             <X size={20} />
           </button>
         </div>
 
         <PatientIdentityBanner paciente={paciente} context="captura" />
+
+        {!editingNota && seedDraft && (
+          <div className="alert" role="note" style={{ marginBottom: '1rem', border: '1px solid var(--color-primary, #2563eb)', borderRadius: '8px', padding: '0.6rem 0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+            <ClipboardList size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span style={{ fontSize: '0.85rem' }}>
+              <strong>Datos heredados de una consulta previa</strong> (motivo y plan). Revísalos
+              y actualízalos. Los signos vitales, la exploración y el diagnóstico
+              <strong> no</strong> se copian: captúralos de nuevo.
+            </span>
+          </div>
+        )}
 
         {!editingNota && (
           <p className="text-muted" style={{ fontSize: '0.78rem', marginBottom: '1rem' }}>
@@ -1051,7 +1090,7 @@ export default function Expediente() {
           </p>
         )}
 
-        <form id="nota-form" onSubmit={handleSubmitNota} onChange={handleFormChange}>
+        <form key={formKey} id="nota-form" onSubmit={handleSubmitNota} onChange={handleFormChange}>
           <div className="encounter-grid">
             {/* Left column: vital signs */}
             <div>
@@ -1096,7 +1135,7 @@ export default function Expediente() {
               <span className="overline" style={{ marginBottom: '0.75rem' }}>Contenido clínico</span>
               <div className="form-group" style={{ marginTop: '0.75rem' }}>
                 <label className="form-label">Motivo de consulta y evolución <span className="required-mark">*</span></label>
-                <textarea name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva…" defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro}></textarea>
+                <textarea name="motivo_consulta" className="form-input" rows={3} required minLength={5} placeholder="Describa el motivo y la evolución subjetiva…" defaultValue={editingNota?.motivo_consulta || editingNota?.contenido?.evolucion_y_actualizacion_cuadro || seedDraft?.motivo_consulta}></textarea>
               </div>
 
               <div className="form-group">
@@ -1126,13 +1165,13 @@ export default function Expediente() {
 
               <div className="form-group">
                 <label className="form-label">Plan / Tratamiento <span className="required-mark">*</span></label>
-                <textarea name="plan_tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.plan_tratamiento || editingNota?.contenido?.tratamiento}></textarea>
+                <textarea name="plan_tratamiento" className="form-input" rows={3} required minLength={5} defaultValue={editingNota?.plan_tratamiento || editingNota?.contenido?.tratamiento || seedDraft?.plan_tratamiento}></textarea>
               </div>
             </div>
           </div>
 
           <div style={{ marginTop: '1.75rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-outline" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); }}>Cancelar</button>
+            <button type="button" className="btn btn-outline" onClick={() => { setIsSidePanelOpen(false); setEditingNota(null); setDiagnosticosCie10([]); setSeedDraft(null); }}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={draftNotaMutation.isPending || updateNotaMutation.isPending}>
               {draftNotaMutation.isPending || updateNotaMutation.isPending ? 'Guardando nota…' : (editingNota ? 'Actualizar borrador' : 'Guardar borrador')}
             </button>
