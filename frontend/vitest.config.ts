@@ -21,7 +21,7 @@ export default defineConfig({
       reporter: ['text', 'text-summary'],
       // Focus coverage on business logic, not scaffolding, config, or pure-markup
       // pages — "no premiar cobertura de modelos vacíos" (Fase 11).
-      include: ['src/hooks/**', 'src/contexts/**', 'src/services/**', 'src/utils/**'],
+      include: ['src/hooks/**', 'src/contexts/**', 'src/services/**', 'src/utils/**', 'src/theme/**'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/types.ts'],
     },
   },

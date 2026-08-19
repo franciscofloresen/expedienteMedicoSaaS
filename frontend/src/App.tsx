@@ -21,6 +21,7 @@ import ContinuidadImprimible from './pages/ContinuidadImprimible';
 
 import { ToastProvider } from './contexts/ToastContext';
 import { ServerHealthProvider } from './contexts/ServerHealthContext';
+import { ThemeProvider } from './theme/ThemeProvider';
 import { useAuth } from '@clerk/react';
 import type { ReactNode } from 'react';
 import { setTokenFetcher } from './services/api';
@@ -41,6 +42,7 @@ function App() {
       <ToastProvider>
         <ErrorBoundary>
           <ApiSetup>
+            <ThemeProvider>
             <ServerHealthProvider>
             <BrowserRouter>
               <Routes>
@@ -69,6 +71,7 @@ function App() {
               </Routes>
             </BrowserRouter>
             </ServerHealthProvider>
+            </ThemeProvider>
           </ApiSetup>
         </ErrorBoundary>
       </ToastProvider>

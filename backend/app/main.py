@@ -26,9 +26,12 @@ from app.api.v1 import (
     expedientes,
     favoritos,
     files,
+    fotografias,
     messages,
     notas,
     pacientes,
+    plantillas_nota,
+    procedimientos,
     recetas,
     reminders,
     verify,
@@ -213,6 +216,13 @@ app.include_router(messages.router, prefix="/api/v1/messages", tags=["Mensajes"]
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Auditoría"])
 app.include_router(reminders.router, prefix="/api/v1/reminders", tags=["Recordatorios"])
 app.include_router(favoritos.router, prefix="/api/v1/favoritos", tags=["Favoritos"])
+app.include_router(fotografias.router, prefix="/api/v1/fotografias", tags=["Fotografías clínicas"])
+app.include_router(
+    plantillas_nota.router, prefix="/api/v1/plantillas-nota", tags=["Plantillas de nota"]
+)
+app.include_router(
+    procedimientos.router, prefix="/api/v1/procedimientos", tags=["Procedimientos"]
+)
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 

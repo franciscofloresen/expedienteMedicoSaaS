@@ -170,6 +170,83 @@ export interface MedicoFavoritoCreate {
   texto: string;
 }
 
+// ── Plantillas de nota (Fase 13) ──
+
+export interface NotaPlantilla {
+  id: string;
+  nombre: string;
+  campos: Record<string, string>;
+  version: number;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface NotaPlantillaCreate {
+  nombre: string;
+  campos: Record<string, string>;
+}
+
+// ── Procedimientos (Fase 13) ──
+
+export interface ChecklistItem {
+  texto: string;
+  completado: boolean;
+}
+
+export interface ProcedimientoChecklist {
+  id: string;
+  paciente_id: string;
+  encuentro_id?: string | null;
+  momento: 'pre' | 'post';
+  items: ChecklistItem[];
+  observaciones?: string | null;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface EventoAdverso {
+  id: string;
+  paciente_id: string;
+  encuentro_id?: string | null;
+  descripcion: string;
+  severidad: 'leve' | 'moderado' | 'grave';
+  fecha?: string | null;
+  manejo?: string | null;
+  estado: 'abierto' | 'resuelto';
+  creado_en: string;
+  modificado_en: string;
+}
+
+// ── Fotografías clínicas (Fase 13) ──
+
+export type FotoCategoria = 'antes' | 'despues' | 'seguimiento' | 'general';
+export type FotoLateralidad = 'izquierda' | 'derecha' | 'bilateral' | 'na';
+
+export interface FotografiaClinica {
+  id: string;
+  paciente_id: string;
+  clinical_file_id: string;
+  consentimiento_id?: string | null;
+  categoria: FotoCategoria;
+  lateralidad?: FotoLateralidad | null;
+  zona_anatomica?: string | null;
+  fecha_toma?: string | null;
+  grupo_comparacion?: string | null;
+  creado_en: string;
+  modificado_en: string;
+}
+
+export interface FotografiaCreate {
+  paciente_id: string;
+  clinical_file_id: string;
+  consentimiento_id?: string | null;
+  categoria: FotoCategoria;
+  lateralidad?: FotoLateralidad | null;
+  zona_anatomica?: string | null;
+  fecha_toma?: string | null;
+  grupo_comparacion?: string | null;
+}
+
 // ── CIE-10 ──
 
 export interface CIE10 {

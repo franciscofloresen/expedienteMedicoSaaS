@@ -1748,16 +1748,22 @@ dialog.modal-dialog::backdrop {
     size: letter portrait;
   }
 
-  /* Re-map tokens to print-safe values so any var() usage prints dark-on-light */
+  /* Re-map tokens to print-safe values so any var() usage prints dark-on-light.
+     !important guarantees neutrality even when a Fase 13A theme sets these tokens
+     inline on :root for the on-screen shell — a theme never enters a printed
+     medical-legal document. */
   :root {
-    --color-bg: #ffffff;
-    --color-surface: #ffffff;
-    --color-surface-2: #ffffff;
-    --color-border: #dddddd;
-    --color-text: #000000;
-    --color-muted: #444444;
-    --color-primary: #000000;
-    --color-gold: #000000;
+    --color-bg: #ffffff !important;
+    --color-surface: #ffffff !important;
+    --color-surface-2: #ffffff !important;
+    --color-border: #dddddd !important;
+    --color-text: #000000 !important;
+    --color-muted: #444444 !important;
+    --color-muted-strong: #222222 !important;
+    --color-primary: #000000 !important;
+    --color-primary-hover: #000000 !important;
+    --color-primary-tint: transparent !important;
+    --color-gold: #000000 !important;
   }
 
   body, .app-container, #root {

@@ -18,6 +18,13 @@ import type {
   MedicoFavorito,
   MedicoFavoritoCreate,
   FavoritoKind,
+  NotaPlantilla,
+  NotaPlantillaCreate,
+  ProcedimientoChecklist,
+  ChecklistItem,
+  EventoAdverso,
+  FotografiaClinica,
+  FotografiaCreate,
 } from '../types';
 
 // API base URL from environment variable (defaults to local dev)
@@ -194,7 +201,11 @@ export const authApi = {
   },
   onboarding: async (data: { nombre_medico: string; cedula: string; especialidad?: string }): Promise<any> => {
     return api.post('/auth/onboarding', data);
-  }
+  },
+  // Fase 13A: UI theme preference (separate from the professional profile).
+  setTheme: async (tema: string): Promise<{ tema: string }> => {
+    return api.put<{ tema: string }>('/auth/preferences/theme', { tema });
+  },
 };
 
 // Servicios de Pacientes
@@ -299,6 +310,59 @@ export const favoritosApi = {
   update: async (id: string, data: { label: string; texto: string }): Promise<MedicoFavorito> =>
     api.put<MedicoFavorito>(`/favoritos/${id}`, data),
   remove: async (id: string): Promise<void> => api.delete<void>(`/favoritos/${id}`),
+};
+
+export const plantillasNotaApi = {
+  list: async (): Promise<NotaPlantilla[]> => api.get<NotaPlantilla[]>('/plantillas-nota/'),
+  create: async (data: NotaPlantillaCreate): Promise<NotaPlantilla> =>
+    api.post<NotaPlantilla>('/plantillas-nota/', data),
+  update: async (id: string, data: NotaPlantillaCreate): Promise<NotaPlantilla> =>
+    api.put<NotaPlantilla>(`/plantillas-nota/${id}`, data),
+  remove: async (id: string): Promise<void> => api.delete<void>(`/plantillas-nota/${id}`),
+};
+
+export const procedimientosApi = {
+  listChecklists: async (pacienteId: string): Promise<ProcedimientoChecklist[]> =>
+    api.get<ProcedimientoChecklist[]>('/procedimientos/checklists', { paciente_id: pacienteId }),
+  createChecklist: async (data: {
+    paciente_id: string;
+    momento: 'pre' | 'post';
+    items: ChecklistItem[];
+  }): Promise<ProcedimientoChecklist> =>
+    api.post<ProcedimientoChecklist>('/procedimientos/checklists', data),
+  updateChecklist: async (
+    id: string,
+    data: { items: ChecklistItem[]; observaciones?: string | null },
+  ): Promise<ProcedimientoChecklist> =>
+    api.put<ProcedimientoChecklist>(`/procedimientos/checklists/${id}`, data),
+  removeChecklist: async (id: string): Promise<void> =>
+    api.delete<void>(`/procedimientos/checklists/${id}`),
+
+  listEventos: async (pacienteId: string): Promise<EventoAdverso[]> =>
+    api.get<EventoAdverso[]>('/procedimientos/eventos-adversos', { paciente_id: pacienteId }),
+  createEvento: async (data: {
+    paciente_id: string;
+    descripcion: string;
+    severidad: 'leve' | 'moderado' | 'grave';
+  }): Promise<EventoAdverso> =>
+    api.post<EventoAdverso>('/procedimientos/eventos-adversos', data),
+  updateEvento: async (
+    id: string,
+    data: { descripcion: string; severidad: 'leve' | 'moderado' | 'grave'; estado: 'abierto' | 'resuelto'; manejo?: string | null },
+  ): Promise<EventoAdverso> =>
+    api.put<EventoAdverso>(`/procedimientos/eventos-adversos/${id}`, data),
+};
+
+export const fotografiasApi = {
+  list: async (pacienteId: string): Promise<FotografiaClinica[]> =>
+    api.get<FotografiaClinica[]>('/fotografias/', { paciente_id: pacienteId }),
+  create: async (data: FotografiaCreate): Promise<FotografiaClinica> =>
+    api.post<FotografiaClinica>('/fotografias/', data),
+  update: async (
+    id: string,
+    data: Omit<FotografiaCreate, 'paciente_id' | 'clinical_file_id'>,
+  ): Promise<FotografiaClinica> => api.put<FotografiaClinica>(`/fotografias/${id}`, data),
+  remove: async (id: string): Promise<void> => api.delete<void>(`/fotografias/${id}`),
 };
 
 export const encuentrosApi = {

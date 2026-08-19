@@ -1508,6 +1508,130 @@ async def verify_favoritos() -> dict[str, Any]:
     return _envelope("favoritos", checks, warnings=warnings, counts=counts)
 
 
+async def verify_plantillas_nota() -> dict[str, Any]:
+    """Fase 13: the note-templates table landed tenant-scoped and editable.
+
+    Read-only, no PHI: structural facts + a count. Templates are editable
+    preferences, so — unlike clinical tables — the app role KEEPS DELETE.
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "nota_plantillas")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+
+        can_delete = (
+            await session.execute(
+                text("SELECT has_table_privilege('medrecord_app', 'nota_plantillas', 'DELETE')")
+            )
+        ).scalar_one()
+        checks.append(
+            _check(
+                "nota_plantillas: app role can DELETE (editable preference, not evidence)",
+                bool(can_delete),
+                f"has_delete={can_delete}",
+            )
+        )
+        counts["plantillas"] = (
+            await session.execute(text("SELECT count(*) FROM nota_plantillas"))
+        ).scalar_one()
+
+    return _envelope("plantillas_nota", checks, warnings=warnings, counts=counts)
+
+
+async def verify_procedimientos() -> dict[str, Any]:
+    """Fase 13: procedure checklist + adverse-event tables landed tenant-scoped.
+
+    Read-only, no PHI: structural facts + counts. Both are editable workflow
+    records, so the app role KEEPS DELETE.
+    """
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        for table in ("procedimiento_checklists", "eventos_adversos"):
+            tchecks, twarn = await _table_rls_checks(session, table)
+            checks.extend(tchecks)
+            warnings.extend(twarn)
+            can_delete = (
+                await session.execute(
+                    text(f"SELECT has_table_privilege('medrecord_app', '{table}', 'DELETE')")
+                )
+            ).scalar_one()
+            checks.append(_check(f"{table}: app role can DELETE", bool(can_delete), ""))
+            # `table` is a hardcoded constant from the loop above, not user input.
+            counts[table] = (
+                await session.execute(text(f"SELECT count(*) FROM {table}"))  # noqa: S608
+            ).scalar_one()
+
+    return _envelope("procedimientos", checks, warnings=warnings, counts=counts)
+
+
+async def verify_fotografias() -> dict[str, Any]:
+    """Fase 13: clinical-photo metadata sidecar landed tenant-scoped and editable."""
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "fotografias_clinicas")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+        can_delete = (
+            await session.execute(
+                text("SELECT has_table_privilege('medrecord_app', 'fotografias_clinicas', 'DELETE')")
+            )
+        ).scalar_one()
+        checks.append(_check("fotografias_clinicas: app role can DELETE", bool(can_delete), ""))
+        counts["fotografias"] = (
+            await session.execute(text("SELECT count(*) FROM fotografias_clinicas"))
+        ).scalar_one()
+
+    return _envelope("fotografias", checks, warnings=warnings, counts=counts)
+
+
+async def verify_preferencias() -> dict[str, Any]:
+    """Fase 13A: per-identity theme preference table landed tenant-scoped, editable."""
+    from app.db.session import _get_session_factory
+
+    factory = _get_session_factory()
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    counts: dict[str, int] = {}
+
+    async with factory() as session, session.begin():
+        tchecks, twarn = await _table_rls_checks(session, "preferencias_interfaz_usuario")
+        checks.extend(tchecks)
+        warnings.extend(twarn)
+        can_delete = (
+            await session.execute(
+                text(
+                    "SELECT has_table_privilege('medrecord_app', "
+                    "'preferencias_interfaz_usuario', 'DELETE')"
+                )
+            )
+        ).scalar_one()
+        checks.append(_check("preferencias_interfaz_usuario: app role can DELETE", bool(can_delete), ""))
+        counts["preferencias"] = (
+            await session.execute(text("SELECT count(*) FROM preferencias_interfaz_usuario"))
+        ).scalar_one()
+
+    return _envelope("preferencias", checks, warnings=warnings, counts=counts)
+
+
 _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "rls": verify_rls,
     "medicos": verify_medicos,
@@ -1522,6 +1646,10 @@ _VERIFIERS: dict[str, Callable[[], Awaitable[dict[str, Any]]]] = {
     "backups": verify_backups,
     "recuperacion": verify_recuperacion,
     "favoritos": verify_favoritos,
+    "plantillas_nota": verify_plantillas_nota,
+    "procedimientos": verify_procedimientos,
+    "fotografias": verify_fotografias,
+    "preferencias": verify_preferencias,
 }
 
 

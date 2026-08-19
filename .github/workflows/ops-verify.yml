@@ -48,6 +48,10 @@ on:
           - backups
           - recuperacion
           - favoritos
+          - plantillas_nota
+          - procedimientos
+          - fotografias
+          - preferencias
 
 permissions:
   id-token: write
