@@ -40,7 +40,7 @@ jobs:
     environment: production  # Requiere aprobación manual vía GitHub Environment
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-prod
           aws-region: ${{ env.AWS_REGION }}
