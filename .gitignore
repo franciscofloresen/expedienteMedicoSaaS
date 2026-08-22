@@ -93,6 +93,8 @@ test_log.txt
 /ROADMAP_CLINICO_SIN_INCREMENTO_AWS*.md
 /VERSION2.md
 /WALKTHROUGH_FASE*.md
+/PENDIENTES_FASE*.md
+/smoke_fase*.py
 /plan_general_cloudmedrecord_beta_lean.md
 /propose*.md
 /uxui.md
@@ -104,6 +106,8 @@ test_log.txt
 /AUDITORIA_PRODUCTO_*.md
 /PLAN_PREVENTA_*.md
 /PLAN_CIFRADO_*.md
+/ONBOARDING_INGENIERIA.md
+/AUDIT_Y_ROADMAP_LIMPIEZA.md
 /comercial/
 
 # ── Personal / interview prep (never commit) ──
