@@ -1,6 +1,6 @@
 # End-to-end tests (Playwright)
 
-Two tiers, by dependency:
+Three tiers, by dependency:
 
 ## 1. Public smoke — `public-smoke.spec.ts`
 Runs with **no backend and no real auth**. Asserts the SPA boots and serves its
@@ -16,7 +16,22 @@ Locally the dev server reads the real Clerk **dev** key from `.env.local`
 (gitignored), so the app mounts fully. In CI, `playwright.config.ts` injects a
 format-valid placeholder key so the public shell still renders.
 
-## 2. Auth-gated clinical flows — `clinical-flows.spec.ts` (`test.fixme`)
+## 2. Responsive layout contract — `responsive.spec.ts`
+Runs with **no backend and no real auth**, at 768×1024 (iPad vertical), 390×844
+(iPhone) and 1440×900 (desktop regression guard).
+
+Asserts the layout rules the daily flow depends on: the page never scrolls
+sideways, the expediente's seven-tab bar absorbs its own overflow, form fields
+render at ≥16px so iOS Safari does not zoom the page on focus, touch targets are
+≥44px, the note editor reserves room for the virtual keyboard — and that none of
+this leaks up into the desktop layout.
+
+The clinical widgets live behind auth, so the spec mounts them from the app's own
+stylesheet and measures the computed result. That covers the CSS contract, which
+is what actually broke on tablets. The auth-gated walk of the real signing flow
+sits at the bottom of the same file as `test.fixme`, ready for the wiring below.
+
+## 3. Auth-gated clinical flows — `clinical-flows.spec.ts` (`test.fixme`)
 The roadmap's critical flows: onboarding → paciente → cita → encuentro →
 historia → evolución → CIE-10 → receta → consentimiento → firma → impresión →
 verificación → addendum → exportación.

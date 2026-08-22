@@ -844,7 +844,16 @@ input[type="radio"], input[type="checkbox"] {
   gap: 0.25rem;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 1.5rem;
+  /* The expediente has seven tabs; on a phone they exceed the viewport. Scroll
+     the bar itself rather than letting it push the page into horizontal scroll. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
 }
+
+.tab-bar::-webkit-scrollbar { display: none; }
 
 .tab {
   appearance: none;
@@ -853,6 +862,9 @@ input[type="radio"], input[type="checkbox"] {
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   padding: 0.6rem 0.9rem;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  white-space: nowrap;
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 500;
@@ -1044,6 +1056,10 @@ input[type="radio"], input[type="checkbox"] {
   width: 100%;
   max-width: 760px;
   height: 100vh;
+  /* Dynamic viewport height: when the iOS/Android virtual keyboard opens, the
+     panel shrinks with the visual viewport instead of extending underneath it,
+     so the focused field stays reachable by scrolling. vh stays as the fallback. */
+  height: 100dvh;
   background-color: var(--color-surface);
   color: var(--color-text);
   border-left: 1px solid var(--color-border);
@@ -1279,6 +1295,7 @@ dialog.modal-dialog::backdrop {
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  max-height: 90dvh;   /* shrinks with the virtual keyboard; vh is the fallback */
   box-shadow: var(--shadow-glass);
 }
 
@@ -1635,6 +1652,115 @@ dialog.modal-dialog::backdrop {
   }
 
   .table-card { border-radius: var(--radius-lg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Pase de tablet y móvil — flujo diario
+   Agenda → abrir paciente → crear nota → firmar → imprimir
+   on 768px (iPad vertical) and 390px (iPhone).
+
+   Nothing here may alter the printed document: every rule is scoped to a
+   screen media query, and `@media print` below re-flattens the layout anyway.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* The page must never scroll sideways. Wide content (tables, calendars, the tab
+   bar) scrolls inside its own container instead of widening the body. */
+@media screen and (max-width: 1024px) {
+  html, body { overflow-x: hidden; }
+
+  .page-body, .main-content { min-width: 0; max-width: 100%; }
+
+  /* Legacy inline grids that declare fixed px tracks would otherwise force the
+     body wider than the viewport. */
+  .encounter-grid { grid-template-columns: 1fr; }
+}
+
+/* Touch ergonomics. Keyed on pointer capability OR width, deliberately: an iPad
+   in landscape is 1024px wide and still thumb-operated, while a desktop browser
+   narrowed to 768px reports a fine pointer but needs the same layout. */
+@media screen and (pointer: coarse), screen and (max-width: 768px) {
+  .btn { min-height: 44px; }
+
+  /* Icon-only buttons need width too, or the 44px is only vertical. */
+  .btn-icon { min-width: 44px; }
+
+  .tab { padding: 0.75rem 1rem; min-height: 44px; }
+
+  .bottom-nav .nav-item { min-height: 48px; justify-content: center; }
+
+  /* iOS Safari zooms the whole page when a focused field's text is under 16px.
+     The root font-size here is 14px, so 0.9rem = 12.6px and every tap into a
+     field zoomed the note editor. 16px is the exact threshold that stops it —
+     this is what makes "firmar sin zoom" true on a real iPad. */
+  .form-input, select.form-input, textarea.form-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .autocomplete-option { padding: 0.85rem 0.9rem; }
+
+  /* Row actions sit far apart enough not to be mis-tapped. */
+  .cell-actions { gap: 0.5rem; }
+}
+
+/* Tablet (iPad vertical, 769–1024px): the sidebar is still hidden below 768px,
+   so this range keeps the desktop chrome but relaxes the fixed-width columns. */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .sidebar { width: 76px; }
+  .sidebar .nav-item { justify-content: center; padding: 0.7rem 0; font-size: 0; gap: 0; }
+  .sidebar .nav-item .nav-icon { margin: 0; }
+  .sidebar-brand-name, .sidebar-brand-tag { display: none; }
+  .sidebar-brand { justify-content: center; }
+
+  .page-body { padding: 1.5rem 1.25rem 3rem; }
+
+  .side-panel { max-width: 100%; }
+}
+
+/* The note editor is the screen the doctor types into between patients. Give
+   its scroll area room under the last field so the virtual keyboard can never
+   be the thing hiding the save button. */
+@media screen and (max-width: 1024px) {
+  .side-panel { padding-bottom: 40vh; }
+}
+
+/* Agenda page height. Desktop keeps the full-viewport calendar; on a phone a
+   fixed 600px grid inside a 100vh shell left the "Nueva cita" button off-screen,
+   so the list view is allowed to size to its content instead. */
+@media screen {
+  .agenda-page {
+    height: calc(100vh - 10rem);
+    height: calc(100dvh - 10rem);
+    min-height: 600px;
+  }
+}
+
+/* Agenda: react-big-calendar's toolbar is a 3-group flex row that overflows a
+   phone. Stack it, and let the grid itself scroll horizontally. */
+@media screen and (max-width: 768px) {
+  .agenda-page {
+    height: auto;
+    min-height: 0;
+    --agenda-min-height: 420px;
+  }
+
+  .agenda-shell { min-height: 420px; overflow-x: auto; }
+
+  .rbc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .rbc-toolbar .rbc-btn-group { display: flex; }
+  .rbc-toolbar .rbc-btn-group button { flex: 1; min-height: 44px; }
+  .rbc-toolbar .rbc-toolbar-label { padding: 0.25rem 0; font-weight: 600; }
+
+  /* The month/week grid keeps its own minimum width and scrolls inside the card
+     rather than widening the page. */
+  .rbc-calendar { min-width: 0; }
+  .rbc-time-view, .rbc-month-view { min-width: 560px; }
 }
 
 /* ── Landing (marketing page) — intentionally ALWAYS dark ──────

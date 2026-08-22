@@ -508,6 +508,36 @@ export const consentimientosApi = {
   print: async (id: string): Promise<any> => api.get(`/consentimientos/${id}/print`),
 };
 
+// Exportación «Descargar todo» — portabilidad de datos (sin gate por plan).
+// Ambos endpoints exigen reautenticación (step-up MFA): los componentes deben
+// envolver estas llamadas con useReverification, igual que la firma de notas.
+export interface ExportIndexPaciente {
+  paciente_id: string;
+  nombre_completo: string;
+  expediente_id: string;
+  folio: string;
+  conteos: Record<string, number>;
+  exportacion_url: string;
+}
+
+export interface ExportIndexConsultorio {
+  formato_version: string;
+  generado_en: string;
+  consultorio: { nombre_medico: string; cedula: string | null; especialidad: string | null };
+  pacientes: ExportIndexPaciente[];
+  next_cursor: string | null;
+}
+
+export const exportacionApi = {
+  indiceConsultorio: async (cursor?: string): Promise<ExportIndexConsultorio> =>
+    api.getWithReauthentication<ExportIndexConsultorio>(
+      '/exportacion/consultorio',
+      cursor ? { cursor } : undefined,
+    ),
+  expediente: async (expedienteId: string): Promise<any> =>
+    api.getWithReauthentication(`/expedientes/${expedienteId}/exportacion`),
+};
+
 export const messagesApi = {
   logWhatsAppManual: async (data: any): Promise<any> => api.post('/messages/log-whatsapp-manual', data),
   getByPacienteId: async (pacienteId: string): Promise<any[]> => api.get(`/messages/paciente/${pacienteId}`),

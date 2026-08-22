@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -27,12 +27,32 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+/** Below this width the week grid is unreadable; the agenda (list) view is. */
+const NARROW_BREAKPOINT = 768;
+
+const isNarrow = () =>
+  typeof window !== 'undefined' && window.innerWidth <= NARROW_BREAKPOINT;
+
 export default function Agenda() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const [view, setView] = useState<View>(window.innerWidth < 768 ? Views.AGENDA : Views.WEEK);
+  const [view, setView] = useState<View>(isNarrow() ? Views.AGENDA : Views.WEEK);
+  const [userPickedView, setUserPickedView] = useState(false);
   const [date, setDate] = useState(new Date());
-  
+
+  // Rotating an iPad crosses the breakpoint mid-consultation. Follow it — unless
+  // the doctor has chosen a view, in which case their choice wins.
+  useEffect(() => {
+    if (userPickedView) return;
+    const sync = () => setView(isNarrow() ? Views.AGENDA : Views.WEEK);
+    window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', sync);
+    return () => {
+      window.removeEventListener('resize', sync);
+      window.removeEventListener('orientationchange', sync);
+    };
+  }, [userPickedView]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCita, setSelectedCita] = useState<Partial<Cita> | null>(null);
 
@@ -121,8 +141,8 @@ export default function Agenda() {
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 10rem)', minHeight: '600px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      
+    <div className="agenda-page" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Agenda</h1>
@@ -136,7 +156,7 @@ export default function Agenda() {
         </button>
       </div>
 
-      <div style={{ flex: 1, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', overflow: 'auto' }}>
+      <div className="agenda-shell" style={{ flex: 1, backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', overflow: 'auto' }}>
         {isLoading ? (
           <div className="loading-state" style={{ height: '100%' }}>
             <div className="spinner" />
@@ -149,9 +169,9 @@ export default function Agenda() {
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: '100%', minHeight: '600px' }}
+            style={{ height: '100%', minHeight: 'var(--agenda-min-height, 600px)' }}
             view={view}
-            onView={(newView) => setView(newView)}
+            onView={(newView) => { setUserPickedView(true); setView(newView); }}
             date={date}
             onNavigate={(newDate) => setDate(newDate)}
             selectable

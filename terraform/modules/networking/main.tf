@@ -133,6 +133,29 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# ── S3 Gateway Endpoint ──
+# A gateway endpoint costs nothing and carries no hourly or per-GB charge. Without
+# it every clinical-file and consent-PDF byte the Lambda reads or writes to S3 is
+# billed as NAT Gateway data processing on top of the NAT's hourly rate.
+#
+# This is purely additive: it installs a prefix-list route in the private route
+# table that takes precedence over the 0.0.0.0/0 NAT route for S3 traffic only.
+# Everything else (Clerk, KMS, Secrets Manager, SES) keeps using the NAT, so the
+# endpoint can be added without touching the NAT and without downtime.
+data "aws_region" "current" {}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private.id]
+
+  tags = {
+    Name        = "medrecord-s3-endpoint-${var.environment}"
+    Environment = var.environment
+  }
+}
+
 # ── Security Groups ──
 
 # Lambda security group — outbound only
