@@ -20,7 +20,7 @@ export default function Privacidad() {
             </div>
             <div>
               <h1 style={{ fontSize: '2rem', margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>Privacidad y Términos Legales</h1>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Última actualización: Julio de 2026</p>
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Última actualización: Agosto de 2026</p>
             </div>
           </div>
 
@@ -38,9 +38,21 @@ export default function Privacidad() {
               CloudMedRecord proporciona software como servicio (SaaS) para la gestión de expedientes clínicos electrónicos. Para efectos de la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), <strong>El Médico o La Clínica actúa como el "Responsable"</strong> de los datos personales y sensibles de los pacientes. <strong>CloudMedRecord actúa exclusivamente como el "Encargado"</strong> del tratamiento, prestando infraestructura tecnológica y almacenamiento.
             </p>
 
-            <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>2. Infraestructura en la Nube e Integridad</h3>
+            <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>2. Infraestructura en la Nube, Cifrado e Integridad</h3>
             <p>
-              El Médico autoriza expresamente a CloudMedRecord a utilizar proveedores de infraestructura en la nube (PaaS/IaaS) con certificaciones internacionales (ej. ISO 27001, SOC 2). Toda la información clínica (notas de evolución) es almacenada utilizando mecanismos de cifrado a nivel de aplicación (Envelope Encryption). CloudMedRecord no tiene la capacidad técnica ni la autorización para descifrar el contenido clínico de los expedientes sin la intervención activa (sesión iniciada) del Médico autorizado.
+              El Médico autoriza expresamente a CloudMedRecord a utilizar proveedores de infraestructura en la nube (PaaS/IaaS) con certificaciones internacionales (ej. ISO 27001, SOC 2). La información se transmite cifrada en tránsito (TLS) y se almacena cifrada en reposo mediante llaves administradas en AWS KMS, tanto en la base de datos como en los archivos y documentos.
+            </p>
+            <p>
+              Adicionalmente, el domicilio del paciente y los antecedentes del expediente se cifran a nivel de aplicación con una llave dedicada y quedan vinculados criptográficamente al consultorio que los generó.
+            </p>
+            <p>
+              El resto del contenido clínico —notas de evolución, recetas y consentimientos— se almacena cifrado en reposo y protegido por aislamiento estricto entre consultorios a nivel de base de datos. Al no estar cifrado a nivel de aplicación, el personal de CloudMedRecord con acceso administrativo a la base de datos tiene la capacidad técnica de leerlo. Frente a esa capacidad, <strong>CloudMedRecord se obliga a no acceder al contenido clínico</strong>, salvo (a) instrucción expresa y documentada del Médico, (b) necesidad demostrable de reparar una falla que afecte a ese expediente, o (c) mandato de autoridad competente; todo acceso de esa naturaleza queda registrado y a disposición del Médico. El personal está sujeto a una obligación de confidencialidad que subsiste al término de la relación.
+            </p>
+            <p>
+              CloudMedRecord <strong>no habilita la suplantación de identidad del Médico desde soporte</strong>: el sistema rechaza activamente los tokens de sesión que la indican.
+            </p>
+            <p>
+              La integridad de los documentos firmados no depende de la confidencialidad: cada nota, receta y consentimiento firmado lleva una huella SHA-256 y una firma electrónica cuya llave privada no sale de AWS KMS, y cualquier alteración posterior es detectable de forma independiente por el Médico o por un tercero.
             </p>
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>3. Cumplimiento de la NOM-004 y NOM-024</h3>

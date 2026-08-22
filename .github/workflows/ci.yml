@@ -238,6 +238,21 @@ jobs:
       with:
         fetch-depth: 0
 
+    # This repository is public. Internal documents (pricing, real infrastructure
+    # cost, commercial strategy) are listed in .gitignore — but .gitignore does NOT
+    # untrack a file that was already committed, so the policy was silently inert
+    # for two walkthroughs. This turns the written policy into an enforced one.
+    - name: No internal document is tracked
+      run: |
+        LEAKED=$(git ls-files | grep -E '^(WALKTHROUGH_|PENDIENTES_|AUDITORIA_|PLAN_|ONBOARDING_|AUDIT_|ROADMAP_|comercial/)' || true)
+        if [ -n "$LEAKED" ]; then
+          echo "❌ Internal documents tracked in a public repository:"
+          echo "$LEAKED"
+          echo "Fix with: git rm --cached <file>  (keeps it on disk)"
+          exit 1
+        fi
+        echo "✅ No internal document is tracked"
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
