@@ -24,6 +24,7 @@ from app.api.v1 import (
     consentimientos,
     encuentros,
     expedientes,
+    exportacion,
     favoritos,
     files,
     fotografias,
@@ -223,6 +224,9 @@ app.include_router(
 app.include_router(
     procedimientos.router, prefix="/api/v1/procedimientos", tags=["Procedimientos"]
 )
+# Exportación «Descargar todo»: registered at the API root so its routes live at
+# /api/v1/expedientes/{id}/exportacion and /api/v1/exportacion/consultorio.
+app.include_router(exportacion.router, prefix="/api/v1", tags=["Exportación"])
 app.include_router(verify.router, prefix="/verify", tags=["Verificación pública"])
 
 

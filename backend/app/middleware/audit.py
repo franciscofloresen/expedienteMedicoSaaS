@@ -27,6 +27,8 @@ _CLINICAL_PREFIXES = (
     "/api/v1/notas",
     "/api/v1/recetas",
     "/api/v1/files",
+    # «Descargar todo» (portabilidad): a bulk PHI read — NOM-024 requires it logged.
+    "/api/v1/exportacion",
 )
 
 

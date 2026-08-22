@@ -1,12 +1,139 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X } from 'lucide-react';
+import { User, Shield, Key, CreditCard, CheckCircle2, Edit2, Check, X, Download } from 'lucide-react';
 import { UserProfile, useReverification } from '@clerk/react';
 import { useToast } from '../hooks/useToast';
 import UpgradeBanner from '../components/UpgradeBanner';
 import StorageUsageCard from '../components/StorageUsageCard';
 import ThemePicker from '../components/ThemePicker';
-import { authApi } from '../services/api';
+import { authApi, exportacionApi, expedientesApi } from '../services/api';
+
+/** Save an already-fetched JSON document as a file download. */
+function downloadJson(document_: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(document_, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** «Mis datos» — portabilidad: exportación completa por paciente y del índice. */
+function MisDatosCard() {
+  const { showToast } = useToast();
+  const [selectedExpediente, setSelectedExpediente] = useState('');
+  const [downloading, setDownloading] = useState<'indice' | 'expediente' | null>(null);
+
+  // Both export endpoints demand step-up reauthentication; useReverification
+  // opens the MFA modal transparently and retries (same pattern as signing).
+  const fetchIndiceWithReauth = useReverification(exportacionApi.indiceConsultorio);
+  const fetchExpedienteWithReauth = useReverification(exportacionApi.expediente);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: expedientes } = useQuery<any[]>({
+    queryKey: ['expedientes'],
+    queryFn: expedientesApi.getAll,
+  });
+
+  const handleDownloadIndice = async () => {
+    setDownloading('indice');
+    try {
+      const first = await fetchIndiceWithReauth(undefined);
+      const pacientes = [...first.pacientes];
+      let cursor = first.next_cursor;
+      while (cursor) {
+        const page = await fetchIndiceWithReauth(cursor);
+        pacientes.push(...page.pacientes);
+        cursor = page.next_cursor;
+      }
+      downloadJson({ ...first, pacientes, next_cursor: null }, 'cloudmedrecord-indice-consultorio.json');
+      showToast('Índice del consultorio descargado', 'success');
+    } catch {
+      showToast('No pudimos generar el índice. Intenta de nuevo.', 'error');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleDownloadExpediente = async () => {
+    if (!selectedExpediente) return;
+    setDownloading('expediente');
+    try {
+      const doc = await fetchExpedienteWithReauth(selectedExpediente);
+      const folio = doc?.expediente?.folio || selectedExpediente;
+      downloadJson(doc, `cloudmedrecord-expediente-${folio}.json`);
+      showToast('Expediente exportado. Los enlaces de archivos caducan en 15 minutos.', 'success');
+    } catch {
+      showToast('No pudimos exportar el expediente. Intenta de nuevo.', 'error');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div className="glass-card animate-fade-in" style={{ animationDelay: '0.15s' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ backgroundColor: 'var(--primary-light)', padding: '0.5rem', borderRadius: 'var(--radius-md)', color: 'var(--primary)' }}>
+          <Download size={24} />
+        </div>
+        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Mis datos</h2>
+      </div>
+      <p className="text-muted" style={{ marginTop: 0, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+        Tus datos son tuyos. Descarga cuando quieras el expediente completo de cualquier paciente:
+        incluye tus notas firmadas, recetas, consentimientos y los enlaces de descarga de tus
+        archivos originales. Los enlaces caducan en 15 minutos; vuelve a generarlos cuando los
+        necesites.
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <select
+            className="form-input"
+            style={{ flex: '1 1 220px', minWidth: 0 }}
+            value={selectedExpediente}
+            onChange={e => setSelectedExpediente(e.target.value)}
+            aria-label="Paciente a exportar"
+          >
+            <option value="">Selecciona un paciente…</option>
+            {(expedientes || []).map(exp => (
+              <option key={exp.id} value={exp.id}>
+                {exp.paciente_nombre} — {exp.folio}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ whiteSpace: 'nowrap' }}
+            disabled={!selectedExpediente || downloading !== null}
+            onClick={handleDownloadExpediente}
+          >
+            <Download size={16} />
+            {downloading === 'expediente' ? 'Generando…' : 'Descargar todo el expediente'}
+          </button>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            disabled={downloading !== null}
+            onClick={handleDownloadIndice}
+          >
+            <Download size={16} />
+            {downloading === 'indice' ? 'Generando…' : 'Descargar índice del consultorio'}
+          </button>
+          <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.35rem', marginBottom: 0 }}>
+            El índice lista tus pacientes y cuántos documentos tiene cada expediente, sin contenido
+            clínico. Cada exportación queda registrada en la bitácora.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { showToast } = useToast();
@@ -134,6 +261,9 @@ export default function Settings() {
               </div>
             </div>
           </div>
+
+          {/* Portabilidad de datos (Entregable 1 — plan de pre-venta) */}
+          <MisDatosCard />
 
           <StorageUsageCard />
 

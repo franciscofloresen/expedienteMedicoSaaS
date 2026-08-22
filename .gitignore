@@ -101,3 +101,10 @@ test_log.txt
 /docs/security/
 /docs/runbooks/security_access_lifecycle.md
 /backend/scripts/reset_environment.py
+/AUDITORIA_PRODUCTO_*.md
+/PLAN_PREVENTA_*.md
+/PLAN_CIFRADO_*.md
+/comercial/
+
+# ── Personal / interview prep (never commit) ──
+INTERVIEW_CHEATSHEET.md
