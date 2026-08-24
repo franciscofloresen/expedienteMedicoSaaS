@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1._common import tenant_uuid
 from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.consentimiento import Consentimiento
@@ -80,10 +81,6 @@ class FirmaMedico(BaseModel):
 
 class RevocacionCreate(BaseModel):
     motivo: str = Field(min_length=10, max_length=2_000)
-
-
-def _tenant_uuid(request: Request) -> uuid.UUID:
-    return uuid.UUID(str(request.state.tenant_id))
 
 
 def _template_payload(
@@ -488,7 +485,7 @@ async def credenciales_firma(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """Active professional credentials that can be selected for final signature."""
-    return await list_credenciales_para_firma(db, _tenant_uuid(request))
+    return await list_credenciales_para_firma(db, tenant_uuid(request))
 
 
 @router.post("", status_code=201)
@@ -497,7 +494,7 @@ async def create_consentimiento(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     template, plantilla_version_id = await _resolve_template(db, data.template_key)
     if not template:
         raise HTTPException(status_code=400, detail="Plantilla de consentimiento inválida")
@@ -568,7 +565,7 @@ async def list_by_expediente(
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = (
         select(Consentimiento)
         .where(
@@ -598,7 +595,7 @@ async def get_consentimiento(id: str, request: Request, db: AsyncSession = Depen
         await db.execute(
             select(Consentimiento).where(
                 Consentimiento.id == uuid.UUID(id),
-                Consentimiento.tenant_id == _tenant_uuid(request),
+                Consentimiento.tenant_id == tenant_uuid(request),
             )
         )
     ).scalar_one_or_none()
@@ -617,7 +614,7 @@ async def firmar_paciente(
 ) -> Any:
     if not data.aceptado:
         raise HTTPException(status_code=400, detail="El paciente debe aceptar el consentimiento")
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     row = (
         await db.execute(
             select(Consentimiento)
@@ -710,7 +707,7 @@ async def firmar_medico(
     db: AsyncSession = Depends(get_db),
     _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     result = (
         await db.execute(
             select(Consentimiento, Paciente, Expediente, Tenant)
@@ -830,7 +827,7 @@ async def print_consentimiento(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = (
         select(Consentimiento, Paciente, Expediente)
         .join(Paciente, Consentimiento.paciente_id == Paciente.id)
@@ -906,7 +903,7 @@ async def revocar_consentimiento(
             status_code=503,
             detail={"code": "clinical_feature_not_active", "feature": "consent_finalization"},
         )
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     result = (
         await db.execute(
             select(Consentimiento, Tenant)

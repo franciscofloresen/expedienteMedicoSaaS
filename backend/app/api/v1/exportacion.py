@@ -11,19 +11,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1._common import tenant_uuid
 from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.schemas.exportacion import ExportacionExpediente, IndiceConsultorioExport
 from app.services.exportacion import build_consultorio_index, build_expediente_export
 
 router = APIRouter()
-
-
-def _tenant_uuid(request: Request) -> uuid.UUID:
-    try:
-        return uuid.UUID(str(request.state.tenant_id))
-    except (ValueError, TypeError, AttributeError) as exc:
-        raise HTTPException(status_code=403, detail="Contexto de clínica inválido") from exc
 
 
 @router.get(
@@ -40,7 +34,7 @@ async def exportar_expediente(
 ) -> ExportacionExpediente:
     """Full export of one patient's expediente: clinical content inline, binaries
     as short-lived presigned URLs (quarantined files are listed, never linked)."""
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     documento = await build_expediente_export(
         db, tenant_id=tenant_id, expediente_id=expediente_id
     )
@@ -65,7 +59,7 @@ async def exportar_indice_consultorio(
 ) -> IndiceConsultorioExport:
     """Tenant-wide index: patients, folios and per-type document counts — no
     binaries and no clinical content. Paginated by ``?cursor=`` past 500 rows."""
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     response.headers["Content-Disposition"] = (
         'attachment; filename="cloudmedrecord-indice-consultorio.json"'
     )

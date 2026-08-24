@@ -3,7 +3,7 @@ import re
 import tomllib
 from pathlib import Path
 
-from app.main import handler
+from app.main import _ADMIN_PAYLOADS, handler
 from scripts.build_lambda_package import (
     AWS_UNPACKED_LIMIT_BYTES,
     CONSTRAINTS_FILE,
@@ -50,10 +50,17 @@ def test_runtime_script_allowlist_excludes_local_and_destructive_tools() -> None
 
 
 def test_destructive_reset_events_are_not_exposed_by_lambda_handler() -> None:
-    source = inspect.getsource(handler)
-    assert "wipe_all_data" not in source
-    assert "purge_clerk_users" not in source
+    # Assert against the dispatch table, not the handler's source text: the table
+    # is the whole set of payloads the deployed Lambda will accept, so a new entry
+    # cannot slip past this check by living in another function.
+    registered = {key for key, _ in _ADMIN_PAYLOADS}
+    assert "wipe_all_data" not in registered
+    assert "purge_clerk_users" not in registered
     assert not (BACKEND_ROOT / "scripts" / "reset_environment.py").exists()
+
+    # The handler must dispatch only through the table.
+    source = inspect.getsource(handler)
+    assert "_ADMIN_PAYLOADS" in source
 
 
 def test_pruning_and_layout_validation(tmp_path: Path) -> None:

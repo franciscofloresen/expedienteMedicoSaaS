@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1._common import tenant_uuid
 from app.core.config import settings
 from app.core.plans import entitlement
 from app.core.security import require_reauthentication
@@ -34,13 +35,6 @@ class UploadRequest(BaseModel):
     content_type: str = Field(min_length=1, max_length=100)
     size_bytes: int = Field(gt=0)
     category: Literal["analysis", "xray", "prescription", "consent", "other"] = "other"
-
-
-def _tenant_uuid(request: Request) -> uuid.UUID:
-    try:
-        return uuid.UUID(str(request.state.tenant_id))
-    except (ValueError, TypeError, AttributeError) as exc:
-        raise HTTPException(status_code=403, detail="Contexto de clínica inválido") from exc
 
 
 def _quota(request: Request) -> int:
@@ -105,7 +99,7 @@ def _serialize(item: ClinicalFile) -> dict[str, Any]:
 
 @router.get("/usage")
 async def storage_usage(request: Request, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     quota = _quota(request)
     usage = await _locked_usage(db, tenant_id, quota)
     consumed = usage.used_bytes + usage.reserved_bytes
@@ -126,7 +120,7 @@ async def request_upload(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     quota = _quota(request)
     if quota <= 0:
         raise HTTPException(
@@ -196,7 +190,7 @@ async def request_upload(
 async def complete_upload(
     file_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     usage = await _locked_usage(db, tenant_id, _quota(request))
     item = (
         await db.execute(
@@ -244,7 +238,7 @@ async def complete_upload(
 async def list_files(
     expediente_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)
 ) -> list[dict[str, Any]]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     result = await db.execute(
         select(ClinicalFile)
         .where(
@@ -285,7 +279,7 @@ async def download_url(
     db: AsyncSession = Depends(get_db),
     _reauthenticated: None = Depends(require_reauthentication),
 ) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     item = (
         await db.execute(
             select(ClinicalFile).where(
@@ -325,7 +319,7 @@ async def download_url(
 async def archive_file(
     file_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)
 ) -> None:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     item = (
         await db.execute(
             select(ClinicalFile).where(

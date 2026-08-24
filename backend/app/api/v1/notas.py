@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1._common import tenant_uuid
 from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.expediente import Expediente
@@ -31,10 +32,6 @@ from app.services.verification import (
 logger = logging.getLogger("medrecord")
 
 router = APIRouter()
-
-
-def _tenant_uuid(request: Request) -> UUID:
-    return UUID(str(request.state.tenant_id))
 
 
 def _signature_preview(signature: bytes | str | None) -> str | None:
@@ -79,7 +76,7 @@ async def _build_legal_note_payload(
     request: Request,
     db: AsyncSession,
 ) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = (
         select(Nota, Expediente, Paciente)
         .join(Expediente, Nota.expediente_id == Expediente.id)

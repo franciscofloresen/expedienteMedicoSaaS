@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1._common import tenant_uuid
 from app.core.security import require_reauthentication
 from app.db.session import get_db
 from app.models.expediente import Expediente
@@ -28,10 +29,6 @@ class RecetaCreate(BaseModel):
     nota_id: str
     medicamentos: list[dict[str, Any]]
     indicaciones_generales: str | None = None
-
-
-def _tenant_uuid(request: Request) -> uuid.UUID:
-    return uuid.UUID(str(request.state.tenant_id))
 
 
 def _serialize_receta(receta: Receta) -> dict[str, Any]:
@@ -57,7 +54,7 @@ async def _build_receta_print_payload(
     request: Request,
     db: AsyncSession,
 ) -> dict[str, Any]:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = (
         select(Receta, Nota, Expediente, Paciente)
         .join(Nota, Receta.nota_id == Nota.id)
@@ -126,7 +123,7 @@ async def _build_receta_print_payload(
 async def create_receta(
     data: RecetaCreate, request: Request, db: AsyncSession = Depends(get_db)
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     nota_id = uuid.UUID(data.nota_id)
     nota_stmt = select(Nota).where(Nota.id == nota_id, Nota.tenant_id == tenant_id)
     if not (await db.execute(nota_stmt)).scalar_one_or_none():
@@ -150,7 +147,7 @@ async def list_recetas(
     nota_id: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = select(Receta).where(Receta.tenant_id == tenant_id)
     if nota_id:
         stmt = stmt.where(Receta.nota_id == uuid.UUID(nota_id))
@@ -160,7 +157,7 @@ async def list_recetas(
 
 @router.get("/{id}")
 async def get_receta(id: str, request: Request, db: AsyncSession = Depends(get_db)) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     stmt = select(Receta).where(Receta.id == uuid.UUID(id), Receta.tenant_id == tenant_id)
     receta = (await db.execute(stmt)).scalar_one_or_none()
     if not receta:
@@ -175,7 +172,7 @@ async def firmar_receta(
     db: AsyncSession = Depends(get_db),
     _reauthenticated: None = Depends(require_reauthentication),
 ) -> Any:
-    tenant_id = _tenant_uuid(request)
+    tenant_id = tenant_uuid(request)
     receta_id = uuid.UUID(id)
     receta = (
         await db.execute(

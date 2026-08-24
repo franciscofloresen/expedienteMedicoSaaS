@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15.4-alpine
@@ -12,6 +10,9 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Creates the non-superuser `medrecord_app` role the migrations grant to.
+      # Runs once, on first initialisation of the volume.
+      - ./scripts/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d medrecord"]
       interval: 5s
