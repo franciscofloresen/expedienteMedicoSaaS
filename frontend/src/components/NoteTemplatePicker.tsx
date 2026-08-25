@@ -28,7 +28,7 @@ export default function NoteTemplatePicker({
       </span>
 
       {plantillas.length === 0 ? (
-        <span className="text-muted" style={{ fontSize: '0.78rem' }}>Aún no tienes plantillas.</span>
+        <span className="text-muted text-sm">Aún no tienes plantillas.</span>
       ) : (
         plantillas.map((p) => (
           <button

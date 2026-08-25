@@ -60,7 +60,7 @@ export default function FotografiasPanel({ pacienteId }: { pacienteId: string })
       </div>
 
       {fotos.length === 0 ? (
-        <span className="text-muted" style={{ fontSize: '0.85rem' }}>Sin fotografías registradas.</span>
+        <span className="text-muted">Sin fotografías registradas.</span>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {groups.map((g) => (

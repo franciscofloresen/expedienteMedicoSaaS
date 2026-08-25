@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import Sheet from './Sheet';
 import type { Paciente, CitaBase, Cita } from '../types';
 
 interface CitaModalProps {
@@ -49,19 +49,6 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
     }
   }, [isOpen, cita]);
 
-  const dialogRef = React.useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (!dialogRef.current?.open) {
-        dialogRef.current?.showModal();
-      }
-    } else {
-      dialogRef.current?.close();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,22 +85,14 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      onCancel={onClose}
-      className="cita-modal modal-dialog"
+    <Sheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={cita?.id ? 'Editar cita' : 'Nueva cita'}
+      /* Una cita a medio capturar no debe irse con un gesto accidental. */
+      dismissibleByDrag={false}
     >
-      <div className="modal-content" style={{ padding: '1.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '1rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
-            {cita?.id ? 'Editar cita' : 'Nueva cita'}
-          </h2>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Cerrar">
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <form onSubmit={handleSubmit} className="stack-form">
           {error && (
             <div className="alert alert-danger" role="alert">
               {error}
@@ -195,8 +174,7 @@ export default function CitaModal({ isOpen, onClose, onSave, onDelete, cita, pac
               </button>
             </div>
           </div>
-        </form>
-      </div>
-    </dialog>
+      </form>
+    </Sheet>
   );
 }

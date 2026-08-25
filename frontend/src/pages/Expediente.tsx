@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, X, FileSignature, Edit3, Lock, ShieldCheck, Printer, Check, Droplets, AlertTriangle, CalendarClock, ClipboardList, MessageCircle } from 'lucide-react';
@@ -17,7 +17,6 @@ import ProcedimientosPanel from '../components/ProcedimientosPanel';
 import FotografiasPanel from '../components/FotografiasPanel';
 import { buildCopyForwardDraft, type CopyForwardDraft } from '../utils/copyForward';
 import { buildLongitudinalSummary } from '../utils/longitudinalSummary';
-import { useEffect } from 'react';
 import Modal from '../components/Modal';
 import Cie10DiagnosisSelector from '../components/Cie10DiagnosisSelector';
 import ClinicalFiles from '../components/ClinicalFiles';
@@ -25,6 +24,12 @@ import { SignaturePad } from '../components/SignaturePad';
 import { useReverification } from '@clerk/react';
 
 type TabKey = 'resumen' | 'longitudinal' | 'consultas' | 'historia' | 'procedimientos' | 'archivos' | 'consentimientos';
+
+/** El mismo orden que tienen en la barra: es lo que define qué es "izquierda"
+ *  y qué es "derecha" cuando el contenido entra. */
+const TAB_ORDER: TabKey[] = [
+  'resumen', 'longitudinal', 'consultas', 'historia', 'procedimientos', 'archivos', 'consentimientos',
+];
 
 function initials(nombre?: string): string {
   if (!nombre) return '';
@@ -72,6 +77,25 @@ export default function Expediente() {
   const revokeConsentWithReauthentication = useReverification(consentimientosApi.revocar);
 
   const [activeTab, setActiveTab] = useState<TabKey>(window.location.hash ? 'consultas' : 'resumen');
+
+  /**
+   * Continuidad espacial (§7, §8). Las tabs están en fila, así que el contenido
+   * no puede limitarse a aparecer: tiene que entrar por el lado hacia el que se
+   * movió el usuario. Ir a una tab de la derecha trae el panel desde la derecha,
+   * y eso convierte la barra en un espacio con lados en vez de siete estados
+   * intercambiables.
+   *
+   * La dirección se decide en el propio manejador, donde se conocen la tab de
+   * origen y la de destino, en vez de derivarla en render comparando con un
+   * valor anterior.
+   */
+  const [goingForward, setGoingForward] = useState(true);
+  const panelClass = goingForward ? 'tab-panel from-right' : 'tab-panel from-left';
+
+  const selectTab = (next: TabKey) => {
+    setGoingForward(TAB_ORDER.indexOf(next) >= TAB_ORDER.indexOf(activeTab));
+    setActiveTab(next);
+  };
 
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [editingNota, setEditingNota] = useState<Nota | null>(null);
@@ -742,32 +766,32 @@ export default function Expediente() {
 
       {/* Tabs */}
       <div className="tab-bar no-print" role="tablist">
-        <button role="tab" aria-selected={activeTab === 'resumen'} className={activeTab === 'resumen' ? 'tab active' : 'tab'} onClick={() => setActiveTab('resumen')}>
+        <button role="tab" aria-selected={activeTab === 'resumen'} className={activeTab === 'resumen' ? 'tab active' : 'tab'} onClick={() => selectTab('resumen')}>
           Resumen
         </button>
-        <button role="tab" aria-selected={activeTab === 'longitudinal'} className={activeTab === 'longitudinal' ? 'tab active' : 'tab'} onClick={() => setActiveTab('longitudinal')}>
+        <button role="tab" aria-selected={activeTab === 'longitudinal'} className={activeTab === 'longitudinal' ? 'tab active' : 'tab'} onClick={() => selectTab('longitudinal')}>
           Longitudinal
         </button>
-        <button role="tab" aria-selected={activeTab === 'consultas'} className={activeTab === 'consultas' ? 'tab active' : 'tab'} onClick={() => setActiveTab('consultas')}>
+        <button role="tab" aria-selected={activeTab === 'consultas'} className={activeTab === 'consultas' ? 'tab active' : 'tab'} onClick={() => selectTab('consultas')}>
           Consultas <span className="tab-count">{notas.length}</span>
         </button>
-        <button role="tab" aria-selected={activeTab === 'historia'} className={activeTab === 'historia' ? 'tab active' : 'tab'} onClick={() => setActiveTab('historia')}>
+        <button role="tab" aria-selected={activeTab === 'historia'} className={activeTab === 'historia' ? 'tab active' : 'tab'} onClick={() => selectTab('historia')}>
           Historia clínica
         </button>
-        <button role="tab" aria-selected={activeTab === 'procedimientos'} className={activeTab === 'procedimientos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('procedimientos')}>
+        <button role="tab" aria-selected={activeTab === 'procedimientos'} className={activeTab === 'procedimientos' ? 'tab active' : 'tab'} onClick={() => selectTab('procedimientos')}>
           Procedimientos
         </button>
-        <button role="tab" aria-selected={activeTab === 'archivos'} className={activeTab === 'archivos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('archivos')}>
+        <button role="tab" aria-selected={activeTab === 'archivos'} className={activeTab === 'archivos' ? 'tab active' : 'tab'} onClick={() => selectTab('archivos')}>
           Archivos
         </button>
-        <button role="tab" aria-selected={activeTab === 'consentimientos'} className={activeTab === 'consentimientos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('consentimientos')}>
+        <button role="tab" aria-selected={activeTab === 'consentimientos'} className={activeTab === 'consentimientos' ? 'tab active' : 'tab'} onClick={() => selectTab('consentimientos')}>
           Consentimientos <span className="tab-count">{consentimientos.length}</span>
         </button>
       </div>
 
       {/* ── Tab: Resumen ── */}
       {activeTab === 'resumen' && (
-        <div className={isRecetaModalOpen ? 'no-print fade-in' : 'fade-in'}>
+        <div className={isRecetaModalOpen ? `no-print ${panelClass}` : panelClass}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <div className="stat-card">
               <div className="stat-icon">
@@ -857,17 +881,21 @@ export default function Expediente() {
 
       {/* ── Tab: Longitudinal ── */}
       {activeTab === 'longitudinal' && (
-        <LongitudinalSummary
-          summary={buildLongitudinalSummary(paciente, notas, consentimientos)}
-        />
+        <div className={panelClass}>
+          <LongitudinalSummary
+            summary={buildLongitudinalSummary(paciente, notas, consentimientos)}
+          />
+        </div>
       )}
 
       {/* ── Tab: Procedimientos ── */}
-      {activeTab === 'procedimientos' && id && <ProcedimientosPanel pacienteId={id} />}
+      {activeTab === 'procedimientos' && id && (
+        <div className={panelClass}><ProcedimientosPanel pacienteId={id} /></div>
+      )}
 
       {/* ── Tab: Consultas ── */}
       {activeTab === 'consultas' && (
-        <div className={isRecetaModalOpen ? 'no-print fade-in' : 'fade-in'}>
+        <div className={isRecetaModalOpen ? `no-print ${panelClass}` : panelClass}>
           {isLoadingNotas ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0' }}>
               <div className="spinner" />
@@ -894,7 +922,7 @@ export default function Expediente() {
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', textTransform: 'capitalize' }}>
                             {nota.tipo_nota}
                           </div>
-                          <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+                          <div className="text-muted text-sm">
                             {nota.firmada
                             ? `Firmada digitalmente · ${new Date((nota as any).firmado_en || nota.creado_en).toLocaleString()}`
                               : `Última edición: ${new Date(nota.creado_en).toLocaleString()}`}
@@ -1042,7 +1070,7 @@ export default function Expediente() {
 
       {/* ── Tab: Historia clínica ── */}
       {activeTab === 'historia' && (
-        <div className="fade-in">
+        <div className={panelClass}>
           <div className="glass-card" style={{ maxWidth: '860px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -1073,14 +1101,14 @@ export default function Expediente() {
       )}
 
       {activeTab === 'archivos' && (
-        <div className="fade-in">
+        <div className={panelClass}>
           <ClinicalFiles expedienteId={expediente.id} />
           {id && <FotografiasPanel pacienteId={id} />}
         </div>
       )}
 
       {activeTab === 'consentimientos' && (
-        <div className="fade-in">
+        <div className={panelClass}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div>
               <h2 style={{ margin: 0 }}>Consentimientos informados</h2>
@@ -1108,7 +1136,7 @@ export default function Expediente() {
                     </span>
                     <h3 style={{ margin: '0.75rem 0 0.35rem' }}>{cons.procedimiento}</h3>
                     <p className="text-muted" style={{ margin: 0 }}>{cons.template_key} · v{cons.version}</p>
-                    {cons.hash_contenido && <p className="mono" style={{ fontSize: '0.78rem' }}>Hash: {cons.hash_contenido.substring(0, 18)}…</p>}
+                    {cons.hash_contenido && <p className="mono text-sm">Hash: {cons.hash_contenido.substring(0, 18)}…</p>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {cons.status === 'signed' ? (
@@ -1199,7 +1227,7 @@ export default function Expediente() {
         {!editingNota && seedDraft && (
           <div className="alert" role="note" style={{ marginBottom: '1rem', border: '1px solid var(--color-primary, #2563eb)', borderRadius: '8px', padding: '0.6rem 0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
             <ClipboardList size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-            <span style={{ fontSize: '0.85rem' }}>
+            <span className="text-base">
               <strong>Datos heredados de una consulta previa</strong> (motivo y plan). Revísalos
               y actualízalos. Los signos vitales, la exploración y el diagnóstico
               <strong> no</strong> se copian: captúralos de nuevo.
