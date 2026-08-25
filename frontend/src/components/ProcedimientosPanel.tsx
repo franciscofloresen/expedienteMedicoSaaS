@@ -80,7 +80,7 @@ export default function ProcedimientosPanel({ pacienteId }: { pacienteId: string
         </div>
 
         {checklists.length === 0 ? (
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Sin checklists. Añade uno pre o post procedimiento.</span>
+          <span className="text-muted">Sin checklists. Añade uno pre o post procedimiento.</span>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {checklists.map((c) => (
@@ -131,7 +131,7 @@ export default function ProcedimientosPanel({ pacienteId }: { pacienteId: string
         </div>
 
         {eventos.length === 0 ? (
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Sin eventos adversos registrados.</span>
+          <span className="text-muted">Sin eventos adversos registrados.</span>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {eventos.map((e) => (

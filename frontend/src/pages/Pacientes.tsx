@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Edit2, Trash2, Search, Users, ShieldCheck, UserPlus } from 'lucide-react';
@@ -7,6 +7,11 @@ import { pacientesApi } from '../services/api';
 import type { Paciente, PacienteUpdate } from '../types';
 import Modal from '../components/Modal';
 import { useToast } from '../hooks/useToast';
+
+/** Sin acentos y en minúsculas: "Muñoz" tiene que encontrarse tecleando "munoz". */
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+}
 
 function initials(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
@@ -80,6 +85,25 @@ export default function Pacientes() {
     queryKey: ['pacientes', debouncedSearch],
     queryFn: () => pacientesApi.getAll(debouncedSearch || undefined)
   });
+
+  /**
+   * El debounce de 300ms es correcto para no castigar al servidor, pero durante
+   * esos 300ms la lista se quedaba tal cual: se tecleaba y no pasaba nada. El
+   * feedback tiene que ser continuo DURANTE la interacción (§1), no solo al
+   * final. Así que mientras el servidor alcanza, se filtra al instante sobre lo
+   * que ya está en memoria. Cuando la respuesta llega, esta lista y la del
+   * servidor coinciden y el filtro local se aparta solo.
+   */
+  const visibles = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q || q === debouncedSearch) return pacientes;
+    const needle = normalizar(q);
+    return pacientes.filter((p: Paciente) =>
+      normalizar(p.nombre_completo).includes(needle) ||
+      normalizar(p.curp ?? '').includes(needle) ||
+      normalizar(p.email ?? '').includes(needle),
+    );
+  }, [pacientes, searchQuery, debouncedSearch]);
 
   const createMutation = useMutation({
     mutationFn: pacientesApi.create,
@@ -257,7 +281,7 @@ export default function Pacientes() {
               ))}
             </tbody>
           </table>
-        ) : pacientes.length === 0 ? (
+        ) : visibles.length === 0 ? (
           <EmptyPatients hasQuery={!!searchQuery} onCreate={() => setIsFormModalOpen(true)} />
         ) : (
           <table className="data-table">
@@ -271,7 +295,7 @@ export default function Pacientes() {
               </tr>
             </thead>
             <tbody>
-              {pacientes.map((p: Paciente) => {
+              {visibles.map((p: Paciente) => {
                 const years = edad(p.fecha_nacimiento);
                 return (
                   <tr

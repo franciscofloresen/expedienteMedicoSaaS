@@ -36,7 +36,7 @@ export default function LongitudinalSummary({ summary }: { summary: Summary }) {
             <AlertTriangle size={16} /> <span>{alergiasLegacy}</span>
           </div>
         ) : (
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Ninguna registrada.</span>
+          <span className="text-muted">Ninguna registrada.</span>
         )}
       </Section>
 
@@ -52,7 +52,7 @@ export default function LongitudinalSummary({ summary }: { summary: Summary }) {
 
       <Section title={`Últimas consultas (${summary.totalConsultasFirmadas} firmadas)`}>
         {ultimasConsultas.length === 0 ? (
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Sin consultas firmadas.</span>
+          <span className="text-muted">Sin consultas firmadas.</span>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {ultimasConsultas.map((c, i) => (
@@ -69,7 +69,7 @@ export default function LongitudinalSummary({ summary }: { summary: Summary }) {
 
       <Section title="Consentimientos vigentes">
         {consentimientosVigentes.length === 0 ? (
-          <span className="text-muted" style={{ fontSize: '0.85rem' }}>Sin consentimientos vigentes.</span>
+          <span className="text-muted">Sin consentimientos vigentes.</span>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {consentimientosVigentes.map((c, i) => (

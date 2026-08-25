@@ -21,18 +21,18 @@ export default function Landing() {
         <div className="landing-nav-actions">
           <Show when="signed-out">
             <SignInButton mode="modal">
-              <button className="landing-link-btn" onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary-light)'} onMouseLeave={(e) => e.currentTarget.style.color = 'white'}>
+              <button className="landing-link-btn">
                 Iniciar Sesión
               </button>
             </SignInButton>
             <SignUpButton mode="modal">
-              <button className="landing-cta" onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>
+              <button className="landing-cta">
                 Crear Cuenta
               </button>
             </SignUpButton>
           </Show>
           <Show when="signed-in">
-            <Link to="/app" className="landing-dash-link" style={{ marginRight: '1rem' }} onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary-light)'; e.currentTarget.style.borderColor = 'var(--primary-light)'; }} onMouseLeave={(e) => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'white'; }}>Ir al Dashboard</Link>
+            <Link to="/app" className="landing-dash-link">Ir al Dashboard</Link>
             <UserButton />
           </Show>
         </div>
@@ -78,20 +78,20 @@ export default function Landing() {
               <span style={{ height: '1px', width: '2rem', backgroundColor: 'var(--primary)' }}></span>
             </div>
 
-            <h1 className="font-serif" style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)', fontWeight: 600, lineHeight: 1.1, margin: '0 0 1.5rem 0', color: 'var(--text-main)' }}>
+            <h1 className="font-serif landing-display">
               Expediente clínico legal-first <br />
               <span style={{ fontStyle: 'italic', color: 'var(--primary)' }}>para médicos en México.</span>
             </h1>
 
-            <p style={{ fontSize: '1.1rem', fontWeight: 400, color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto 3rem auto', lineHeight: 1.8 }}>
+            <p className="landing-lede">
               Crea notas, recetas y consentimientos con firma digital, hash, bitácora y QR verificable. Diseñado para consultas privadas que quieren documentar mejor y protegerse ante reclamaciones.
             </p>
 
-            <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>
+            <div className="landing-hero-actions">
               <SignUpButton mode="modal">
-                <button style={{ background: 'transparent', border: 'none', borderBottom: '1px solid transparent', color: 'var(--text-main)', cursor: 'pointer', fontSize: 'inherit', letterSpacing: 'inherit', textTransform: 'inherit', fontWeight: 'inherit', padding: 0, paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Quiero probar la beta</button>
+                <button className="landing-underline-link">Quiero probar la beta</button>
               </SignUpButton>
-              <a href="https://wa.me/523121940941?text=Hola%2C%20quiero%20agendar%20una%20demo%20de%2015%20minutos%20de%20CloudMedRecord" style={{ color: 'var(--primary)', textDecoration: 'none', borderBottom: '1px solid transparent', paddingBottom: '0.25rem', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}>Agendar demo</a>
+              <a className="landing-underline-link is-primary" href="https://wa.me/523121940941?text=Hola%2C%20quiero%20agendar%20una%20demo%20de%2015%20minutos%20de%20CloudMedRecord">Agendar demo</a>
             </div>
           </div>
 
@@ -108,24 +108,24 @@ export default function Landing() {
             style={{ padding: '2rem 1rem' }}
           >
             <ShieldCheck size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Evidencia legal visible</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Firma digital, hash SHA-256, bitácora y QR para verificar documentos sin mostrar datos clínicos sensibles.</p>
+            <h3 className="font-serif landing-card-title">Evidencia legal visible</h3>
+            <p className="landing-card-text">Firma digital, hash SHA-256, bitácora y QR para verificar documentos sin mostrar datos clínicos sensibles.</p>
           </div>
 
           <div 
             style={{ padding: '2rem 1rem', borderLeft: '1px solid var(--border-light)', borderRight: '1px solid var(--border-light)' }}
           >
             <FileCheck2 size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Estética y dermatología</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>Consentimientos listos para procedimientos privados, recetas firmadas y expedientes ordenados para consulta diaria.</p>
+            <h3 className="font-serif landing-card-title">Estética y dermatología</h3>
+            <p className="landing-card-text">Consentimientos listos para procedimientos privados, recetas firmadas y expedientes ordenados para consulta diaria.</p>
           </div>
 
           <div 
             style={{ padding: '2rem 1rem' }}
           >
             <CalendarCheck size={36} color="var(--primary)" style={{ margin: '0 auto 1.5rem auto' }} />
-            <h3 className="font-serif" style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: 600 }}>Beta Fundador</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 300 }}>$499 MXN/mes para los primeros médicos. Incluye setup asistido, soporte directo y precio congelado 12 meses.</p>
+            <h3 className="font-serif landing-card-title">Beta Fundador</h3>
+            <p className="landing-card-text">$499 MXN/mes para los primeros médicos. Incluye setup asistido, soporte directo y precio congelado 12 meses.</p>
           </div>
 
         </div>

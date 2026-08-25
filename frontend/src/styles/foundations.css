@@ -1,0 +1,141 @@
+/* ═══════════════════════════════════════════════════════════════
+   Fundaciones — Fase 1 del rediseño (Apple design)
+
+   SOLO tokens. Ninguna regla de este archivo pinta un elemento:
+   se importa ANTES que el resto de index.css a propósito, para que
+   cualquier regla existente siga ganando hasta que su pantalla se
+   migre en las fases 2-6.
+
+   Los tokens de color siguen viviendo en themes.ts (Fase 13A) y se
+   aplican inline sobre <html>. Lo que se deriva aquí usa color-mix
+   sobre esos tokens, así que sigue al tema activo sin duplicarlo.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Tipografía ───────────────────────────────────────────────
+     Tracking y leading van EMPAREJADOS con cada tamaño (§15): el
+     texto grande necesita tracking negativo y leading apretado; el
+     pequeño, tracking positivo y leading holgado. Un letter-spacing
+     único para toda la app está mal en algún tamaño.
+
+     1rem = el tamaño base del usuario × 87.5% (ver `html` abajo).  */
+
+  --text-2xs:      0.65rem;   /* overlines, badges, contadores */
+  --text-2xs-track:  0.04em;
+  --text-2xs-lead:   1.35;
+
+  --text-xs:       0.72rem;   /* metadatos, timestamps */
+  --text-xs-track:   0.025em;
+  --text-xs-lead:    1.4;
+
+  --text-sm:       0.8rem;    /* labels de formulario, celdas densas */
+  --text-sm-track:   0.015em;
+  --text-sm-lead:    1.45;
+
+  --text-base:     0.875rem;  /* texto secundario */
+  --text-base-track: 0.005em;
+  --text-base-lead:  1.5;
+
+  --text-body:     1rem;      /* cuerpo por defecto */
+  --text-body-track: 0;
+  --text-body-lead:  1.6;
+
+  --text-lg:       1.2rem;    /* títulos de sección */
+  --text-lg-track:  -0.006em;
+  --text-lg-lead:    1.35;
+
+  --text-xl:       1.5rem;    /* títulos de tarjeta grande */
+  --text-xl-track:  -0.014em;
+  --text-xl-lead:    1.2;
+
+  --text-2xl:      1.9rem;    /* título de página */
+  --text-2xl-track: -0.021em;
+  --text-2xl-lead:   1.1;
+
+  --text-display:  clamp(2.2rem, 5vw, 3.6rem);  /* solo superficies públicas */
+  --text-display-track: -0.028em;
+  --text-display-lead:  1.03;
+
+  /* Pesos: la jerarquía se construye con peso + tamaño + leading
+     como conjunto, no con tamaño solo (§15). */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  /* ── Motion ───────────────────────────────────────────────────
+     Los springs viven en src/motion.ts porque los consume JS
+     (motion/react). Aquí solo lo que CSS puede ejecutar:
+     micro-feedback y transiciones no gestuales.
+
+     `--ease-exit` es el inverso exacto de `--ease-enter`
+     (1-x2, 1-y2, 1-x1, 1-y1), para que una transición reversible
+     vuelva por el mismo camino por el que salió (§7).            */
+
+  --ease-enter: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-exit:  cubic-bezier(1, 0, 0.68, 0.28);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --duration-press:  100ms;   /* feedback de pulsación: casi instantáneo */
+  --duration-fast:   150ms;   /* hover, color, borde */
+  --duration-base:   200ms;   /* cambios de estado */
+  --duration-slow:   350ms;   /* entradas de superficie */
+
+  /* ── Materiales (§12) ─────────────────────────────────────────
+     Superficie más grande = material más grueso: más blur y sombra
+     más profunda. `color-mix` sobre --color-bg hace que el tinte
+     siga al tema activo sin declararlo 10 veces.                 */
+
+  --material-blur-thin:    12px;
+  --material-blur-regular: 20px;
+  --material-blur-thick:   40px;
+  --material-saturate:     180%;
+
+  --material-thin:    color-mix(in srgb, var(--color-bg) 55%, transparent);
+  --material-regular: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  --material-thick:   color-mix(in srgb, var(--color-bg) 86%, transparent);
+
+  /* Borde superior claro = luz atrapada por el material. */
+  --material-edge: rgba(255, 255, 255, 0.08);
+
+  /* Vibrancy: sobre material translúcido el texto no puede ser gris
+     plano — sube contraste, sube peso y abre un poco el tracking. */
+  --vibrancy-weight: var(--weight-medium);
+  --vibrancy-track:  0.01em;
+
+  /* ── Elevación por tamaño de superficie ───────────────────────
+     Un chip flotando 2px y una sheet a pantalla completa no pueden
+     compartir sombra. */
+  --shadow-chip:  0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-card:  0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-panel: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-sheet: 0 -12px 48px rgba(0, 0, 0, 0.55);
+
+  /* ── Espaciado en rem ─────────────────────────────────────────
+     En rem, no px, para que el layout escale CON el texto cuando el
+     usuario sube el tamaño de letra del sistema (§15).           */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Área táctil mínima cómoda + holgura de hit (§10). */
+  --hit-target: 2.75rem;
+  --hit-padding: 0.625rem;
+}
+
+/* Modo claro: las sombras son mucho más suaves sobre fondo claro, y el
+   canto del material cambia de naturaleza. En oscuro es luz (blanco tenue
+   sobre fondo oscuro, se ve). En claro, blanco al 65% sobre un material
+   casi blanco es sencillamente invisible: ahí el canto tiene que ser la
+   sombra del borde, una línea oscura de muy baja opacidad. */
+:root[data-theme-mode='light'] {
+  --material-edge: rgba(15, 23, 42, 0.09);
+  --shadow-chip:  0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-card:  0 2px 8px rgba(15, 23, 42, 0.09);
+  --shadow-panel: 0 8px 28px rgba(15, 23, 42, 0.13);
+  --shadow-sheet: 0 -12px 48px rgba(15, 23, 42, 0.16);
+}

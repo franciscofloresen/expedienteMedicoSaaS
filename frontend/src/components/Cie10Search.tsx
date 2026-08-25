@@ -53,7 +53,12 @@ export default function Cie10Search({ onSelect, defaultValue, name, clearOnSelec
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 200)} // delay to allow click
+          /* Se cierra de inmediato. Antes había un setTimeout de 200ms "para
+             dar tiempo al clic", pero las opciones ya hacen preventDefault en
+             onMouseDown, así que el blur ni siquiera llega a dispararse al
+             elegir una. Los 200ms solo servían para que el menú se quedara
+             colgado al salir del campo. */
+          onBlur={() => setIsOpen(false)}
           autoComplete="off"
           role="combobox"
           aria-expanded={isOpen}
@@ -83,7 +88,7 @@ export default function Cie10Search({ onSelect, defaultValue, name, clearOnSelec
               >
                 <span className="code">{item.code}</span>
                 {item.description}
-                {item.category && <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{item.category}</div>}
+                {item.category && <div className="autocomplete-option-meta">{item.category}</div>}
               </div>
             ))
           ) : isError ? (

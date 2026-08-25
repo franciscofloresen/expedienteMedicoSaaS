@@ -30,7 +30,7 @@ export default function FavoritesPicker({
       </span>
 
       {favoritos.length === 0 ? (
-        <span className="text-muted" style={{ fontSize: '0.78rem' }}>Aún no tienes favoritos.</span>
+        <span className="text-muted text-sm">Aún no tienes favoritos.</span>
       ) : (
         favoritos.map((f) => (
           <button
