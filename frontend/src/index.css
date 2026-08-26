@@ -253,6 +253,19 @@ h4 {
 }
 
 .tracking-widest { letter-spacing: 0.3em; }
+
+/* Visible solo para lectores de pantalla (encabezados de sección, etc.). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 .tracking-wider { letter-spacing: 0.1em; }
 
 /* La overline ya tenía el tracking correcto: versalitas pequeñas son el
@@ -2284,9 +2297,40 @@ dialog.modal-dialog::backdrop {
   --color-text: #E6EDF3;
   --color-muted: #AAB6C3;
   --color-muted-strong: #C2CBD6;
+
+  /* Materiales y sombras re-derivados AQUÍ: los de :root computan en <html>
+     con el --color-bg del tema del médico, y esta página es siempre oscura.
+     Sin esto, un médico con tema claro vería chrome de vidrio claro sobre
+     el vídeo oscuro. */
+  --material-thin:    color-mix(in srgb, var(--color-bg) 55%, transparent);
+  --material-regular: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  --material-thick:   color-mix(in srgb, var(--color-bg) 86%, transparent);
+  --material-edge: rgba(255, 255, 255, 0.08);
+  --shadow-card:  0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-panel: 0 8px 28px rgba(0, 0, 0, 0.45);
+
+  /* Ritmo simétrico: un solo gutter para ambos lados y un solo padding
+     vertical para todas las secciones. La simetría es un token compartido,
+     no una coincidencia de valores sueltos. */
+  --landing-gutter: clamp(1.25rem, 5vw, 3rem);
+  --landing-section-pad: clamp(3.5rem, 9vw, 6rem);
+
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background-color: var(--color-bg);
   color: var(--color-text);
   color-scheme: dark;
+}
+
+/* Contenedor compartido: mismo ancho máximo y mismo margen a ambos lados
+   en todas las secciones, para que los bordes de columna se alineen
+   verticalmente a lo largo de la página. */
+.landing-section-inner {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--landing-gutter);
 }
 
 /* ── Landing navbar (marketing page) ───────────────────────── */
@@ -2307,10 +2351,6 @@ dialog.modal-dialog::backdrop {
   border-bottom: 1px solid var(--material-edge);
   backdrop-filter: blur(var(--material-blur-regular)) saturate(var(--material-saturate));
   -webkit-backdrop-filter: blur(var(--material-blur-regular)) saturate(var(--material-saturate));
-}
-
-.landing-nav-actions {
-  font-weight: var(--vibrancy-weight);
 }
 
 .landing-brand {
@@ -2360,7 +2400,8 @@ dialog.modal-dialog::backdrop {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-weight: 500;
+  /* Vibrancy (§12): texto sobre material translúcido pide algo más de peso. */
+  font-weight: var(--vibrancy-weight);
   color: #fff;
   flex-shrink: 0;
 }
@@ -2388,8 +2429,8 @@ dialog.modal-dialog::backdrop {
 }
 
 .landing-cta {
-  background-color: var(--primary);
-  color: #04211f;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
@@ -2430,6 +2471,85 @@ dialog.modal-dialog::backdrop {
   border-bottom-color: var(--color-primary);
 }
 
+/* ── Hero ────────────────────────────────────────────────────────
+   Vídeo de fondo, scrim de contraste y un panel de material grueso
+   perfectamente centrado. Padding vertical igual arriba y abajo (el
+   mínimo ya libra la altura de la navbar fija). */
+.landing-hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: clamp(6rem, 14vh, 8rem) var(--landing-gutter);
+}
+
+.landing-hero-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Un solo elemento con dos capas: tinte azul uniforme + degradado que
+   ancla el pie del hero a la sección siguiente. */
+.landing-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent 60%),
+    rgba(0, 15, 30, 0.6);
+}
+
+/* Superficie grande = material grueso (§12): más blur, sombra de panel y
+   canto superior iluminado. */
+.landing-hero-panel {
+  position: relative;
+  max-width: 56rem;
+  padding: clamp(2.5rem, 6vw, 4rem);
+  text-align: center;
+  border-radius: 24px;
+  background-color: var(--material-thick);
+  backdrop-filter: blur(var(--material-blur-thick)) saturate(var(--material-saturate));
+  -webkit-backdrop-filter: blur(var(--material-blur-thick)) saturate(var(--material-saturate));
+  border: 1px solid rgba(230, 237, 243, 0.12);
+  border-top-color: var(--material-edge);
+  box-shadow: var(--shadow-panel);
+  animation: landing-hero-rise 0.7s var(--ease-enter) backwards;
+}
+
+@keyframes landing-hero-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Overline con reglas espejadas a ambos lados: simetría bilateral con
+   pseudo-elementos, sin spans decorativos en el markup. */
+.landing-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-2xs);
+  line-height: var(--text-2xs-lead);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+}
+
+.landing-eyebrow::before,
+.landing-eyebrow::after {
+  content: '';
+  height: 1px;
+  width: 2rem;
+  flex-shrink: 0;
+  background-color: var(--color-primary);
+}
+
 /* ── Tipografía de la landing ────────────────────────────────────
    Aquí sí hay sitio para tipografía display, y a 5rem el tracking negativo
    deja de ser un matiz: sin él las letras se leen sueltas (§15). */
@@ -2442,6 +2562,11 @@ dialog.modal-dialog::backdrop {
   text-wrap: balance;
   margin: 0 0 var(--space-5);
   color: var(--color-text);
+}
+
+.landing-display-accent {
+  font-style: italic;
+  color: var(--color-primary);
 }
 
 .landing-lede {
@@ -2503,6 +2628,159 @@ dialog.modal-dialog::backdrop {
   /* Estaba en 300: un peso light sobre fondo oscuro pierde trazo y se lee
      peor. El texto secundario se separa por color, no adelgazando. */
   font-weight: var(--weight-regular);
+  margin: 0;
+}
+
+/* ── Pilares: tres columnas idénticas con divisores hairline ───── */
+.landing-pillars {
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding-block: var(--landing-section-pad);
+}
+
+.landing-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  text-align: center;
+}
+
+.landing-pillar {
+  padding: var(--space-6) var(--space-4);
+}
+
+/* Divisor entre columnas, no borde por tarjeta: 3 columnas → 2 líneas,
+   simétricas respecto al eje central. */
+.landing-pillar + .landing-pillar {
+  border-left: 1px solid var(--color-border);
+}
+
+.landing-pillar-icon {
+  display: block;
+  margin: 0 auto var(--space-5);
+  color: var(--color-primary);
+}
+
+/* ── Información: retícula 2×2 de tarjetas idénticas ───────────── */
+.landing-info {
+  background-color: var(--color-bg);
+  padding-block: var(--landing-section-pad);
+}
+
+.landing-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.landing-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.landing-info-card.is-accent {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background-color: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+}
+
+.landing-info-icon {
+  color: var(--color-primary);
+}
+
+.landing-info-title {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg-lead);
+  letter-spacing: var(--text-lg-track);
+  font-weight: var(--weight-semibold);
+  margin: 0;
+}
+
+.landing-info-text {
+  color: var(--color-muted);
+  font-size: var(--text-base);
+  line-height: var(--text-base-lead);
+  letter-spacing: var(--text-base-track);
+  margin: 0;
+}
+
+/* ── Footer: columna centrada, eje único ───────────────────────── */
+.landing-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-6);
+  padding: var(--landing-section-pad) var(--landing-gutter);
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.landing-footer-brand {
+  font-size: var(--text-xl);
+  line-height: var(--text-xl-lead);
+  letter-spacing: var(--text-xl-track);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.landing-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4) var(--space-6);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.landing-footer-links a {
+  color: var(--color-muted);
+  text-decoration: none;
+  /* Holgura de hit (§10) sin alterar la geometría visual. */
+  padding: var(--space-2);
+  margin: calc(-1 * var(--space-2));
+  transition: color var(--duration-fast) var(--ease-enter);
+}
+
+.landing-footer-links a:hover,
+.landing-footer-links a:focus-visible {
+  color: var(--color-primary);
+}
+
+.landing-footer-note {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs-lead);
+  letter-spacing: var(--text-xs-track);
+  margin: 0;
+}
+
+/* ── Breakpoints de las retículas ───────────────────────────────
+   Tablet: los pilares pasan de 3 columnas a 1 y el divisor rota de
+   vertical a horizontal (misma jerarquía, otro eje). El mosaico 2×2
+   aguanta hasta el móvil, donde colapsa a una columna. */
+@media (max-width: 900px) {
+  .landing-pillar-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .landing-pillar + .landing-pillar {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@media (max-width: 720px) {
+  .landing-info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tablet / large phone */
@@ -2529,6 +2807,48 @@ dialog.modal-dialog::backdrop {
    the single-token brand name crowding the auth buttons. */
 @media (max-width: 360px) {
   .landing-brand-text { display: none; }
+}
+
+/* ── Accesibilidad de la landing: las tres señales del sistema ──
+   Los overrides globales de :root no alcanzan a .landing-root porque
+   sus tokens están declarados directamente sobre el div (una
+   declaración propia gana a una heredada), así que se atienden aquí
+   con los tokens scoped. */
+
+@media (prefers-reduced-motion: reduce) {
+  /* La entrada del panel pasa de deslizar+escalar a solo aparecer. */
+  @keyframes landing-hero-rise {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .landing-hero-panel {
+    animation-duration: var(--duration-base) !important;
+  }
+
+  /* Un vídeo a pantalla completa ES movimiento (§14). Fuera; el scrim
+     sobre el fondo oscuro mantiene el contraste del titular. */
+  .landing-hero-media {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .landing-root {
+    --material-thin: var(--color-surface);
+    --material-regular: var(--color-surface);
+    --material-thick: var(--color-bg);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .landing-root {
+    --color-muted: var(--color-muted-strong);
+    --material-thin: var(--color-surface);
+    --material-regular: var(--color-surface);
+    --material-thick: var(--color-bg);
+    --material-edge: var(--color-border);
+  }
 }
 
 /* ── Theme picker (Fase 13A — Apariencia) ──────────────────── */
