@@ -93,13 +93,20 @@ describe('contrato de las fundaciones', () => {
     // applyThemeTokens escribe los tokens de color inline sobre <html>, y el
     // inline gana a cualquier regla de hoja. Un override sin !important dentro
     // de las media queries de accesibilidad es código muerto silencioso.
+    //
+    // La excepción es .landing-root: ahí los tokens se declaran en la hoja
+    // sobre el propio div (nunca inline), y una declaración propia gana a la
+    // heredada sin necesitar !important.
     const bloques = [...index.matchAll(
       /@media \(prefers-(?:reduced-transparency|contrast)[^)]*\) \{([\s\S]*?)\n\}/g,
     )].map(m => m[1]);
-    expect(bloques.length).toBe(2);
+    expect(bloques.length).toBe(4);
     for (const bloque of bloques) {
-      for (const [, decl] of bloque.matchAll(/(--color-[\w-]+:[^;]+);/g)) {
-        expect(decl, `override sin !important: ${decl}`).toContain('!important');
+      for (const [, selector, cuerpo] of bloque.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+        if (!selector.includes(':root')) continue;
+        for (const [, decl] of cuerpo.matchAll(/(--color-[\w-]+:[^;]+);/g)) {
+          expect(decl, `override sin !important: ${decl}`).toContain('!important');
+        }
       }
     }
   });
